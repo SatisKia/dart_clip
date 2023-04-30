@@ -1016,7 +1016,7 @@ class ClipToken {
 			break;
 		case CLIP_MODE_H_TIME:
 			real.set( value.timeMinus() ? "-" : "" );
-			real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( value.hour() ) );
+			real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( value.hour(), CLIP_DEFPREC ) );
 			imag.set( "" );
 			break;
 		case CLIP_MODE_M_TIME:
@@ -1024,10 +1024,10 @@ class ClipToken {
 				real.set( value.timeMinus() ? "-" : "" );
 				real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( MATH_INT( value.hour() ) ) );
 				real.add( ":" );
-				real.add( ((value.min () < 10.0) ? "0" : "") + floatToString( value.min() ) );
+				real.add( ((value.min () < 10.0) ? "0" : "") + floatToString( value.min(), CLIP_DEFPREC ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.min() < 10.0) ? "0" : "") + floatToString( value.min() ) );
+				real.add( ((value.min() < 10.0) ? "0" : "") + floatToString( value.min(), CLIP_DEFPREC ) );
 			}
 			imag.set( "" );
 			break;
@@ -1038,15 +1038,15 @@ class ClipToken {
 				real.add( ":" );
 				real.add( ((value.min () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec () < 10.0) ? "0" : "") + floatToString( value.sec() ) );
+				real.add( ((value.sec () < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
 			} else if( MATH_INT( value.min() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
 				real.add( ((value.min() < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec() ) );
+				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec() ) );
+				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
 			}
 			imag.set( "" );
 			break;
@@ -1059,22 +1059,22 @@ class ClipToken {
 				real.add( ":" );
 				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame() ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
 			} else if( MATH_INT( value.min() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
 				real.add( ((value.min  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
 				real.add( ":" );
 				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame() ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
 			} else if( MATH_INT( value.sec() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
 				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame() ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame() ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
 			}
 			imag.set( "" );
 			break;

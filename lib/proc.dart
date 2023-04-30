@@ -3699,18 +3699,87 @@ class ClipProc {
 			}
 		}
 	}
+	MPData _mpCombination( int n, int r ){
+		MPData ret;
+
+		ret = MPData();
+		if( n < r ){
+			_proc_mp.set( ret, _proc_mp.I( "0" ) );
+			return ret;
+		}
+		if( n - r < r ) r = n - r;
+		if( r == 0 ){
+			_proc_mp.set( ret, _proc_mp.I( "1" ) );
+			return ret;
+		}
+		if( r == 1 ){
+			_proc_mp.str2num( ret, "$n" );
+			return ret;
+		}
+
+		List<int> numer = List.filled( r, 0 );
+		List<int> denom = List.filled( r, 0 );
+
+		int i, k;
+		int pivot;
+		int offset;
+
+		for( i = 0; i < r; i++ ){
+			numer[i] = n - r + i + 1;
+			denom[i] = i + 1;
+		}
+
+		for( k = 2; k <= r; k++ ){
+			pivot = denom[k - 1];
+			if( pivot > 1 ){
+				offset = MATH_IMOD( n - r, k );
+				for( i = k - 1; i < r; i += k ){
+					numer[i - offset] = numer[i - offset] ~/ pivot;
+					denom[i] = denom[i] ~/ pivot;
+				}
+			}
+		}
+
+		ret = MPData();
+		_proc_mp.set( ret, _proc_mp.I( "1" ) );
+		MPData ii = MPData();
+		for( i = 0; i < r; i++ ){
+			if( numer[i] > 1 ){
+				_proc_mp.str2num( ii, "${numer[i]}" );
+				_proc_mp.mul( ret, ret, ii );
+			}
+		}
+		return ret;
+	}
+	MPData _mpFactorial( int n ){
+		if( n == 0 ){
+			MPData ret = MPData();
+			_proc_mp.set( ret, _proc_mp.I( "1" ) );
+			return ret;
+		}
+		MPData value = _mpFactorial( n ~/ 2 );
+		_proc_mp.mul( value, value, value );
+		_proc_mp.mul( value, value, _mpCombination( n, n ~/ 2 ) );
+		if( (n & 1) != 0 ){
+			MPData tmp = MPData();
+			_proc_mp.str2num( tmp, "${(n + 1) ~/ 2}" );
+			_proc_mp.mul( value, value, tmp );
+		}
+		return value;
+	}
 	void mpFactorial( MPData ret, int x ){
 		bool m = false;
 		if( x < 0 ){
 			m = true;
 			x = 0 - x;
 		}
-		_proc_mp.str2num( ret, "1" );
-		MPData ii = MPData();
-		for( int i = 2; i <= x; i++ ){
-			_proc_mp.str2num( ii, "$i" );
-			_proc_mp.mul( ret, ret, ii );
-		}
+//		_proc_mp.str2num( ret, "1" );
+//		MPData ii = MPData();
+//		for( int i = 2; i <= x; i++ ){
+//			_proc_mp.str2num( ii, "$i" );
+//			_proc_mp.mul( ret, ret, ii );
+//		}
+		_proc_mp.set( ret, _mpFactorial( x ) );
 		if( m ){
 			_proc_mp.neg( ret );
 		}
