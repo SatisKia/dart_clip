@@ -37,7 +37,7 @@ class EasyCanvas {
 		};
 		gWorldTextColor = ( gWorld, text, x, y, color, right ){
 			if( right ){
-				x -= curCanvas().stringWidth( text );
+				x -= curCanvas().stringWidth( text ).toInt();
 			}
 			Canvas canvas = curCanvas();
 			canvas.setColorBGR( curPaletteColor( color ) );

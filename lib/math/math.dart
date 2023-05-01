@@ -335,6 +335,9 @@ double stringToFloat( String str, int top, ParamInteger stop ){
 		}
 	}
 	stop.set( i );
+	if( i == 0 ){
+		return 0;
+	}
 	return double.parse( str.substring( top, i ) );
 }
 

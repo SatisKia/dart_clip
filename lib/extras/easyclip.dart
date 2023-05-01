@@ -117,9 +117,9 @@ class EasyClip {
 	void _setEnv(){
 		setClip( this );
 		setProcEnv( _procEnv );
-    if( _canvasEnv != null ){
-      setCanvasEnv( _canvasEnv! );
-    }
+		if( _canvasEnv != null ){
+			setCanvasEnv( _canvasEnv! );
+		}
 	}
 
 	ClipProc proc(){
@@ -130,10 +130,10 @@ class EasyClip {
 		_setEnv();
 		return _param;
 	}
-  Canvas canvas(){
-    _setEnv();
-    return _canvas!;
-  }
+	Canvas canvas(){
+		_setEnv();
+		return _canvas!;
+	}
 	ClipGWorld gWorld(){
 		_setEnv();
 		return procGWorld();
@@ -694,7 +694,7 @@ class EasyClip {
 		_canvasEnv ??= CanvasEnv();
 		setCanvasEnv( _canvasEnv! );
 	}
-	Canvas setCanvas( int width, int height ){
+	Canvas createCanvas( [int width = 0, int height = 0] ){
 		_useCanvas();
 		_canvas = Canvas( width, height );
 		return _canvas!;
@@ -722,7 +722,7 @@ class EasyClip {
 			sy = y * scale;
 			for( x = 0; x < width; x++ ){
 				_canvas!.setColorBGR( gWorld.rgbFlag() ? CLIP_RGB2BGR( image[yy + x] ) : _palette![image[yy + x]] );
-				_canvas!.fill( x * scale, sy, scale, scale );
+				_canvas!.fill( x * scale, sy, scale + 0.2, scale + 0.2 );
 			}
 		}
 

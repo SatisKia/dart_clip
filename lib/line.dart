@@ -20,17 +20,26 @@ class ClipLineData {
 		_comment = null;
 		_next    = null;
 	}
-	void setToken( ClipToken token ){
+	void setToken( ClipToken? token ){
 		_token = token;
 	}
-	ClipToken token(){
-		return _token!;
+	ClipToken? token(){
+		return _token;
+	}
+	void setNum( int num ){
+		_num = num;
 	}
 	int num(){
 		return _num;
 	}
+	void setComment( String? comment ){
+		_comment = comment;
+	}
 	String? comment(){
 		return _comment;
+	}
+	void setNext( ClipLineData? next ){
+		_next = next;
 	}
 	ClipLineData? next(){
 		return _next;
@@ -123,7 +132,7 @@ class ClipLine {
 		while( top + cur < line.length ){
 			if( charAt( line, top + cur ) == ';' ){
 				if( !_checkEscape( line, top, cur ) ){
-					curLine = line.substring( top, cur );
+					curLine = line.substring( top, top + cur );
 
 					if( (ret = tmp._token!.regString( param, curLine, strToVal )) != CLIP_NO_ERR ){
 						return ret;
@@ -150,13 +159,13 @@ class ClipLine {
 						tmp._comment = tmp._comment! + charAt( line, tmp2 );
 					}
 
-					line = line.substring( top, cur );
+					line = line.substring( top, top + cur );
 					curLine = line;
 					continue;
 				}
 			}
 			cur++;
-			curLine = line.substring( top, cur );
+			curLine = line.substring( top, top + cur );
 		}
 
 		_nextNum++;

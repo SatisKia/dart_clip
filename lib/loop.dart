@@ -113,9 +113,9 @@ class ClipLoop {
 		if( tmp._subFlag ){
 			tmp._line = null;
 		} else {
-			tmp._line._token = null;
-			if( tmp._line._comment != null ){
-				tmp._line._comment = null;
+			tmp._line.setToken( null );
+			if( tmp._line.comment() != null ){
+				tmp._line.setComment( null );
 			}
 			tmp._line = null;
 		}
@@ -235,12 +235,16 @@ class ClipLoop {
 		return CLIP_NO_ERR;
 	}
 	int _loopNext( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
+		if( _this._curLoop._endCnt > 0 ){
+			_this._curLoop._endCnt--;
+		}
+
 		ClipToken tmp;
 		int ret;
 
 		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_FOR ){
 			// for(<初期設定文>)を<初期設定文>に加工する
-			tmp = _this._curLoop._top!._line._token;
+			tmp = _this._curLoop._top!._line.token();
 			tmp.del(  0 );	// "for"
 			tmp.del(  0 );	// "("
 			tmp.del( -1 );	// ")"
@@ -251,7 +255,7 @@ class ClipLoop {
 			} else if( _this._curLoop._top!._next!._subFlag ){
 				return CLIP_PROC_ERR_STAT_FOR_CON;
 			}
-			tmp = _this._curLoop._top!._next!._line._token;
+			tmp = _this._curLoop._top!._next!._line.token();
 			if( tmp.count() > 0 ){
 				tmp.insCode( 0, CLIP_CODE_STATEMENT, CLIP_STAT_FOR );	// "for"
 				tmp.insCode( 1, CLIP_CODE_TOP,       null          );	// "("
@@ -308,8 +312,8 @@ class ClipLoop {
 		ParamVoid tmp = ParamVoid( _curLoop._newLine() );
 		ParamBoolean beforeFlag = ParamBoolean( false );
 
-		line.token().beginGetToken();
-		if( line.token().getToken() ){
+		line.token()!.beginGetToken();
+		if( line.token()!.getToken() ){
 			code  = getCode();
 			token = getToken();
 
@@ -345,14 +349,13 @@ class ClipLoop {
 
 		_ClipLoop _obj = tmp.obj() as _ClipLoop;
 		_obj._line = ClipLineData();
-		_obj._line._token = ClipToken();
-		line.token().dup( _obj._line._token );
-		_obj._line._num = line.num();
+		_obj._line.setToken( ClipToken() );
+		line.token()!.dup( _obj._line.token() );
+		_obj._line.setNum( line.num() );
 		if( line.comment() != null ){
-			_obj._line._comment = "";
-			_obj._line._comment = line.comment();
+			_obj._line.setComment( line.comment() );
 		}
-		_obj._line._next = line.next();
+		_obj._line.setNext( line.next() );
 		_obj._subFlag = false;
 
 		if( beforeFlag.val() ){
