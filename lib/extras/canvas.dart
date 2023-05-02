@@ -26,7 +26,7 @@ class CanvasEnv {
 		_colorA = 255;
 
 		_fontSize = 0.0;
-		_font = "";
+		_font = null;
 
 		_strokeWidth = 1.0;
 	}
@@ -77,7 +77,9 @@ class Canvas {
 
 	void setFont( double size, [String? family] ){
 		_canvasEnv._fontSize = size;
-		_canvasEnv._font = family;
+		if( family != null ) {
+			_canvasEnv._font = family;
+		}
 	}
 
 	void setStrokeWidth( double width ){

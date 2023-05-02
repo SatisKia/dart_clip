@@ -45,4 +45,8 @@ class EasyCanvas {
 			canvas.setColorBGR( curPaletteColor( gWorld.color() ) );
 		};
 	}
+
+	void setFont( double size, [String? family] ){
+		curCanvas().setFont( size, family );
+	}
 }
