@@ -1,4 +1,4 @@
-# clip
+# dart_clip
 
 "Calculator Language for Immediate Processing"
 
@@ -11,10 +11,7 @@ For the CLIP language, see "http://www5d.biglobe.ne.jp/~satis/clip/language_e.ht
 pubspec.yaml
 ```yml
 dependencies:
-  clip:
-    git:
-      url: https://github.com/SatisKia/dart_clip.git
-      ref: HEAD
+  dart_clip: ^1.0.1
 ```
 
 ----------
@@ -24,7 +21,7 @@ dependencies:
 It provides the ability to easily run the CLIP engine from Dart.
 
 ```dart
-import 'package:clip/extras/easyclip.dart';
+import 'package:dart_clip/extras/easyclip.dart';
 ```
 
 ### Overwriting functions
@@ -470,7 +467,7 @@ MultiPrec mp = procMultiPrec();
 MultiPrec object for multi-precision computation
 
 ```dart
-import 'package:clip/math/multiprec.dart';
+import 'package:dart_clip/math/multiprec.dart';
 ```
 
 ### MultiPrec object constructor
