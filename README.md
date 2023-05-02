@@ -410,7 +410,7 @@ clip.resizeCanvas( width, height );
 
 ```dart
 clip.updateCanvas();
-clip.updateCanvas( scale ); //  If scale is specified, the image memory in the ClipGWorld object will be enlarged and drawn.
+clip.updateCanvas( scale ); // If scale is specified, the image memory in the ClipGWorld object will be enlarged and drawn.
 ```
 
 ```dart
