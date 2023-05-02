@@ -401,7 +401,6 @@ int bgrColor = clip.paletteColor( index );
 ### Canvas
 
 ```dart
-Canvas canvas = clip.createCanvas();
 Canvas canvas = clip.createCanvas( width, height );
 ```
 

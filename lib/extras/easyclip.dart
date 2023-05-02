@@ -694,7 +694,7 @@ class EasyClip {
 		_canvasEnv ??= CanvasEnv();
 		setCanvasEnv( _canvasEnv! );
 	}
-	Canvas createCanvas( [int width = 0, int height = 0] ){
+	Canvas createCanvas( int width, int height ){
 		_useCanvas();
 		_canvas = Canvas( width, height );
 		return _canvas!;
