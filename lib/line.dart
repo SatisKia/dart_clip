@@ -108,7 +108,7 @@ class ClipLine {
 		}
 
 		bool check = false;
-		while( isCharEscape( line, top + cur ) ){
+		while( ClipGlobal.isCharEscape( line, top + cur ) ){
 			check = check ? false : true;
 			cur--;
 			if( cur < top ){
@@ -130,11 +130,11 @@ class ClipLine {
 		int cur = 0;
 
 		while( top + cur < line.length ){
-			if( charAt( line, top + cur ) == ';' ){
+			if( ClipMath.charAt( line, top + cur ) == ';' ){
 				if( !_checkEscape( line, top, cur ) ){
 					curLine = line.substring( top, top + cur );
 
-					if( (ret = tmp._token!.regString( param, curLine, strToVal )) != CLIP_NO_ERR ){
+					if( (ret = tmp._token!.regString( param, curLine, strToVal )) != ClipGlobal.noErr ){
 						return ret;
 					}
 
@@ -146,17 +146,17 @@ class ClipLine {
 
 					continue;
 				}
-			} else if( charAt( line, top + cur ) == '#' ){
+			} else if( ClipMath.charAt( line, top + cur ) == '#' ){
 				if( !_checkEscape( line, top, cur ) ){
 					// コメントを登録する
 					len = line.length - (top + cur + 1);
 					tmp._comment = "";
 					for( i = 0; i < len; i++ ){
 						int tmp2 = top + cur + 1 + i;
-						if( isCharEnter( line, tmp2 ) ){
+						if( ClipGlobal.isCharEnter( line, tmp2 ) ){
 							break;
 						}
-						tmp._comment = tmp._comment! + charAt( line, tmp2 );
+						tmp._comment = tmp._comment! + ClipMath.charAt( line, tmp2 );
 					}
 
 					line = line.substring( top, top + cur );
@@ -178,7 +178,7 @@ class ClipLine {
 		ClipLineData tmp = _newLine();
 
 		tmp._token = ClipToken();
-		if( (ret = line._token!.dup( tmp._token! )) != CLIP_NO_ERR ){
+		if( (ret = line._token!.dup( tmp._token! )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -193,7 +193,7 @@ class ClipLine {
 			tmp._comment = line._comment;
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// 行を確認する

@@ -17,7 +17,7 @@ class MathMatrix {
 		_row = row; // 行数
 		_col = col; // 列数
 		_len = _row * _col; // 行×列をあらかじめ計算した値
-		_mat = newValueArray( _len + 1/*番人*/ );
+		_mat = MathValue.newArray( _len + 1/*番人*/ );
 	}
 
 	// 行列のサイズ変更
@@ -30,7 +30,7 @@ class MathMatrix {
 		if( (_len = row * col) > 0 ){
 			int i, j;
 
-			List<MathValue> mat = newValueArray( _len + 1/*番人*/ );
+			List<MathValue> mat = MathValue.newArray( _len + 1/*番人*/ );
 
 			// 既存データをコピーする
 			int m = (row < _row) ? row : _row;
@@ -52,10 +52,10 @@ class MathMatrix {
 	}
 	void _resize( MathMatrix ini ){
 		if( ini._len > _len ){
-			_mat = newValueArray( ini._len + 1/*番人*/ );
+			_mat = MathValue.newArray( ini._len + 1/*番人*/ );
 		} else {
 			// 番人
-			copyValue( _mat[ini._len], _mat[_len] );
+			MathValue.copy( _mat[ini._len], _mat[_len] );
 		}
 		_row = ini._row;
 		_col = ini._col;
@@ -64,7 +64,7 @@ class MathMatrix {
 	void _resize1(){
 		if( _len > 1 ){
 			// 番人
-			copyValue( _mat[1], _mat[_len] );
+			MathValue.copy( _mat[1], _mat[_len] );
 
 			_row = 1;
 			_col = 1;
@@ -127,19 +127,19 @@ class MathMatrix {
 		if( r is MathMatrix ){
 			if( r._len == 1 ){
 				_resize1();
-				copyValue( _mat[0], r._mat[0] );
+				MathValue.copy( _mat[0], r._mat[0] );
 			} else {
 				_resize( r );
 				for( int i = 0; i < _len; i++ ){
-					copyValue( _mat[i], r._mat[i] );
+					MathValue.copy( _mat[i], r._mat[i] );
 				}
 			}
 		} else if( r is MathValue ){
 			_resize1();
-			copyValue( _mat[0], r );
+			MathValue.copy( _mat[0], r );
 		} else {
 			_resize1();
-			_mat[0].ass( MATH_DOUBLE(r) );
+			_mat[0].ass( ClipMath.toDouble(r) );
 		}
 		return this;
 	}
@@ -148,7 +148,7 @@ class MathMatrix {
 	MathMatrix minus(){
 		MathMatrix a = MathMatrix( _row, _col );
 		for( int i = 0; i < _len; i++ ){
-			copyValue( a._mat[i], _mat[i].minus() );
+			MathValue.copy( a._mat[i], _mat[i].minus() );
 		}
 		return a;
 	}
@@ -166,12 +166,12 @@ class MathMatrix {
 				);
 			for( i = 0; i < a._row; i++ ){
 				for( j = 0; j < a._col; j++ ){
-					copyValue( a._val( i, j ), val( i, j ).add( r.val( i, j ) ) );
+					MathValue.copy( a._val( i, j ), val( i, j ).add( r.val( i, j ) ) );
 				}
 			}
 			return a;
 		}
-		return valueToMatrix( _mat[0].add( MATH_DOUBLE(r) ) );
+		return valueToMatrix( _mat[0].add( ClipMath.toDouble(r) ) );
 	}
 	MathMatrix addAndAss( dynamic r ){
 		if( r is MathMatrix ){
@@ -192,7 +192,7 @@ class MathMatrix {
 			}
 		} else {
 			_resize1();
-			_mat[0].addAndAss( MATH_DOUBLE(r) );
+			_mat[0].addAndAss( ClipMath.toDouble(r) );
 		}
 		return this;
 	}
@@ -210,12 +210,12 @@ class MathMatrix {
 				);
 			for( i = 0; i < a._row; i++ ){
 				for( j = 0; j < a._col; j++ ){
-					copyValue( a._val( i, j ), val( i, j ).sub( r.val( i, j ) ) );
+					MathValue.copy( a._val( i, j ), val( i, j ).sub( r.val( i, j ) ) );
 				}
 			}
 			return a;
 		}
-		return valueToMatrix( _mat[0].sub( MATH_DOUBLE(r) ) );
+		return valueToMatrix( _mat[0].sub( ClipMath.toDouble(r) ) );
 	}
 	MathMatrix subAndAss( dynamic r ){
 		if( r is MathMatrix ){
@@ -236,7 +236,7 @@ class MathMatrix {
 			}
 		} else {
 			_resize1();
-			_mat[0].subAndAss( MATH_DOUBLE(r) );
+			_mat[0].subAndAss( ClipMath.toDouble(r) );
 		}
 		return this;
 	}
@@ -244,13 +244,13 @@ class MathMatrix {
 	// 乗算
 	MathMatrix mul( dynamic r ){
 		if( _len == 1 ){
-			return dupMatrix( this ).mulAndAss( r );
+			return dup( this ).mulAndAss( r );
 		}
 		if( r is MathMatrix ){
 			if( r._len == 1 ){
 				MathMatrix a = MathMatrix( _row, _col );
 				for( int i = 0; i < _len; i++ ){
-					copyValue( a._mat[i], _mat[i].mul( r._mat[0] ) );
+					MathValue.copy( a._mat[i], _mat[i].mul( r._mat[0] ) );
 				}
 				return a;
 			}
@@ -266,15 +266,15 @@ class MathMatrix {
 					for( k = 0; k < m; k++ ){
 						t.addAndAss( val( i, k ).mul( r.val( k, j ) ) );
 					}
-					copyValue( a._val( i, j ), t );
+					MathValue.copy( a._val( i, j ), t );
 				}
 			}
 			return a;
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		MathMatrix a = MathMatrix( _row, _col );
 		for( int i = 0; i < _len; i++ ){
-			copyValue( a._mat[i], _mat[i].mul( rr ) );
+			MathValue.copy( a._mat[i], _mat[i].mul( rr ) );
 		}
 		return a;
 	}
@@ -291,9 +291,9 @@ class MathMatrix {
 			}
 		} else {
 			if( _len == 1 ){
-				_mat[0].mulAndAss( MATH_DOUBLE(r) );
+				_mat[0].mulAndAss( ClipMath.toDouble(r) );
 			} else {
-				double rr = MATH_DOUBLE(r);
+				double rr = ClipMath.toDouble(r);
 				for( int i = 0; i < _len; i++ ){
 					_mat[i].mulAndAss( rr );
 				}
@@ -307,12 +307,12 @@ class MathMatrix {
 		MathMatrix a = MathMatrix( _row, _col );
 		if( r is MathMatrix ){
 			for( int i = 0; i < _len; i++ ){
-				copyValue( a._mat[i], _mat[i].div( r._mat[0] ) );
+				MathValue.copy( a._mat[i], _mat[i].div( r._mat[0] ) );
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			for( int i = 0; i < _len; i++ ){
-				copyValue( a._mat[i], _mat[i].div( rr ) );
+				MathValue.copy( a._mat[i], _mat[i].div( rr ) );
 			}
 		}
 		return a;
@@ -328,9 +328,9 @@ class MathMatrix {
 			}
 		} else {
 			if( _len == 1 ){
-				_mat[0].divAndAss( MATH_DOUBLE(r) );
+				_mat[0].divAndAss( ClipMath.toDouble(r) );
 			} else {
-				double rr = MATH_DOUBLE(r);
+				double rr = ClipMath.toDouble(r);
 				for( int i = 0; i < _len; i++ ){
 					_mat[i].divAndAss( rr );
 				}
@@ -344,14 +344,14 @@ class MathMatrix {
 		if( r is MathMatrix ){
 			return valueToMatrix( _mat[0].mod( r._mat[0] ) );
 		}
-		return valueToMatrix( _mat[0].mod( MATH_DOUBLE(r) ) );
+		return valueToMatrix( _mat[0].mod( ClipMath.toDouble(r) ) );
 	}
 	MathMatrix modAndAss( dynamic r ){
 		_resize1();
 		if( r is MathMatrix ){
 			_mat[0].modAndAss( r._mat[0] );
 		} else {
-			_mat[0].modAndAss( MATH_DOUBLE(r) );
+			_mat[0].modAndAss( ClipMath.toDouble(r) );
 		}
 		return this;
 	}
@@ -372,7 +372,7 @@ class MathMatrix {
 		if( _len != 1 ){
 			return false;
 		}
-		return _mat[0].equal( MATH_DOUBLE(r) );
+		return _mat[0].equal( ClipMath.toDouble(r) );
 	}
 	bool notEqual( dynamic r ){
 		if( r is MathMatrix ){
@@ -389,7 +389,7 @@ class MathMatrix {
 		if( _len != 1 ){
 			return true;
 		}
-		return _mat[0].notEqual( MATH_DOUBLE(r) );
+		return _mat[0].notEqual( ClipMath.toDouble(r) );
 	}
 
 	// 転置行列
@@ -398,60 +398,60 @@ class MathMatrix {
 		MathMatrix a = MathMatrix( _col, _row );
 		for( i = 0; i < a._row; i++ ){
 			for( j = 0; j < a._col; j++ ){
-				copyValue( a._val( i, j ), _val( j, i ) );
+				MathValue.copy( a._val( i, j ), _val( j, i ) );
 			}
 		}
 		return a;
 	}
-}
 
-void deleteMatrix( MathMatrix x ){
-//	for( int i = 0; i < x._mat.length; i++ ){
-//		x._mat[i] = null;
-//	}
-//	x._mat = null;
-}
-
-MathMatrix dupMatrix( MathMatrix x ){
-	MathMatrix a = MathMatrix( x._row, x._col );
-	for( int i = 0; i < x._len; i++ ){
-		copyValue( a._mat[i], x._mat[i] );
+	static void deleteMatrix( MathMatrix x ){
+//		for( int i = 0; i < x._mat.length; i++ ){
+//			x._mat[i] = null;
+//		}
+//		x._mat = null;
 	}
-	return a;
-}
 
-MathMatrix arrayToMatrix( List<List<dynamic>> x ){
-	int i, j;
-	int row = x.length;
-	int col = x[0].length;
-	for( i = 1; i < row; i++ ){
-		if( x[i].length < col ){
-			col = x[i].length;
+	static MathMatrix dup( MathMatrix x ){
+		MathMatrix a = MathMatrix( x._row, x._col );
+		for( int i = 0; i < x._len; i++ ){
+			MathValue.copy( a._mat[i], x._mat[i] );
 		}
+		return a;
 	}
-	MathMatrix a = MathMatrix( row, col );
-	for( i = 0; i < row; i++ ){
-		for( j = 0; j < col; j++ ){
-			a._val( i, j ).ass( x[i][j] );
-		}
-	}
-	return a;
-}
-MathMatrix valueToMatrix( MathValue x ){
-	MathMatrix a = MathMatrix();
-	copyValue( a._mat[0], x );
-	return a;
-}
-MathMatrix floatToMatrix( double x ){
-	MathMatrix a = MathMatrix();
-	a._mat[0].setFloat( x );
-	return a;
-}
 
-List<MathMatrix> newMatrixArray( int len ){
-	List<MathMatrix> a = List.filled( len, MathMatrix() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = MathMatrix();
+	static MathMatrix arrayToMatrix( List<List<dynamic>> x ){
+		int i, j;
+		int row = x.length;
+		int col = x[0].length;
+		for( i = 1; i < row; i++ ){
+			if( x[i].length < col ){
+				col = x[i].length;
+			}
+		}
+		MathMatrix a = MathMatrix( row, col );
+		for( i = 0; i < row; i++ ){
+			for( j = 0; j < col; j++ ){
+				a._val( i, j ).ass( x[i][j] );
+			}
+		}
+		return a;
 	}
-	return a;
+	static MathMatrix valueToMatrix( MathValue x ){
+		MathMatrix a = MathMatrix();
+		MathValue.copy( a._mat[0], x );
+		return a;
+	}
+	static MathMatrix floatToMatrix( double x ){
+		MathMatrix a = MathMatrix();
+		a._mat[0].setFloat( x );
+		return a;
+	}
+
+	static List<MathMatrix> newArray( int len ){
+		List<MathMatrix> a = List.filled( len, MathMatrix() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = MathMatrix();
+		}
+		return a;
+	}
 }

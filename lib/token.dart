@@ -6,7 +6,6 @@
 import 'global.dart';
 import 'gworld.dart';
 import 'math/math.dart';
-import 'math/math_env.dart';
 import 'math/matrix.dart';
 import 'math/multiprec.dart';
 import 'math/value.dart';
@@ -14,413 +13,6 @@ import 'param.dart';
 import 'param/integer.dart';
 import 'param/string.dart';
 import 'proc.dart';
-
-List<String> _tokenOp = [
-	"[++]",
-	"[--]",
-	"[~]",
-	"[!]",
-	"[-]",
-	"[+]",
-	"++",
-	"--",
-	"*",
-	"/",
-	"%",
-	"+",
-	"-",
-	"<<",
-	">>",
-	"<",
-	"<=",
-	">",
-	">=",
-	"==",
-	"!=",
-	"&",
-	"^",
-	"|",
-	"&&",
-	"||",
-	"?",
-	"=",
-	"*=",
-	"/=",
-	"%=",
-	"+=",
-	"-=",
-	"<<=",
-	">>=",
-	"&=",
-	"|=",
-	"^=",
-	",",
-	"**",
-	"**=",
-	"!"
-];
-
-List<String> _tokenFunc = [
-	"defined",
-	"indexof",
-	"isinf",
-	"isnan",
-	"rand",
-	"time",
-	"mktime",
-	"tm_sec",
-	"tm_min",
-	"tm_hour",
-	"tm_mday",
-	"tm_mon",
-	"tm_year",
-	"tm_wday",
-	"tm_yday",
-	"tm_xmon",
-	"tm_xyear",
-	"a2d",
-	"a2g",
-	"a2r",
-	"d2a",
-	"d2g",
-	"d2r",
-	"g2a",
-	"g2d",
-	"g2r",
-	"r2a",
-	"r2d",
-	"r2g",
-	"sin",
-	"cos",
-	"tan",
-	"asin",
-	"acos",
-	"atan",
-	"atan2",
-	"sinh",
-	"cosh",
-	"tanh",
-	"asinh",
-	"acosh",
-	"atanh",
-	"exp",
-	"exp10",
-	"ln",
-	"log",
-	"log10",
-	"pow",
-	"sqr",
-	"sqrt",
-	"ceil",
-	"floor",
-	"abs",
-	"ldexp",
-	"frexp",
-	"modf",
-	"fact",
-	"int",
-	"real",
-	"imag",
-	"arg",
-	"norm",
-	"conjg",
-	"polar",
-	"num",
-	"denom",
-	"row",
-	"col",
-	"trans",
-	"strcmp",
-	"stricmp",
-	"strlen",
-	"gwidth",
-	"gheight",
-	"gcolor",
-	"gcolor24",
-	"gcx",
-	"gcy",
-	"wcx",
-	"wcy",
-	"gget",
-	"wget",
-	"gx",
-	"gy",
-	"wx",
-	"wy",
-	"mkcolor",
-	"mkcolors",
-	"col_getr",
-	"col_getg",
-	"col_getb",
-	"call",
-	"eval",
-	"mp",
-	"mround"
-];
-
-List<String> _tokenStat = [
-	"\$LOOPSTART",
-	"\$LOOPEND",
-	"\$LOOPEND_I",
-	"\$LOOPEND_D",
-	"\$LOOPENDE",
-	"\$LOOPENDE_I",
-	"\$LOOPENDE_D",
-	"\$LOOPCONT",
-	"do",
-	"until",
-	"while",
-	"endwhile",
-	"for",
-	"for",
-	"next",
-	"func",
-	"endfunc",
-	"end",
-	"if",
-	"elif",
-	"else",
-	"endif",
-	"switch",
-	"case",
-	"default",
-	"endswi",
-	"breakswi",
-	"continue",
-	"break",
-	"\$CONTINUE",
-	"\$BREAK",
-	"assert",
-	"return",
-	"\$RETURN",
-	"\$RETURN_A"
-];
-
-List<String> _tokenCommand = [
-	"efloat",
-	"float",
-	"gfloat",
-	"ecomplex",
-	"complex",
-	"gcomplex",
-	"prec",
-	"fract",
-	"mfract",
-	"htime",
-	"mtime",
-	"time",
-	"ftime",
-	"fps",
-	"char",
-	"uchar",
-	"short",
-	"ushort",
-	"long",
-	"ulong",
-	"int",
-	"uint",
-	"radix",
-	"mfloat",
-	"mint",
-	"ptype",
-	"rad",
-	"deg",
-	"grad",
-	"angle",
-	"ans",
-	"assert",
-	"warn",
-	"param",
-	"params",
-	"define",
-	"enum",
-	"undef",
-	"var",
-	"array",
-	"local",
-	"global",
-	"label",
-	"parent",
-	"real",
-	"imag",
-	"num",
-	"denom",
-	"mat",
-	"trans",
-	"srand",
-	"localtime",
-	"arraycopy",
-	"arrayfill",
-	"strcpy",
-	"strcat",
-	"strlwr",
-	"strupr",
-	"clear",
-	"error",
-	"print",
-	"println",
-	"sprint",
-	"scan",
-	"gworld",
-	"gworld24",
-	"gclear",
-	"gcolor",
-	"gfill",
-	"gmove",
-	"gtext",
-	"gtextr",
-	"gtextl",
-	"gtextrl",
-	"gline",
-	"gput",
-	"gput24",
-	"gget",
-	"gget24",
-	"gupdate",
-	"window",
-	"wfill",
-	"wmove",
-	"wtext",
-	"wtextr",
-	"wtextl",
-	"wtextrl",
-	"wline",
-	"wput",
-	"wget",
-	"rectangular",
-	"parametric",
-	"polar",
-	"logscale",
-	"nologscale",
-	"plot",
-	"replot",
-	"calculator",
-	"include",
-	"base",
-	"namespace",
-	"use",
-	"unuse",
-	"dump",
-	"log"
-];
-
-List<String> _tokenSe = [
-	"inc",
-	"dec",
-	"neg",
-	"cmp",
-	"not",
-	"minus",
-	"set",
-	"setc",
-	"setf",
-	"setm",
-	"mul",
-	"div",
-	"mod",
-	"add",
-	"adds", // saturate
-	"sub",
-	"subs", // saturate
-	"pow",
-	"shiftl",
-	"shiftr",
-	"and",
-	"or",
-	"xor",
-	"lt", // less than
-	"le",
-	"gt", // greater than
-	"ge",
-	"eq",
-	"neq",
-	"logand",
-	"logor",
-	"mul_a",
-	"div_a",
-	"mod_a",
-	"add_a",
-	"adds_a", // saturate
-	"sub_a",
-	"subs_a", // saturate
-	"pow_a",
-	"shiftl_a",
-	"shiftr_a",
-	"and_a",
-	"or_a",
-	"xor_a",
-	"lt_a", // less than
-	"le_a",
-	"gt_a", // greater than
-	"ge_a",
-	"eq_a",
-	"neq_a",
-	"logand_a",
-	"logor_a",
-	"cnd",
-	"set_f",
-	"set_t",
-	"set_z",
-	"sat", // saturate
-	"sets", // saturate
-	"loopstart",
-	"loopend",
-	"loopend_i",
-	"loopend_d",
-	"loopende",
-	"loopende_i",
-	"loopende_d",
-	"loopcont",
-	"continue",
-	"break",
-	"return",
-	"return_a"
-];
-
-List<String> _tokenDefine = [
-	"DBL_EPSILON",
-	"HUGE_VAL",
-	"RAND_MAX",
-	"FALSE",
-	"TRUE",
-	"BG_COLOR",
-	"TIME_ZONE",
-	"INFINITY",
-	"NAN"
-];
-List<double> _valueDefine = List.filled( _tokenDefine.length, 0.0 );
-void setDefineValue(){
-	_valueDefine[0] = MATH_DBL_EPSILON;
-	_valueDefine[1] = double.maxFinite;
-	_valueDefine[2] = MATH_RAND_MAX.toDouble();
-	_valueDefine[3] = 0;
-	_valueDefine[4] = 1;
-	_valueDefine[5] = gWorldBgColor().toDouble();
-	_valueDefine[6] = DateTime.now().timeZoneOffset.inSeconds.toDouble();
-	_valueDefine[7] = double.infinity;
-	_valueDefine[8] = double.nan;
-}
-
-int _indexOf( List<String> stringArray, String string ){
-//	return stringArray.indexOf( string );
-	int len = stringArray.length;
-	for( int i = 0; i < len; i++ ){
-		if( stringArray[i] == string ){
-			return i;
-		}
-	}
-	return -1;
-}
-
-// getToken用
-int _get_code = 0;
-dynamic _get_token;
-int getCode(){
-	return _get_code;
-}
-dynamic getToken(){
-	return _get_token;
-}
 
 // トークン・データ
 class ClipTokenData {
@@ -451,19 +43,426 @@ class ClipTokenData {
 	}
 }
 
-// コマンドの追加
-void addCommand( ClipProc proc, List<String> nameArray, List<int Function( ClipProc, ClipParam, int, dynamic )> funcArray ){
-	if( nameArray.length == funcArray.length ){
-		_tokenCommand.addAll( nameArray );
-		proc.addProcSubCommand( funcArray );
-	}
-}
-String commandName( int token ){
-	return _tokenCommand[token - 1];
-}
-
 // トークン管理クラス
 class ClipToken {
+	static final List<String> _tokenOp = [
+		"[++]",
+		"[--]",
+		"[~]",
+		"[!]",
+		"[-]",
+		"[+]",
+		"++",
+		"--",
+		"*",
+		"/",
+		"%",
+		"+",
+		"-",
+		"<<",
+		">>",
+		"<",
+		"<=",
+		">",
+		">=",
+		"==",
+		"!=",
+		"&",
+		"^",
+		"|",
+		"&&",
+		"||",
+		"?",
+		"=",
+		"*=",
+		"/=",
+		"%=",
+		"+=",
+		"-=",
+		"<<=",
+		">>=",
+		"&=",
+		"|=",
+		"^=",
+		",",
+		"**",
+		"**=",
+		"!"
+	];
+
+	static final List<String> _tokenFunc = [
+		"defined",
+		"indexof",
+		"isinf",
+		"isnan",
+		"rand",
+		"time",
+		"mktime",
+		"tm_sec",
+		"tm_min",
+		"tm_hour",
+		"tm_mday",
+		"tm_mon",
+		"tm_year",
+		"tm_wday",
+		"tm_yday",
+		"tm_xmon",
+		"tm_xyear",
+		"a2d",
+		"a2g",
+		"a2r",
+		"d2a",
+		"d2g",
+		"d2r",
+		"g2a",
+		"g2d",
+		"g2r",
+		"r2a",
+		"r2d",
+		"r2g",
+		"sin",
+		"cos",
+		"tan",
+		"asin",
+		"acos",
+		"atan",
+		"atan2",
+		"sinh",
+		"cosh",
+		"tanh",
+		"asinh",
+		"acosh",
+		"atanh",
+		"exp",
+		"exp10",
+		"ln",
+		"log",
+		"log10",
+		"pow",
+		"sqr",
+		"sqrt",
+		"ceil",
+		"floor",
+		"abs",
+		"ldexp",
+		"frexp",
+		"modf",
+		"fact",
+		"int",
+		"real",
+		"imag",
+		"arg",
+		"norm",
+		"conjg",
+		"polar",
+		"num",
+		"denom",
+		"row",
+		"col",
+		"trans",
+		"strcmp",
+		"stricmp",
+		"strlen",
+		"gwidth",
+		"gheight",
+		"gcolor",
+		"gcolor24",
+		"gcx",
+		"gcy",
+		"wcx",
+		"wcy",
+		"gget",
+		"wget",
+		"gx",
+		"gy",
+		"wx",
+		"wy",
+		"mkcolor",
+		"mkcolors",
+		"col_getr",
+		"col_getg",
+		"col_getb",
+		"call",
+		"eval",
+		"mp",
+		"mround"
+	];
+
+	static final List<String> _tokenStat = [
+		"\$LOOPSTART",
+		"\$LOOPEND",
+		"\$LOOPEND_I",
+		"\$LOOPEND_D",
+		"\$LOOPENDE",
+		"\$LOOPENDE_I",
+		"\$LOOPENDE_D",
+		"\$LOOPCONT",
+		"do",
+		"until",
+		"while",
+		"endwhile",
+		"for",
+		"for",
+		"next",
+		"func",
+		"endfunc",
+		"end",
+		"if",
+		"elif",
+		"else",
+		"endif",
+		"switch",
+		"case",
+		"default",
+		"endswi",
+		"breakswi",
+		"continue",
+		"break",
+		"\$CONTINUE",
+		"\$BREAK",
+		"assert",
+		"return",
+		"\$RETURN",
+		"\$RETURN_A"
+	];
+
+	static final List<String> _tokenCommand = [
+		"efloat",
+		"float",
+		"gfloat",
+		"ecomplex",
+		"complex",
+		"gcomplex",
+		"prec",
+		"fract",
+		"mfract",
+		"htime",
+		"mtime",
+		"time",
+		"ftime",
+		"fps",
+		"char",
+		"uchar",
+		"short",
+		"ushort",
+		"long",
+		"ulong",
+		"int",
+		"uint",
+		"radix",
+		"mfloat",
+		"mint",
+		"ptype",
+		"rad",
+		"deg",
+		"grad",
+		"angle",
+		"ans",
+		"assert",
+		"warn",
+		"param",
+		"params",
+		"define",
+		"enum",
+		"undef",
+		"var",
+		"array",
+		"local",
+		"global",
+		"label",
+		"parent",
+		"real",
+		"imag",
+		"num",
+		"denom",
+		"mat",
+		"trans",
+		"srand",
+		"localtime",
+		"arraycopy",
+		"arrayfill",
+		"strcpy",
+		"strcat",
+		"strlwr",
+		"strupr",
+		"clear",
+		"error",
+		"print",
+		"println",
+		"sprint",
+		"scan",
+		"gworld",
+		"gworld24",
+		"gclear",
+		"gcolor",
+		"gfill",
+		"gmove",
+		"gtext",
+		"gtextr",
+		"gtextl",
+		"gtextrl",
+		"gline",
+		"gput",
+		"gput24",
+		"gget",
+		"gget24",
+		"gupdate",
+		"window",
+		"wfill",
+		"wmove",
+		"wtext",
+		"wtextr",
+		"wtextl",
+		"wtextrl",
+		"wline",
+		"wput",
+		"wget",
+		"rectangular",
+		"parametric",
+		"polar",
+		"logscale",
+		"nologscale",
+		"plot",
+		"replot",
+		"calculator",
+		"include",
+		"base",
+		"namespace",
+		"use",
+		"unuse",
+		"dump",
+		"log"
+	];
+
+	static final List<String> _tokenSe = [
+		"inc",
+		"dec",
+		"neg",
+		"cmp",
+		"not",
+		"minus",
+		"set",
+		"setc",
+		"setf",
+		"setm",
+		"mul",
+		"div",
+		"mod",
+		"add",
+		"adds", // saturate
+		"sub",
+		"subs", // saturate
+		"pow",
+		"shiftl",
+		"shiftr",
+		"and",
+		"or",
+		"xor",
+		"lt", // less than
+		"le",
+		"gt", // greater than
+		"ge",
+		"eq",
+		"neq",
+		"logand",
+		"logor",
+		"mul_a",
+		"div_a",
+		"mod_a",
+		"add_a",
+		"adds_a", // saturate
+		"sub_a",
+		"subs_a", // saturate
+		"pow_a",
+		"shiftl_a",
+		"shiftr_a",
+		"and_a",
+		"or_a",
+		"xor_a",
+		"lt_a", // less than
+		"le_a",
+		"gt_a", // greater than
+		"ge_a",
+		"eq_a",
+		"neq_a",
+		"logand_a",
+		"logor_a",
+		"cnd",
+		"set_f",
+		"set_t",
+		"set_z",
+		"sat", // saturate
+		"sets", // saturate
+		"loopstart",
+		"loopend",
+		"loopend_i",
+		"loopend_d",
+		"loopende",
+		"loopende_i",
+		"loopende_d",
+		"loopcont",
+		"continue",
+		"break",
+		"return",
+		"return_a"
+	];
+
+	static final List<String> _tokenDefine = [
+		"DBL_EPSILON",
+		"HUGE_VAL",
+		"RAND_MAX",
+		"FALSE",
+		"TRUE",
+		"BG_COLOR",
+		"TIME_ZONE",
+		"INFINITY",
+		"NAN"
+	];
+	static final List<double> _valueDefine = List.filled( _tokenDefine.length, 0.0 );
+	static void setDefineValue(){
+		_valueDefine[0] = ClipMath.dblEpsilon;
+		_valueDefine[1] = double.maxFinite;
+		_valueDefine[2] = ClipMath.randMax.toDouble();
+		_valueDefine[3] = 0;
+		_valueDefine[4] = 1;
+		_valueDefine[5] = ClipGWorld.bgColor().toDouble();
+		_valueDefine[6] = DateTime.now().timeZoneOffset.inSeconds.toDouble();
+		_valueDefine[7] = double.infinity;
+		_valueDefine[8] = double.nan;
+	}
+
+	static int _indexOf( List<String> stringArray, String string ){
+	//	return stringArray.indexOf( string );
+		int len = stringArray.length;
+		for( int i = 0; i < len; i++ ){
+			if( stringArray[i] == string ){
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	// getToken用
+	static int _getCode = 0;
+	static dynamic _getToken;
+	static int curCode(){
+		return _getCode;
+	}
+	static dynamic curToken(){
+		return _getToken;
+	}
+
+	// コマンドの追加
+	static void addCommand( ClipProc proc, List<String> nameArray, List<int Function( ClipProc, ClipParam, int, dynamic )> funcArray ){
+		if( nameArray.length == funcArray.length ){
+			_tokenCommand.addAll( nameArray );
+			proc.addProcSubCommand( funcArray );
+		}
+	}
+	static String commandName( int token ){
+		return _tokenCommand[token - 1];
+	}
+
 	// トークン・リスト
 	late ClipTokenData? _top;
 	late ClipTokenData? _end;
@@ -484,78 +483,78 @@ class ClipToken {
 
 	// 文字列が角括弧（Square Bracket）付き演算子かどうかチェックする
 	bool checkSqOp( String string, ParamInteger op ){
-		switch( charAt( string, 0 ) ){
+		switch( ClipMath.charAt( string, 0 ) ){
 		case '+':
 			if( string.length == 1 ){
-				op.set( CLIP_OP_PLUS );
+				op.set( ClipGlobal.opPlus );
 				return true;
 			}
-			if( (string.length == 2) && (charAt( string, 1 ) == '+') ){
-				op.set( CLIP_OP_INCREMENT );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '+') ){
+				op.set( ClipGlobal.opIncrement );
 				return true;
 			}
 			break;
 		case '-':
 			if( string.length == 1 ){
-				op.set( CLIP_OP_MINUS );
+				op.set( ClipGlobal.opMinus );
 				return true;
 			}
-			if( (string.length == 2) && (charAt( string, 1 ) == '-') ){
-				op.set( CLIP_OP_DECREMENT );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '-') ){
+				op.set( ClipGlobal.opDecrement );
 				return true;
 			}
 			break;
 		case '~':
 			if( string.length == 1 ){
-				op.set( CLIP_OP_COMPLEMENT );
+				op.set( ClipGlobal.opComplement );
 				return true;
 			}
 			break;
 		case '!':
 			if( string.length == 1 ){
-				op.set( CLIP_OP_NOT );
+				op.set( ClipGlobal.opNot );
 				return true;
 			}
-			if( (string.length == 2) && (charAt( string, 1 ) == '=') ){ // 過去互換用に[!=]表記を残す
-				op.set( CLIP_OP_NOTEQUAL );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '=') ){ // 過去互換用に[!=]表記を残す
+				op.set( ClipGlobal.opNotEqual );
 				return true;
 			}
 			break;
 		case '<': // 過去互換用に残す
 			if( string.length == 1 ){
-				op.set( CLIP_OP_LESS );
+				op.set( ClipGlobal.opLess );
 				return true;
 			}
-			if( (string.length == 2) && (charAt( string, 1 ) == '=') ){
-				op.set( CLIP_OP_LESSOREQ );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '=') ){
+				op.set( ClipGlobal.opLessOrEq );
 				return true;
 			}
 			break;
 		case '>': // 過去互換用に残す
 			if( string.length == 1 ){
-				op.set( CLIP_OP_GREAT );
+				op.set( ClipGlobal.opGreat );
 				return true;
 			}
-			if( (string.length == 2) && (charAt( string, 1 ) == '=') ){
-				op.set( CLIP_OP_GREATOREQ );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '=') ){
+				op.set( ClipGlobal.opGreatOrEq );
 				return true;
 			}
 			break;
 		case '=': // 過去互換用に残す
-			if( (string.length == 2) && (charAt( string, 1 ) == '=') ){
-				op.set( CLIP_OP_EQUAL );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '=') ){
+				op.set( ClipGlobal.opEqual );
 				return true;
 			}
 			break;
 		case '&': // 過去互換用に残す
-			if( (string.length == 2) && (charAt( string, 1 ) == '&') ){
-				op.set( CLIP_OP_LOGAND );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '&') ){
+				op.set( ClipGlobal.opLogAnd );
 				return true;
 			}
 			break;
 		case '|': // 過去互換用に残す
-			if( (string.length == 2) && (charAt( string, 1 ) == '|') ){
-				op.set( CLIP_OP_LOGOR );
+			if( (string.length == 2) && (ClipMath.charAt( string, 1 ) == '|') ){
+				op.set( ClipGlobal.opLogOr );
 				return true;
 			}
 			break;
@@ -589,7 +588,7 @@ class ClipToken {
 		}
 
 		if( checkFunc( string, se ) ){
-			se.set( CLIP_SE_FUNC + se.val() );
+			se.set( ClipGlobal.seFunc + se.val() );
 			return true;
 		}
 
@@ -614,36 +613,36 @@ class ClipToken {
 		ParamInteger stop = ParamInteger();
 		List<double> tmp = List.filled( 4, 0.0 );
 
-		top = isCharEscape( string, 0 ) ? 1 : 0;
-		switch( charAt( string, top ) ){
+		top = ClipGlobal.isCharEscape( string, 0 ) ? 1 : 0;
+		switch( ClipMath.charAt( string, top ) ){
 		case '+': top++  ; swi = false; break;
 		case '-': top++  ; swi = true ; break;
 		default : top = 0; swi = false; break;
 		}
 
-		if( charAt( string, top ) == '\'' ){
+		if( ClipMath.charAt( string, top ) == '\'' ){
 			value.ass( 0.0 );
 			j = 0;
 			for( i = 1; ; i++ ){
 				if( top + i >= string.length ){
 					break;
 				}
-				if( isCharEscape( string, top + i ) ){
+				if( ClipGlobal.isCharEscape( string, top + i ) ){
 					i++;
 					if( top + i >= string.length ){
 						break;
 					}
-					switch( charAt( string, top + i ) ){
-					case 'b': tmp[0] = MATH_CHAR( '\b' ).toDouble(); break;
-					case 'f': tmp[0] = MATH_CHAR( '\f' ).toDouble(); break;
-					case 'n': tmp[0] = MATH_CHAR( '\n' ).toDouble(); break;
-					case 'r': tmp[0] = MATH_CHAR( '\r' ).toDouble(); break;
-					case 't': tmp[0] = MATH_CHAR( '\t' ).toDouble(); break;
-					case 'v': tmp[0] = MATH_CHAR( '\v' ).toDouble(); break;
-					default : tmp[0] = charCodeAt( string, top + i ).toDouble(); break;
+					switch( ClipMath.charAt( string, top + i ) ){
+					case 'b': tmp[0] = ClipMath.char( '\b' ).toDouble(); break;
+					case 'f': tmp[0] = ClipMath.char( '\f' ).toDouble(); break;
+					case 'n': tmp[0] = ClipMath.char( '\n' ).toDouble(); break;
+					case 'r': tmp[0] = ClipMath.char( '\r' ).toDouble(); break;
+					case 't': tmp[0] = ClipMath.char( '\t' ).toDouble(); break;
+					case 'v': tmp[0] = ClipMath.char( '\v' ).toDouble(); break;
+					default : tmp[0] = ClipMath.charCodeAt( string, top + i ).toDouble(); break;
 					}
 				} else {
-					tmp[0] = charCodeAt( string, top + i ).toDouble();
+					tmp[0] = ClipMath.charCodeAt( string, top + i ).toDouble();
 				}
 				value.ass( value.toFloat() * 256 + tmp[0] );
 				j++;
@@ -654,14 +653,14 @@ class ClipToken {
 			if( swi ){
 				value.ass( value.minus() );
 			}
-		} else if( isCharEscape( string, top ) ){
-			switch( charAt( string, top + 1 ) ){
+		} else if( ClipGlobal.isCharEscape( string, top ) ){
+			switch( ClipMath.charAt( string, top + 1 ) ){
 			case 'b':
 			case 'B':
-				value.ass( stringToInt( string, top + 2, stop, 2 ) );
+				value.ass( ClipMath.stringToInt( string, top + 2, stop, 2 ) );
 				break;
 			case '0':
-				value.ass( stringToInt( string, top + 2, stop, 8 ) );
+				value.ass( ClipMath.stringToInt( string, top + 2, stop, 8 ) );
 				break;
 			case '1':
 			case '2':
@@ -672,11 +671,11 @@ class ClipToken {
 			case '7':
 			case '8':
 			case '9':
-				value.ass( stringToInt( string, top + 1, stop, 10 ) );
+				value.ass( ClipMath.stringToInt( string, top + 1, stop, 10 ) );
 				break;
 			case 'x':
 			case 'X':
-				value.ass( stringToInt( string, top + 2, stop, 16 ) );
+				value.ass( ClipMath.stringToInt( string, top + 2, stop, 16 ) );
 				break;
 			default:
 				return false;
@@ -688,11 +687,11 @@ class ClipToken {
 				value.ass( value.minus() );
 			}
 		} else {
-			if( (param.mode() & CLIP_MODE_COMPLEX) != 0 ){
-				tmp[0] = stringToFloat( string, top, stop );
-				switch( charAt( string, stop.val() ) ){
+			if( (param.mode() & ClipGlobal.modeComplex) != 0 ){
+				tmp[0] = ClipMath.stringToFloat( string, top, stop );
+				switch( ClipMath.charAt( string, stop.val() ) ){
 				case '\\':
-				case CLIP_CHAR_UTF8_YEN:
+				case ClipGlobal.charUtf8Yen:
 				case '+':
 				case '-':
 					// 実数部
@@ -702,17 +701,17 @@ class ClipToken {
 					value.setReal( swi ? -tmp[0] : tmp[0] );
 
 					// 虚数部
-					if( isCharEscape( string, stop.val() ) ){
+					if( ClipGlobal.isCharEscape( string, stop.val() ) ){
 						stop.add( 1 );
 					}
-					switch( charAt( string, stop.val() ) ){
+					switch( ClipMath.charAt( string, stop.val() ) ){
 					case '+': swi = false; break;
 					case '-': swi = true ; break;
 					default : return false;
 					}
 					top = stop.val() + 1;
-					tmp[0] = stringToFloat( string, top, stop );
-					if( (charAt( string, stop.val() ) != 'i') && (charAt( string, stop.val() ) != 'I') ){
+					tmp[0] = ClipMath.stringToFloat( string, top, stop );
+					if( (ClipMath.charAt( string, stop.val() ) != 'i') && (ClipMath.charAt( string, stop.val() ) != 'I') ){
 						return false;
 					} else {
 						if( stop.val() + 1 < string.length ){
@@ -749,45 +748,45 @@ class ClipToken {
 					}
 					value.ass( swi ? -tmp[0] : tmp[0] );
 					if( stop.val() < string.length ){
-						switch( charAt( string, stop.val() ) ){
-						case 'd': case 'D': value.angToAng( MATH_ANG_TYPE_DEG , complexAngType() ); break;
-						case 'g': case 'G': value.angToAng( MATH_ANG_TYPE_GRAD, complexAngType() ); break;
-						case 'r': case 'R': value.angToAng( MATH_ANG_TYPE_RAD , complexAngType() ); break;
+						switch( ClipMath.charAt( string, stop.val() ) ){
+						case 'd': case 'D': value.angToAng( ClipMath.angTypeDeg , ClipMath.complexAngType() ); break;
+						case 'g': case 'G': value.angToAng( ClipMath.angTypeGrad, ClipMath.complexAngType() ); break;
+						case 'r': case 'R': value.angToAng( ClipMath.angTypeRad , ClipMath.complexAngType() ); break;
 						default : return false;
 						}
 					}
 					break;
 				}
-			} else if( (param.mode() & (CLIP_MODE_FLOAT | CLIP_MODE_FRACT)) != 0 ){
-				tmp[0] = stringToFloat( string, top, stop );
-				switch( charAt( string, stop.val() ) ){
+			} else if( (param.mode() & (ClipGlobal.modeFFloat | ClipGlobal.modeFract)) != 0 ){
+				tmp[0] = ClipMath.stringToFloat( string, top, stop );
+				switch( ClipMath.charAt( string, stop.val() ) ){
 				case '_':
-				case CLIP_CHAR_FRACT:
+				case ClipGlobal.charFract:
 					if( stop.val() == top ){
 						return false;
 					}
 					value.fractSetMinus( swi );
 					value.setNum( tmp[0] );
 
-					if( isCharEscape( string, stop.val() + 1 ) ){
+					if( ClipGlobal.isCharEscape( string, stop.val() + 1 ) ){
 						top = stop.val() + 2;
 					} else {
 						top = stop.val() + 1;
 					}
-					tmp[0] = stringToFloat( string, top, stop );
-					switch( charAt( string, stop.val() ) ){
+					tmp[0] = ClipMath.stringToFloat( string, top, stop );
+					switch( ClipMath.charAt( string, stop.val() ) ){
 					case '_':
-					case CLIP_CHAR_FRACT:
+					case ClipGlobal.charFract:
 						if( stop.val() == top ){
 							return false;
 						}
 
-						if( isCharEscape( string, stop.val() + 1 ) ){
+						if( ClipGlobal.isCharEscape( string, stop.val() + 1 ) ){
 							top = stop.val() + 2;
 						} else {
 							top = stop.val() + 1;
 						}
-						tmp[1] = stringToFloat( string, top, stop );
+						tmp[1] = ClipMath.stringToFloat( string, top, stop );
 						if( (tmp[0] < 0.0) || (tmp[1] < 0.0) ){
 							return false;
 						}
@@ -812,27 +811,27 @@ class ClipToken {
 					break;
 				}
 				if( stop.val() < string.length ){
-					switch( charAt( string, stop.val() ) ){
-					case 'd': case 'D': value.angToAng( MATH_ANG_TYPE_DEG , complexAngType() ); break;
-					case 'g': case 'G': value.angToAng( MATH_ANG_TYPE_GRAD, complexAngType() ); break;
-					case 'r': case 'R': value.angToAng( MATH_ANG_TYPE_RAD , complexAngType() ); break;
+					switch( ClipMath.charAt( string, stop.val() ) ){
+					case 'd': case 'D': value.angToAng( ClipMath.angTypeDeg , ClipMath.complexAngType() ); break;
+					case 'g': case 'G': value.angToAng( ClipMath.angTypeGrad, ClipMath.complexAngType() ); break;
+					case 'r': case 'R': value.angToAng( ClipMath.angTypeRad , ClipMath.complexAngType() ); break;
 					default : return false;
 					}
 				}
-			} else if( (param.mode() & CLIP_MODE_TIME) != 0 ){
+			} else if( (param.mode() & ClipGlobal.modeTime) != 0 ){
 				bool _break = false;
 				for( i = 0; i < 4; i++ ){
-					if( isCharEscape( string, top ) ){
+					if( ClipGlobal.isCharEscape( string, top ) ){
 						top++;
 					}
-					tmp[i] = stringToFloat( string, top, stop );
+					tmp[i] = ClipMath.stringToFloat( string, top, stop );
 					if( stop.val() == top ){
 						return false;
 					}
 					if( stop.val() >= string.length ){
 						break;
 					}
-					switch( charAt( string, stop.val() ) ){
+					switch( ClipMath.charAt( string, stop.val() ) ){
 					case 'h':
 					case 'H':
 					case 'm':
@@ -860,7 +859,7 @@ class ClipToken {
 				switch( i ){
 				case 0:
 					if( stop.val() < string.length ){
-						switch( charAt( string, stop.val() ) ){
+						switch( ClipMath.charAt( string, stop.val() ) ){
 						case 'h': case 'H': value.setHour ( tmp[0] ); value.timeReduce(); break;
 						case 'm': case 'M': value.setMin  ( tmp[0] ); value.timeReduce(); break;
 						case 's': case 'S': value.setSec  ( tmp[0] ); value.timeReduce(); break;
@@ -873,58 +872,58 @@ class ClipToken {
 					break;
 				case 1:
 					if( stop.val() < string.length ){
-						switch( charAt( string, stop.val() ) ){
+						switch( ClipMath.charAt( string, stop.val() ) ){
 						case 'h': case 'H': return false;
 						case 'm': case 'M': value.setHour( tmp[0] ); value.setMin  ( tmp[1] ); value.timeReduce(); break;
 						case 's': case 'S': value.setMin ( tmp[0] ); value.setSec  ( tmp[1] ); value.timeReduce(); break;
 						case 'f': case 'F': value.setSec ( tmp[0] ); value.setFrame( tmp[1] ); value.timeReduce(); break;
 						}
 					} else {
-						switch( param.mode() & CLIP_MODE_MASK ){
-						case CLIP_MODE_H_TIME:
-						case CLIP_MODE_M_TIME: value.setHour( tmp[0] ); value.setMin  ( tmp[1] ); value.timeReduce(); break;
-						case CLIP_MODE_S_TIME: value.setMin ( tmp[0] ); value.setSec  ( tmp[1] ); value.timeReduce(); break;
-						case CLIP_MODE_F_TIME: value.setSec ( tmp[0] ); value.setFrame( tmp[1] ); value.timeReduce(); break;
+						switch( param.mode() & ClipGlobal.modeMask ){
+						case ClipGlobal.modeHTime:
+						case ClipGlobal.modeMTime: value.setHour( tmp[0] ); value.setMin  ( tmp[1] ); value.timeReduce(); break;
+						case ClipGlobal.modeSTime: value.setMin ( tmp[0] ); value.setSec  ( tmp[1] ); value.timeReduce(); break;
+						case ClipGlobal.modeFTime: value.setSec ( tmp[0] ); value.setFrame( tmp[1] ); value.timeReduce(); break;
 						}
 					}
 					break;
 				case 2:
 					if( stop.val() < string.length ){
-						switch( charAt( string, stop.val() ) ){
+						switch( ClipMath.charAt( string, stop.val() ) ){
 						case 'h': case 'H':
 						case 'm': case 'M': return false;
 						case 's': case 'S': value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec  ( tmp[2] ); value.timeReduce(); break;
 						case 'f': case 'F': value.setMin ( tmp[0] ); value.setSec( tmp[1] ); value.setFrame( tmp[2] ); value.timeReduce(); break;
 						}
 					} else {
-						switch( param.mode() & CLIP_MODE_MASK ){
-						case CLIP_MODE_H_TIME:
-						case CLIP_MODE_M_TIME:
-						case CLIP_MODE_S_TIME: value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec  ( tmp[2] ); value.timeReduce(); break;
-						case CLIP_MODE_F_TIME: value.setMin ( tmp[0] ); value.setSec( tmp[1] ); value.setFrame( tmp[2] ); value.timeReduce(); break;
+						switch( param.mode() & ClipGlobal.modeMask ){
+						case ClipGlobal.modeHTime:
+						case ClipGlobal.modeMTime:
+						case ClipGlobal.modeSTime: value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec  ( tmp[2] ); value.timeReduce(); break;
+						case ClipGlobal.modeFTime: value.setMin ( tmp[0] ); value.setSec( tmp[1] ); value.setFrame( tmp[2] ); value.timeReduce(); break;
 						}
 					}
 					break;
 				case 3:
 					if( stop.val() < string.length ){
-						switch( charAt( string, stop.val() ) ){
+						switch( ClipMath.charAt( string, stop.val() ) ){
 						case 'h': case 'H':
 						case 'm': case 'M':
 						case 's': case 'S': return false;
 						case 'f': case 'F': value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec( tmp[2] ); value.setFrame( tmp[3] ); value.timeReduce(); break;
 						}
 					} else {
-						switch( param.mode() & CLIP_MODE_MASK ){
-						case CLIP_MODE_H_TIME:
-						case CLIP_MODE_M_TIME:
-						case CLIP_MODE_S_TIME:
-						case CLIP_MODE_F_TIME: value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec( tmp[2] ); value.setFrame( tmp[3] ); value.timeReduce(); break;
+						switch( param.mode() & ClipGlobal.modeMask ){
+						case ClipGlobal.modeHTime:
+						case ClipGlobal.modeMTime:
+						case ClipGlobal.modeSTime:
+						case ClipGlobal.modeFTime: value.setHour( tmp[0] ); value.setMin( tmp[1] ); value.setSec( tmp[2] ); value.setFrame( tmp[3] ); value.timeReduce(); break;
 						}
 					}
 					break;
 				}
-			} else if( (param.mode() & CLIP_MODE_INT) != 0 ){
-				value.ass( stringToInt( string, top, stop, param.radix() ) );
+			} else if( (param.mode() & ClipGlobal.modeInt) != 0 ){
+				value.ass( ClipMath.stringToInt( string, top, stop, param.radix() ) );
 				if( stop.val() < string.length ){
 					return false;
 				}
@@ -941,32 +940,32 @@ class ClipToken {
 	String _floatToString( ClipParam param, double value ){
 		String str = "";
 		int prec = param.prec();
-		switch( param.mode() & CLIP_MODE_MASK ){
-		case CLIP_MODE_E_FLOAT:
-		case CLIP_MODE_E_COMPLEX:
-			str = floatToExponential( value, (prec == 0) ? MATH_EPREC( value ).toInt() : prec );
+		switch( param.mode() & ClipGlobal.modeMask ){
+		case ClipGlobal.modeEFloat:
+		case ClipGlobal.modeEComplex:
+			str = ClipMath.floatToExponential( value, (prec == 0) ? ClipMath.eprec( value ).toInt() : prec );
 			break;
-		case CLIP_MODE_F_FLOAT:
-		case CLIP_MODE_F_COMPLEX:
-			str = floatToFixed( value, (prec == 0) ? MATH_FPREC( value ).toInt() : prec );
+		case ClipGlobal.modeFFloat:
+		case ClipGlobal.modeFComplex:
+			str = ClipMath.floatToFixed( value, (prec == 0) ? ClipMath.fprec( value ).toInt() : prec );
 			break;
-		case CLIP_MODE_G_FLOAT:
-		case CLIP_MODE_G_COMPLEX:
-			str = floatToString( value, (prec == 0) ? 15 : prec );
+		case ClipGlobal.modeGFloat:
+		case ClipGlobal.modeGComplex:
+			str = ClipMath.floatToString( value, (prec == 0) ? 15 : prec );
 			break;
 		}
 		return str;
 	}
 
 	void valueToString( ClipParam param, MathValue value, ParamString real, ParamString imag ){
-		switch( param.mode() & CLIP_MODE_MASK ){
-		case CLIP_MODE_E_COMPLEX:
-		case CLIP_MODE_F_COMPLEX:
-		case CLIP_MODE_G_COMPLEX:
-			if( MATH_ISZERO( value.imag() ) ){
+		switch( param.mode() & ClipGlobal.modeMask ){
+		case ClipGlobal.modeEComplex:
+		case ClipGlobal.modeFComplex:
+		case ClipGlobal.modeGComplex:
+			if( ClipMath.isZero( value.imag() ) ){
 				real.set( _floatToString( param, value.real() ) );
 				imag.set( "" );
-			} else if( MATH_ISZERO( value.real() ) ){
+			} else if( ClipMath.isZero( value.real() ) ){
 				real.set( "" );
 				imag.set( "${_floatToString( param, value.imag() )}i" );
 			} else {
@@ -975,32 +974,32 @@ class ClipToken {
 				imag.add( "${_floatToString( param, value.imag() )}i" );
 			}
 			break;
-		case CLIP_MODE_E_FLOAT:
-		case CLIP_MODE_F_FLOAT:
-		case CLIP_MODE_G_FLOAT:
+		case ClipGlobal.modeEFloat:
+		case ClipGlobal.modeFFloat:
+		case ClipGlobal.modeGFloat:
 			real.set( _floatToString( param, value.real() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_M_FRACT:
-			if( (value.denom() != 0) && (MATH_DIV( value.num(), value.denom() ) != 0) ){
-				if( MATH_MOD( value.num(), value.denom() ) != 0 ){
+		case ClipGlobal.modeMFract:
+			if( (value.denom() != 0) && (ClipMath.div( value.num(), value.denom() ) != 0) ){
+				if( ClipMath.mod( value.num(), value.denom() ) != 0 ){
 					real.set( value.fractMinus() ? "-" : "" );
-					real.add( "${MATH_DIV( value.num(), value.denom() ).toInt()}" );
-					real.add( CLIP_CHAR_FRACT );
-					real.add( "${MATH_MOD( value.num(), value.denom() ).toInt()}" );
-					real.add( CLIP_CHAR_FRACT );
+					real.add( "${ClipMath.div( value.num(), value.denom() ).toInt()}" );
+					real.add( ClipGlobal.charFract );
+					real.add( "${ClipMath.mod( value.num(), value.denom() ).toInt()}" );
+					real.add( ClipGlobal.charFract );
 					real.add( "${value.denom().toInt()}" );
 				} else {
 					real.set( value.fractMinus() ? "-" : "" );
-					real.add( "${MATH_DIV( value.num(), value.denom() ).toInt()}" );
+					real.add( "${ClipMath.div( value.num(), value.denom() ).toInt()}" );
 				}
 				imag.set( "" );
 				break;
 			}
 			// そのまま下に流す
-			continue case_CLIP_MODE_I_FRACT;
-		case_CLIP_MODE_I_FRACT:
-		case CLIP_MODE_I_FRACT:
+			continue caseClipModeIFract;
+		caseClipModeIFract:
+		case ClipGlobal.modeIFract:
 			if( value.denom() == 0 ){
 				real.set( "${value.toFloat()}" );
 			} else if( value.denom() == 1 ){
@@ -1009,97 +1008,97 @@ class ClipToken {
 			} else {
 				real.set( value.fractMinus() ? "-" : "" );
 				real.add( "${value.num().toInt()}" );
-				real.add( CLIP_CHAR_FRACT );
+				real.add( ClipGlobal.charFract );
 				real.add( "${value.denom().toInt()}" );
 			}
 			imag.set( "" );
 			break;
-		case CLIP_MODE_H_TIME:
+		case ClipGlobal.modeHTime:
 			real.set( value.timeMinus() ? "-" : "" );
-			real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( value.hour(), CLIP_DEFPREC ) );
+			real.add( ((value.hour() < 10.0) ? "0" : "") + ClipMath.floatToString( value.hour(), ClipGlobal.defPrec ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_M_TIME:
-			if( MATH_INT( value.hour() ) != 0 ){
+		case ClipGlobal.modeMTime:
+			if( ClipMath.toInt( value.hour() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( MATH_INT( value.hour() ) ) );
+				real.add( ((value.hour() < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.hour() ) ) );
 				real.add( ":" );
-				real.add( ((value.min () < 10.0) ? "0" : "") + floatToString( value.min(), CLIP_DEFPREC ) );
+				real.add( ((value.min () < 10.0) ? "0" : "") + ClipMath.floatToString( value.min(), ClipGlobal.defPrec ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.min() < 10.0) ? "0" : "") + floatToString( value.min(), CLIP_DEFPREC ) );
+				real.add( ((value.min() < 10.0) ? "0" : "") + ClipMath.floatToString( value.min(), ClipGlobal.defPrec ) );
 			}
 			imag.set( "" );
 			break;
-		case CLIP_MODE_S_TIME:
-			if( MATH_INT( value.hour() ) != 0 ){
+		case ClipGlobal.modeSTime:
+			if( ClipMath.toInt( value.hour() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.hour() < 10.0) ? "0" : "") + floatToString( MATH_INT( value.hour() ) ) );
+				real.add( ((value.hour() < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.hour() ) ) );
 				real.add( ":" );
-				real.add( ((value.min () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
+				real.add( ((value.min () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec () < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
-			} else if( MATH_INT( value.min() ) != 0 ){
+				real.add( ((value.sec () < 10.0) ? "0" : "") + ClipMath.floatToString( value.sec(), ClipGlobal.defPrec ) );
+			} else if( ClipMath.toInt( value.min() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.min() < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
+				real.add( ((value.min() < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
+				real.add( ((value.sec() < 10.0) ? "0" : "") + ClipMath.floatToString( value.sec(), ClipGlobal.defPrec ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.sec() < 10.0) ? "0" : "") + floatToString( value.sec(), CLIP_DEFPREC ) );
+				real.add( ((value.sec() < 10.0) ? "0" : "") + ClipMath.floatToString( value.sec(), ClipGlobal.defPrec ) );
 			}
 			imag.set( "" );
 			break;
-		case CLIP_MODE_F_TIME:
-			if( MATH_INT( value.hour() ) != 0 ){
+		case ClipGlobal.modeFTime:
+			if( ClipMath.toInt( value.hour() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.hour () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.hour() ) ) );
+				real.add( ((value.hour () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.hour() ) ) );
 				real.add( ":" );
-				real.add( ((value.min  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
+				real.add( ((value.min  () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
+				real.add( ((value.sec  () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
-			} else if( MATH_INT( value.min() ) != 0 ){
+				real.add( ((value.frame() < 10.0) ? "0" : "") + ClipMath.floatToString( value.frame(), ClipGlobal.defPrec ) );
+			} else if( ClipMath.toInt( value.min() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.min  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.min() ) ) );
+				real.add( ((value.min  () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.min() ) ) );
 				real.add( ":" );
-				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
+				real.add( ((value.sec  () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
-			} else if( MATH_INT( value.sec() ) != 0 ){
+				real.add( ((value.frame() < 10.0) ? "0" : "") + ClipMath.floatToString( value.frame(), ClipGlobal.defPrec ) );
+			} else if( ClipMath.toInt( value.sec() ) != 0 ){
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.sec  () < 10.0) ? "0" : "") + floatToString( MATH_INT( value.sec() ) ) );
+				real.add( ((value.sec  () < 10.0) ? "0" : "") + ClipMath.floatToString( ClipMath.toInt( value.sec() ) ) );
 				real.add( ":" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + ClipMath.floatToString( value.frame(), ClipGlobal.defPrec ) );
 			} else {
 				real.set( value.timeMinus() ? "-" : "" );
-				real.add( ((value.frame() < 10.0) ? "0" : "") + floatToString( value.frame(), CLIP_DEFPREC ) );
+				real.add( ((value.frame() < 10.0) ? "0" : "") + ClipMath.floatToString( value.frame(), ClipGlobal.defPrec ) );
 			}
 			imag.set( "" );
 			break;
-		case CLIP_MODE_S_CHAR:
-			real.set( intToString( MATH_SIGNED( value.toFloat(), MATH_UMAX_8, MATH_SMIN_8, MATH_SMAX_8 ), param.radix() ) );
+		case ClipGlobal.modeSChar:
+			real.set( ClipMath.intToString( ClipMath.signed( value.toFloat(), ClipMath.umax8, ClipMath.smin8, ClipMath.smax8 ), param.radix() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_U_CHAR:
-			real.set( intToString( MATH_UNSIGNED( value.toFloat(), MATH_UMAX_8 ), param.radix() ) );
+		case ClipGlobal.modeUChar:
+			real.set( ClipMath.intToString( ClipMath.unsigned( value.toFloat(), ClipMath.umax8 ), param.radix() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_S_SHORT:
-			real.set( intToString( MATH_SIGNED( value.toFloat(), MATH_UMAX_16, MATH_SMIN_16, MATH_SMAX_16 ), param.radix() ) );
+		case ClipGlobal.modeSShort:
+			real.set( ClipMath.intToString( ClipMath.signed( value.toFloat(), ClipMath.umax16, ClipMath.smin16, ClipMath.smax16 ), param.radix() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_U_SHORT:
-			real.set( intToString( MATH_UNSIGNED( value.toFloat(), MATH_UMAX_16 ), param.radix() ) );
+		case ClipGlobal.modeUShort:
+			real.set( ClipMath.intToString( ClipMath.unsigned( value.toFloat(), ClipMath.umax16 ), param.radix() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_S_LONG:
-			real.set( intToString( MATH_SIGNED( value.toFloat(), MATH_UMAX_32, MATH_SMIN_32, MATH_SMAX_32 ), param.radix() ) );
+		case ClipGlobal.modeSLong:
+			real.set( ClipMath.intToString( ClipMath.signed( value.toFloat(), ClipMath.umax32, ClipMath.smin32, ClipMath.smax32 ), param.radix() ) );
 			imag.set( "" );
 			break;
-		case CLIP_MODE_U_LONG:
-			real.set( intToString( MATH_UNSIGNED( value.toFloat(), MATH_UMAX_32 ), param.radix() ) );
+		case ClipGlobal.modeULong:
+			real.set( ClipMath.intToString( ClipMath.unsigned( value.toFloat(), ClipMath.umax32 ), param.radix() ) );
 			imag.set( "" );
 			break;
 		}
@@ -1123,7 +1122,7 @@ class ClipToken {
 			// 先頭を求める
 			_break = false;
 			for( ; top < src.length; top++ ){
-				switch( charAt( src, top ) ){
+				switch( ClipMath.charAt( src, top ) ){
 				case '+':
 				case '-':
 				case '.':
@@ -1132,12 +1131,12 @@ class ClipToken {
 				case 'i':
 				case 'I':
 				case '_':
-				case CLIP_CHAR_FRACT:
+				case ClipGlobal.charFract:
 				case ':':
-					if( charAt( src, top ) == '.' ){
+					if( ClipMath.charAt( src, top ) == '.' ){
 						_float = true;
 					}
-					dst += charAt( src, top );
+					dst += ClipMath.charAt( src, top );
 					break;
 				default:
 					_break = true;
@@ -1154,7 +1153,7 @@ class ClipToken {
 			// 末尾を求める
 			_break = false;
 			for( end = top + 1; end < src.length; end++ ){
-				switch( charAt( src, end ) ){
+				switch( ClipMath.charAt( src, end ) ){
 				case '+':
 				case '-':
 				case '.':
@@ -1163,7 +1162,7 @@ class ClipToken {
 				case 'i':
 				case 'I':
 				case '_':
-				case CLIP_CHAR_FRACT:
+				case ClipGlobal.charFract:
 				case ':':
 					_break = true;
 					break;
@@ -1174,7 +1173,7 @@ class ClipToken {
 			}
 
 			for( len = end - top; len > 0; len-- ){
-				dst += charAt( src, top );
+				dst += ClipMath.charAt( src, top );
 				top++;
 				if( !_float && (len != 1) && ((len % 3) == 1) ){
 					dst += sep;
@@ -1188,18 +1187,18 @@ class ClipToken {
 	// トークン文字列を確保する
 	dynamic newToken( int code, dynamic token ){
 		switch( code ){
-		case CLIP_CODE_TOP:
-		case CLIP_CODE_END:
-		case CLIP_CODE_ARRAY_TOP:
-		case CLIP_CODE_ARRAY_END:
-		case CLIP_CODE_PARAM_ANS:
-		case CLIP_CODE_PARAM_ARRAY:
+		case ClipGlobal.codeTop:
+		case ClipGlobal.codeEnd:
+		case ClipGlobal.codeArrayTop:
+		case ClipGlobal.codeArrayEnd:
+		case ClipGlobal.codeParamAns:
+		case ClipGlobal.codeParamArray:
 			return null;
-		case CLIP_CODE_CONSTANT:
-			return dupValue( token );
-		case CLIP_CODE_MATRIX:
-			return dupMatrix( token );
-		case CLIP_CODE_MULTIPREC:
+		case ClipGlobal.codeConstant:
+			return MathValue.dup( token );
+		case ClipGlobal.codeMatrix:
+			return MathMatrix.dup( token );
+		case ClipGlobal.codeMultiPrec:
 			{
 				MPData a = token;
 				return a.clone();
@@ -1212,11 +1211,11 @@ class ClipToken {
 	void delToken( int code, dynamic token ){
 		if( token != null ){
 			switch( code ){
-			case CLIP_CODE_CONSTANT:
-				deleteValue( token );
+			case ClipGlobal.codeConstant:
+				MathValue.deleteValue( token );
 				break;
-			case CLIP_CODE_MATRIX:
-				deleteMatrix( token );
+			case ClipGlobal.codeMatrix:
+				MathMatrix.deleteMatrix( token );
 				break;
 			}
 		}
@@ -1228,37 +1227,37 @@ class ClipToken {
 		String tmp;
 		ParamInteger code = ParamInteger();
 
-		switch( charCodeAt( token, 0 ) ){
-		case CLIP_CODE_TOP:
-		case CLIP_CODE_END:
-		case CLIP_CODE_ARRAY_TOP:
-		case CLIP_CODE_ARRAY_END:
-		case CLIP_CODE_PARAM_ARRAY:
-			cur._code  = charCodeAt( token, 0 );
+		switch( ClipMath.charCodeAt( token, 0 ) ){
+		case ClipGlobal.codeTop:
+		case ClipGlobal.codeEnd:
+		case ClipGlobal.codeArrayTop:
+		case ClipGlobal.codeArrayEnd:
+		case ClipGlobal.codeParamArray:
+			cur._code  = ClipMath.charCodeAt( token, 0 );
 			cur._token = null;
 			break;
-		case CLIP_CODE_OPERATOR:
-			cur._code  = charCodeAt( token, 0 );
-			cur._token = charCodeAt( token, 1 );
+		case ClipGlobal.codeOperator:
+			cur._code  = ClipMath.charCodeAt( token, 0 );
+			cur._token = ClipMath.charCodeAt( token, 1 );
 			break;
 		default:
-			if( charAt( token, 0 ) == '@' ){
+			if( ClipMath.charAt( token, 0 ) == '@' ){
 				if( len == 1 ){
-					cur._code  = CLIP_CODE_ARRAY;
+					cur._code  = ClipGlobal.codeArray;
 					cur._token = 0;
-				} else if( (len > 2) && (charAt( token, 1 ) == '@') ){
-					cur._code  = CLIP_CODE_ARRAY;
-					cur._token = charCodeAt( token, 2 );
+				} else if( (len > 2) && (ClipMath.charAt( token, 1 ) == '@') ){
+					cur._code  = ClipGlobal.codeArray;
+					cur._token = ClipMath.charCodeAt( token, 2 );
 				} else {
-					cur._code  = CLIP_CODE_VARIABLE;
-					cur._token = charCodeAt( token, 1 );
+					cur._code  = ClipGlobal.codeVariable;
+					cur._token = ClipMath.charCodeAt( token, 1 );
 				}
 				break;
 			}
 
-			if( charAt( token, 0 ) == '&' ){
+			if( ClipMath.charAt( token, 0 ) == '&' ){
 				if( len == 1 ){
-					cur._code  = CLIP_CODE_PARAM_ANS;
+					cur._code  = ClipGlobal.codeParamAns;
 					cur._token = null;
 					break;
 				}
@@ -1267,118 +1266,118 @@ class ClipToken {
 
 			tmp = token.substring( 0, len );
 
-			if( charAt( tmp, 0 ) == '\$' ){
+			if( ClipMath.charAt( tmp, 0 ) == '\$' ){
 				if( checkSe( tmp.substring( 1, len ).toLowerCase(), code ) ){
 					switch( code.val() ){
-					case CLIP_SE_LOOPSTART:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_START;
+					case ClipGlobal.seLoopStart:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statStart;
 						break;
-					case CLIP_SE_LOOPEND:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_END;
+					case ClipGlobal.seLoopEnd:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEnd;
 						break;
-					case CLIP_SE_LOOPEND_INC:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_END_INC;
+					case ClipGlobal.seLoopEndInc:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEndInc;
 						break;
-					case CLIP_SE_LOOPEND_DEC:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_END_DEC;
+					case ClipGlobal.seLoopEndDec:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEndDec;
 						break;
-					case CLIP_SE_LOOPENDEQ:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_ENDEQ;
+					case ClipGlobal.seLoopEndEq:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEndEq;
 						break;
-					case CLIP_SE_LOOPENDEQ_INC:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_ENDEQ_INC;
+					case ClipGlobal.seLoopEndEqInc:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEndEqInc;
 						break;
-					case CLIP_SE_LOOPENDEQ_DEC:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_ENDEQ_DEC;
+					case ClipGlobal.seLoopEndEqDec:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statEndEqDec;
 						break;
-					case CLIP_SE_LOOPCONT:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_CONT;
+					case ClipGlobal.seLoopCont:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statCont;
 						break;
-					case CLIP_SE_CONTINUE:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_CONTINUE2;
+					case ClipGlobal.seContinue:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statContinue2;
 						break;
-					case CLIP_SE_BREAK:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_BREAK2;
+					case ClipGlobal.seBreak:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statBreak2;
 						break;
-					case CLIP_SE_RETURN:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_RETURN2;
+					case ClipGlobal.seReturn:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statReturn2;
 						break;
-					case CLIP_SE_RETURN_ANS:
-						cur._code  = CLIP_CODE_STATEMENT;
-						cur._token = CLIP_STAT_RETURN3;
+					case ClipGlobal.seReturnAns:
+						cur._code  = ClipGlobal.codeStatement;
+						cur._token = ClipGlobal.statReturn3;
 						break;
 					default:
-						cur._code  = CLIP_CODE_SE;
+						cur._code  = ClipGlobal.codeSe;
 						cur._token = code.val();
 						break;
 					}
 				} else {
-					cur._code  = CLIP_CODE_SE;
-					cur._token = CLIP_SE_NULL;
+					cur._code  = ClipGlobal.codeSe;
+					cur._token = ClipGlobal.seNull;
 				}
 			} else if( checkSqOp( tmp, code ) ){
-				cur._code  = CLIP_CODE_OPERATOR;
+				cur._code  = ClipGlobal.codeOperator;
 				cur._token = code.val();
-			} else if( charAt( tmp, 0 ) == ':' ){
-				cur._code = CLIP_CODE_COMMAND;
+			} else if( ClipMath.charAt( tmp, 0 ) == ':' ){
+				cur._code = ClipGlobal.codeCommand;
 				if( checkCommand( tmp.substring( 1, len ), code ) ){
 					cur._token = code.val();
 				} else {
-					cur._token = CLIP_COMMAND_NULL;
+					cur._token = ClipGlobal.commandNull;
 				}
-			} else if( charAt( tmp, 0 ) == '!' ){
-				cur._code  = CLIP_CODE_EXTFUNC;
+			} else if( ClipMath.charAt( tmp, 0 ) == '!' ){
+				cur._code  = ClipGlobal.codeExtFunc;
 				cur._token = tmp.substring( 1, len ).toLowerCase();
-			} else if( charAt( tmp, 0 ) == '"' ){
-				cur._code  = CLIP_CODE_STRING;
+			} else if( ClipMath.charAt( tmp, 0 ) == '"' ){
+				cur._code  = ClipGlobal.codeString;
 				cur._token = "";
 				for( i = 1; ; i++ ){
 					if( i >= tmp.length ){
 						break;
 					}
-					if( isCharEscape( tmp, i ) ){
+					if( ClipGlobal.isCharEscape( tmp, i ) ){
 						i++;
 						if( i >= tmp.length ){
 							break;
 						}
-						switch( charAt( tmp, i ) ){
+						switch( ClipMath.charAt( tmp, i ) ){
 						case 'b': cur._token += '\b'; break;
 						case 'f': cur._token += '\f'; break;
 						case 'n': cur._token += '\n'; break;
 						case 'r': cur._token += '\r'; break;
 						case 't': cur._token += '\t'; break;
 						case 'v': cur._token += '\v'; break;
-						default : cur._token += charAt( tmp, i ); break;
+						default : cur._token += ClipMath.charAt( tmp, i ); break;
 						}
 					} else {
-						cur._token += charAt( tmp, i );
+						cur._token += ClipMath.charAt( tmp, i );
 					}
 				}
 			} else if( checkFunc( tmp.toLowerCase(), code ) ){
-				cur._code  = CLIP_CODE_FUNCTION;
+				cur._code  = ClipGlobal.codeFunction;
 				cur._token = code.val();
 			} else if( checkStat( tmp, code ) ){
-				cur._code  = CLIP_CODE_STATEMENT;
+				cur._code  = ClipGlobal.codeStatement;
 				cur._token = code.val();
 			} else {
 				cur._token = MathValue();
 				if( checkDefine( tmp, cur._token ) ){
-					cur._code = CLIP_CODE_CONSTANT;
+					cur._code = ClipGlobal.codeConstant;
 				} else if( strToVal && stringToValue( param, tmp, cur._token ) ){
-					cur._code = CLIP_CODE_CONSTANT;
+					cur._code = ClipGlobal.codeConstant;
 				} else {
-					cur._code  = CLIP_CODE_LABEL;
+					cur._code  = ClipGlobal.codeLabel;
 					cur._token = tmp;
 				}
 			}
@@ -1387,15 +1386,15 @@ class ClipToken {
 		}
 	}
 	void _newTokenValue( ClipTokenData cur, MathValue value ){
-		cur._code  = CLIP_CODE_CONSTANT;
-		cur._token = dupValue( value );
+		cur._code  = ClipGlobal.codeConstant;
+		cur._token = MathValue.dup( value );
 	}
 	void _newTokenMatrix( ClipTokenData cur, MathMatrix value ){
-		cur._code  = CLIP_CODE_MATRIX;
-		cur._token = dupMatrix( value );
+		cur._code  = ClipGlobal.codeMatrix;
+		cur._token = MathMatrix.dup( value );
 	}
 	void _newTokenMultiPrec( ClipTokenData cur, MPData value ){
-		cur._code  = CLIP_CODE_MULTIPREC;
+		cur._code  = ClipGlobal.codeMultiPrec;
 		cur._token = value.clone();
 	}
 
@@ -1439,17 +1438,17 @@ class ClipToken {
 	}
 	void add( ClipParam param, String token, int len, bool strToVal ){
 		bool addFact = false;
-		if( (charAt( token, 0 ) != '"') && (charAt( token, len - 1 ) == '!') ){
+		if( (ClipMath.charAt( token, 0 ) != '"') && (ClipMath.charAt( token, len - 1 ) == '!') ){
 			if( len == 1 ){
-				token = String.fromCharCode( CLIP_CODE_OPERATOR ) + String.fromCharCode( CLIP_OP_FACT );
-			} else if( charAt( token, len - 2 ) != '@' ){
+				token = String.fromCharCode( ClipGlobal.codeOperator ) + String.fromCharCode( ClipGlobal.opFact );
+			} else if( ClipMath.charAt( token, len - 2 ) != '@' ){
 				addFact = true;
 				token = token.substring( 0, len - 1 );
 			}
 		}
 		_newToken( _addToken(), param, token, len, strToVal );
 		if( addFact ){
-			token = String.fromCharCode( CLIP_CODE_OPERATOR ) + String.fromCharCode( CLIP_OP_FACT );
+			token = String.fromCharCode( ClipGlobal.codeOperator ) + String.fromCharCode( ClipGlobal.opFact );
 			_newToken( _addToken(), param, token, 1, strToVal );
 		}
 	}
@@ -1549,7 +1548,7 @@ class ClipToken {
 			tmp = _searchList( num );
 		}
 		if( tmp == null ){
-			return CLIP_ERR_TOKEN;
+			return ClipGlobal.errToken;
 		}
 
 		if( tmp._before != null ){
@@ -1566,7 +1565,7 @@ class ClipToken {
 		// トークン文字列の解放
 		_delToken( tmp );
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// 全トークンを削除する
@@ -1599,8 +1598,8 @@ class ClipToken {
 
 		cur = 0;
 		while( cur < line.length ){
-			if( isCharEscape( line, cur ) ){
-				switch( charAt( line, cur + 1 ) ){
+			if( ClipGlobal.isCharEscape( line, cur ) ){
+				switch( ClipMath.charAt( line, cur + 1 ) ){
 				case '0':
 				case '1':
 				case '2':
@@ -1622,9 +1621,9 @@ class ClipToken {
 				case 'X':
 					break;
 				case '\\':
-				case CLIP_CHAR_UTF8_YEN:
+				case ClipGlobal.charUtf8Yen:
 					if( len == 0 ) token = "";
-					token += charAt( line, cur );
+					token += ClipMath.charAt( line, cur );
 					len++;
 					// そのまま下に流す
 					continue _default;
@@ -1637,17 +1636,17 @@ class ClipToken {
 					break;
 				}
 				if( len == 0 ) token = "";
-				token += charAt( line, cur );
+				token += ClipMath.charAt( line, cur );
 				len++;
-			} else if( (charAt( line, cur ) == '[') && !strFlag ){
+			} else if( (ClipMath.charAt( line, cur ) == '[') && !strFlag ){
 				if( len > 0 ){
 					add( param, token, len, strToVal );
 					len = 0;
 				}
 				strFlag = true;
-			} else if( (charAt( line, cur ) == ']') && strFlag ){
+			} else if( (ClipMath.charAt( line, cur ) == ']') && strFlag ){
 				if( len == 0 ){
-					token = String.fromCharCode( CLIP_CODE_PARAM_ARRAY );
+					token = String.fromCharCode( ClipGlobal.codeParamArray );
 					add( param, token, 1, strToVal );
 				} else {
 					addSq( param, token, len, strToVal );
@@ -1656,11 +1655,11 @@ class ClipToken {
 				strFlag = false;
 			} else if( strFlag ){
 				if( len == 0 ) token = "";
-				token += charAt( line, cur );
+				token += ClipMath.charAt( line, cur );
 				len++;
 			} else {
-				String curChar = charAt( line, cur );
-				if( charCodeAt( line, cur ) == CLIP_CHAR_CODE_SPACE ){
+				String curChar = ClipMath.charAt( line, cur );
+				if( ClipMath.charCodeAt( line, cur ) == ClipGlobal.charCodeSpace ){
 					curChar = ' ';
 				}
 				switch( curChar ){
@@ -1683,7 +1682,7 @@ class ClipToken {
 					}
 					switch( curChar ){
 					case '(':
-						token = String.fromCharCode( CLIP_CODE_TOP );
+						token = String.fromCharCode( ClipGlobal.codeTop );
 						if( !formatSeFlag ){
 							if( topCount >= 0 ){
 								topCount++;
@@ -1691,17 +1690,17 @@ class ClipToken {
 						}
 						break;
 					case ')':
-						token = String.fromCharCode( CLIP_CODE_END );
+						token = String.fromCharCode( ClipGlobal.codeEnd );
 						if( !formatSeFlag ){
 							topCount--;
 						}
 						break;
 					case '{':
-						token = String.fromCharCode( CLIP_CODE_ARRAY_TOP );
+						token = String.fromCharCode( ClipGlobal.codeArrayTop );
 						formatSeFlag = true;
 						break;
 					case '}':
-						token = String.fromCharCode( CLIP_CODE_ARRAY_END );
+						token = String.fromCharCode( ClipGlobal.codeArrayEnd );
 						formatSeFlag = false;
 						break;
 					}
@@ -1711,7 +1710,7 @@ class ClipToken {
 					if( len == 0 ) token = "";
 					token += curChar;
 					len++;
-					if( charAt( token, 0 ) == '@' ){
+					if( ClipMath.charAt( token, 0 ) == '@' ){
 						add( param, token, len, strToVal );
 						len = 0;
 					}
@@ -1723,16 +1722,16 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
+					token = String.fromCharCode( ClipGlobal.codeOperator );
 					switch( curChar ){
-					case '?': token += String.fromCharCode( CLIP_OP_CONDITIONAL ); break;
-					case ',': token += String.fromCharCode( CLIP_OP_COMMA       ); break;
+					case '?': token += String.fromCharCode( ClipGlobal.opConditional ); break;
+					case ',': token += String.fromCharCode( ClipGlobal.opComma       ); break;
 					case '=':
-						if( charAt( line, cur + 1 ) == '=' ){
-							token += String.fromCharCode( CLIP_OP_EQUAL );
+						if( ClipMath.charAt( line, cur + 1 ) == '=' ){
+							token += String.fromCharCode( ClipGlobal.opEqual );
 							cur++;
 						} else {
-							token += String.fromCharCode( CLIP_OP_ASS );
+							token += String.fromCharCode( ClipGlobal.opAss );
 						}
 						break;
 					}
@@ -1743,11 +1742,11 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					switch( charAt( line, cur + 1 ) ){
-					case '&': token += String.fromCharCode( CLIP_OP_LOGAND    ); cur++; break;
-					case '=': token += String.fromCharCode( CLIP_OP_ANDANDASS ); cur++; break;
-					default : token += String.fromCharCode( CLIP_OP_AND       );        break;
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					switch( ClipMath.charAt( line, cur + 1 ) ){
+					case '&': token += String.fromCharCode( ClipGlobal.opLogAnd    ); cur++; break;
+					case '=': token += String.fromCharCode( ClipGlobal.opAndAndAss ); cur++; break;
+					default : token += String.fromCharCode( ClipGlobal.opAnd       );        break;
 					}
 					add( param, token, 2, strToVal );
 					break;
@@ -1756,11 +1755,11 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					switch( charAt( line, cur + 1 ) ){
-					case '|': token += String.fromCharCode( CLIP_OP_LOGOR    ); cur++; break;
-					case '=': token += String.fromCharCode( CLIP_OP_ORANDASS ); cur++; break;
-					default : token += String.fromCharCode( CLIP_OP_OR       );        break;
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					switch( ClipMath.charAt( line, cur + 1 ) ){
+					case '|': token += String.fromCharCode( ClipGlobal.opLogOr    ); cur++; break;
+					case '=': token += String.fromCharCode( ClipGlobal.opOrAndAss ); cur++; break;
+					default : token += String.fromCharCode( ClipGlobal.opOr       );        break;
 					}
 					add( param, token, 2, strToVal );
 					break;
@@ -1772,17 +1771,17 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					if( charAt( line, cur + 1 ) == '=' ){
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					if( ClipMath.charAt( line, cur + 1 ) == '=' ){
 						switch( curChar ){
-						case '*': token += String.fromCharCode( CLIP_OP_MULANDASS ); break;
-						case '/': token += String.fromCharCode( CLIP_OP_DIVANDASS ); break;
-						case '%': token += String.fromCharCode( CLIP_OP_MODANDASS ); break;
+						case '*': token += String.fromCharCode( ClipGlobal.opMulAndAss ); break;
+						case '/': token += String.fromCharCode( ClipGlobal.opDivAndAss ); break;
+						case '%': token += String.fromCharCode( ClipGlobal.opModAndAss ); break;
 						case '^':
-							if( param.enableOpPow() && ((param.mode() & CLIP_MODE_INT) == 0) ){
-								token += String.fromCharCode( CLIP_OP_POWANDASS );
+							if( param.enableOpPow() && ((param.mode() & ClipGlobal.modeInt) == 0) ){
+								token += String.fromCharCode( ClipGlobal.opPowAndAss );
 							} else {
-								token += String.fromCharCode( CLIP_OP_XORANDASS );
+								token += String.fromCharCode( ClipGlobal.opXorAndAss );
 							}
 							break;
 						}
@@ -1790,25 +1789,25 @@ class ClipToken {
 					} else {
 						switch( curChar ){
 						case '*':
-							if( charAt( line, cur + 1 ) == '*' ){
-								if( charAt( line, cur + 2 ) == '=' ){
-									token += String.fromCharCode( CLIP_OP_POWANDASS );
+							if( ClipMath.charAt( line, cur + 1 ) == '*' ){
+								if( ClipMath.charAt( line, cur + 2 ) == '=' ){
+									token += String.fromCharCode( ClipGlobal.opPowAndAss );
 									cur += 2;
 								} else {
-									token += String.fromCharCode( CLIP_OP_POW );
+									token += String.fromCharCode( ClipGlobal.opPow );
 									cur++;
 								}
 							} else {
-								token += String.fromCharCode( CLIP_OP_MUL );
+								token += String.fromCharCode( ClipGlobal.opMul );
 							}
 							break;
-						case '/': token += String.fromCharCode( CLIP_OP_DIV ); break;
-						case '%': token += String.fromCharCode( CLIP_OP_MOD ); break;
+						case '/': token += String.fromCharCode( ClipGlobal.opDiv ); break;
+						case '%': token += String.fromCharCode( ClipGlobal.opMod ); break;
 						case '^':
-							if( param.enableOpPow() && ((param.mode() & CLIP_MODE_INT) == 0) ){
-								token += String.fromCharCode( CLIP_OP_POW );
+							if( param.enableOpPow() && ((param.mode() & ClipGlobal.modeInt) == 0) ){
+								token += String.fromCharCode( ClipGlobal.opPow );
 							} else {
-								token += String.fromCharCode( CLIP_OP_XOR );
+								token += String.fromCharCode( ClipGlobal.opXor );
 							}
 							break;
 						}
@@ -1820,11 +1819,11 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					switch( charAt( line, cur + 1 ) ){
-					case '=': token += String.fromCharCode( CLIP_OP_ADDANDASS  ); cur++; break;
-					case '+': token += String.fromCharCode( CLIP_OP_POSTFIXINC ); cur++; break;
-					default : token += String.fromCharCode( CLIP_OP_ADD        );        break;
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					switch( ClipMath.charAt( line, cur + 1 ) ){
+					case '=': token += String.fromCharCode( ClipGlobal.opAddAndAss  ); cur++; break;
+					case '+': token += String.fromCharCode( ClipGlobal.opPostfixInc ); cur++; break;
+					default : token += String.fromCharCode( ClipGlobal.opAdd        );        break;
 					}
 					add( param, token, 2, strToVal );
 					break;
@@ -1833,11 +1832,11 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					switch( charAt( line, cur + 1 ) ){
-					case '=': token += String.fromCharCode( CLIP_OP_SUBANDASS  ); cur++; break;
-					case '-': token += String.fromCharCode( CLIP_OP_POSTFIXDEC ); cur++; break;
-					default : token += String.fromCharCode( CLIP_OP_SUB        );        break;
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					switch( ClipMath.charAt( line, cur + 1 ) ){
+					case '=': token += String.fromCharCode( ClipGlobal.opSubAndAss  ); cur++; break;
+					case '-': token += String.fromCharCode( ClipGlobal.opPostfixDec ); cur++; break;
+					default : token += String.fromCharCode( ClipGlobal.opSub        );        break;
 					}
 					add( param, token, 2, strToVal );
 					break;
@@ -1847,44 +1846,44 @@ class ClipToken {
 						add( param, token, len, strToVal );
 						len = 0;
 					}
-					token = String.fromCharCode( CLIP_CODE_OPERATOR );
-					if( charAt( line, cur + 1 ) == curChar ){
-						if( charAt( line, cur + 2 ) == '=' ){
+					token = String.fromCharCode( ClipGlobal.codeOperator );
+					if( ClipMath.charAt( line, cur + 1 ) == curChar ){
+						if( ClipMath.charAt( line, cur + 2 ) == '=' ){
 							switch( curChar ){
-							case '<': token += String.fromCharCode( CLIP_OP_SHIFTLANDASS ); break;
-							case '>': token += String.fromCharCode( CLIP_OP_SHIFTRANDASS ); break;
+							case '<': token += String.fromCharCode( ClipGlobal.opShiftLAndAss ); break;
+							case '>': token += String.fromCharCode( ClipGlobal.opShiftRAndAss ); break;
 							}
 							cur += 2;
 						} else {
 							switch( curChar ){
-							case '<': token += String.fromCharCode( CLIP_OP_SHIFTL ); break;
-							case '>': token += String.fromCharCode( CLIP_OP_SHIFTR ); break;
+							case '<': token += String.fromCharCode( ClipGlobal.opShiftL ); break;
+							case '>': token += String.fromCharCode( ClipGlobal.opShiftR ); break;
 							}
 							cur++;
 						}
 					} else {
-						if( charAt( line, cur + 1 ) == '=' ){
+						if( ClipMath.charAt( line, cur + 1 ) == '=' ){
 							switch( curChar ){
-							case '<': token += String.fromCharCode( CLIP_OP_LESSOREQ  ); break;
-							case '>': token += String.fromCharCode( CLIP_OP_GREATOREQ ); break;
+							case '<': token += String.fromCharCode( ClipGlobal.opLessOrEq  ); break;
+							case '>': token += String.fromCharCode( ClipGlobal.opGreatOrEq ); break;
 							}
 							cur++;
 						} else {
 							switch( curChar ){
-							case '<': token += String.fromCharCode( CLIP_OP_LESS  ); break;
-							case '>': token += String.fromCharCode( CLIP_OP_GREAT ); break;
+							case '<': token += String.fromCharCode( ClipGlobal.opLess  ); break;
+							case '>': token += String.fromCharCode( ClipGlobal.opGreat ); break;
 							}
 						}
 					}
 					add( param, token, 2, strToVal );
 					break;
 				case '!':
-					if( charAt( line, cur + 1 ) == '=' ){
+					if( ClipMath.charAt( line, cur + 1 ) == '=' ){
 						if( len > 0 ){
 							add( param, token, len, strToVal );
 							len = 0;
 						}
-						token = String.fromCharCode( CLIP_CODE_OPERATOR ) + String.fromCharCode( CLIP_OP_NOTEQUAL );
+						token = String.fromCharCode( ClipGlobal.codeOperator ) + String.fromCharCode( ClipGlobal.opNotEqual );
 						cur++;
 						add( param, token, 2, strToVal );
 					} else {
@@ -1895,11 +1894,11 @@ class ClipToken {
 					break;
 				case 'e':
 				case 'E':
-					if( ((param.mode() & CLIP_MODE_INT) == 0) && (len > 0) ){
-						if( (charAt( line, cur + 1 ) == '+') || (charAt( line, cur + 1 ) == '-') ){
+					if( ((param.mode() & ClipGlobal.modeInt) == 0) && (len > 0) ){
+						if( (ClipMath.charAt( line, cur + 1 ) == '+') || (ClipMath.charAt( line, cur + 1 ) == '-') ){
 							bool _break = false;
 							for( int i = 0; i < len; i++ ){
-								switch( charAt( token, i ) ){
+								switch( ClipMath.charAt( token, i ) ){
 								case '+':
 								case '-':
 								case '0':
@@ -1925,7 +1924,7 @@ class ClipToken {
 							if( !_break ){
 								token += curChar;
 								cur++;
-								token += charAt( line, cur );
+								token += ClipMath.charAt( line, cur );
 								len += 2;
 								break;
 							}
@@ -1948,83 +1947,83 @@ class ClipToken {
 		}
 
 		if( _top != null ){
-			if( _top!._code == CLIP_CODE_SE ){
+			if( _top!._code == ClipGlobal.codeSe ){
 				if( topCount != 0 ){
-					return CLIP_PROC_ERR_SE_OPERAND;
+					return ClipGlobal.procErrSeOperand;
 				}
 			}
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// トークンを整える
 	int _checkOp( int op ){
 		switch( op ){
-		case CLIP_OP_POSTFIXINC:
-		case CLIP_OP_POSTFIXDEC:
-		case CLIP_OP_FACT:
+		case ClipGlobal.opPostfixInc:
+		case ClipGlobal.opPostfixDec:
+		case ClipGlobal.opFact:
 			return 15;
-		case CLIP_OP_INCREMENT:
-		case CLIP_OP_DECREMENT:
-		case CLIP_OP_COMPLEMENT:
-		case CLIP_OP_NOT:
-		case CLIP_OP_MINUS:
-		case CLIP_OP_PLUS:
-		case CLIP_OP_POW:
+		case ClipGlobal.opIncrement:
+		case ClipGlobal.opDecrement:
+		case ClipGlobal.opComplement:
+		case ClipGlobal.opNot:
+		case ClipGlobal.opMinus:
+		case ClipGlobal.opPlus:
+		case ClipGlobal.opPow:
 			return 14;
-		case CLIP_OP_MUL:
-		case CLIP_OP_DIV:
-		case CLIP_OP_MOD:
+		case ClipGlobal.opMul:
+		case ClipGlobal.opDiv:
+		case ClipGlobal.opMod:
 			return 13;
-		case CLIP_OP_ADD:
-		case CLIP_OP_SUB:
+		case ClipGlobal.opAdd:
+		case ClipGlobal.opSub:
 			return 12;
-		case CLIP_OP_SHIFTL:
-		case CLIP_OP_SHIFTR:
+		case ClipGlobal.opShiftL:
+		case ClipGlobal.opShiftR:
 			return 11;
-		case CLIP_OP_LESS:
-		case CLIP_OP_LESSOREQ:
-		case CLIP_OP_GREAT:
-		case CLIP_OP_GREATOREQ:
+		case ClipGlobal.opLess:
+		case ClipGlobal.opLessOrEq:
+		case ClipGlobal.opGreat:
+		case ClipGlobal.opGreatOrEq:
 			return 10;
-		case CLIP_OP_EQUAL:
-		case CLIP_OP_NOTEQUAL:
+		case ClipGlobal.opEqual:
+		case ClipGlobal.opNotEqual:
 			return 9;
-		case CLIP_OP_AND:
+		case ClipGlobal.opAnd:
 			return 8;
-		case CLIP_OP_XOR:
+		case ClipGlobal.opXor:
 			return 7;
-		case CLIP_OP_OR:
+		case ClipGlobal.opOr:
 			return 6;
-		case CLIP_OP_LOGAND:
+		case ClipGlobal.opLogAnd:
 			return 5;
-		case CLIP_OP_LOGOR:
+		case ClipGlobal.opLogOr:
 			return 4;
-		case CLIP_OP_CONDITIONAL:
+		case ClipGlobal.opConditional:
 			return 3;
-		case CLIP_OP_ASS:
-		case CLIP_OP_MULANDASS:
-		case CLIP_OP_DIVANDASS:
-		case CLIP_OP_MODANDASS:
-		case CLIP_OP_ADDANDASS:
-		case CLIP_OP_SUBANDASS:
-		case CLIP_OP_SHIFTLANDASS:
-		case CLIP_OP_SHIFTRANDASS:
-		case CLIP_OP_ANDANDASS:
-		case CLIP_OP_ORANDASS:
-		case CLIP_OP_XORANDASS:
-		case CLIP_OP_POWANDASS:
+		case ClipGlobal.opAss:
+		case ClipGlobal.opMulAndAss:
+		case ClipGlobal.opDivAndAss:
+		case ClipGlobal.opModAndAss:
+		case ClipGlobal.opAddAndAss:
+		case ClipGlobal.opSubAndAss:
+		case ClipGlobal.opShiftLAndAss:
+		case ClipGlobal.opShiftRAndAss:
+		case ClipGlobal.opAndAndAss:
+		case ClipGlobal.opOrAndAss:
+		case ClipGlobal.opXorAndAss:
+		case ClipGlobal.opPowAndAss:
 			return 2;
-		case CLIP_OP_COMMA:
+		case ClipGlobal.opComma:
 			return 1;
 		}
 		return 0;
 	}
 	int _format( ClipTokenData? top, ClipParam param, bool strToVal ){
 		int level, topLevel = 0;
-		int assLevel = _checkOp( CLIP_OP_ASS );
-		int posLevel = _checkOp( CLIP_OP_POSTFIXINC );
+		int assLevel = _checkOp( ClipGlobal.opAss );
+		int posLevel = _checkOp( ClipGlobal.opPostfixInc );
 		int retTop, retEnd;
 		ClipTokenData? tmpTop;
 		ClipTokenData? tmpEnd;
@@ -2033,7 +2032,7 @@ class ClipToken {
 		int i;
 		ClipTokenData? cur = top;
 		while( cur != null ){
-			if( cur._code == CLIP_CODE_OPERATOR ){
+			if( cur._code == ClipGlobal.codeOperator ){
 				// 自分自身の演算子の優先レベルを調べておく
 				level = _checkOp( cur._token );
 
@@ -2045,21 +2044,21 @@ class ClipToken {
 				tmpTop = cur._before;
 				while( tmpTop != null ){
 					switch( tmpTop._code ){
-					case CLIP_CODE_TOP:
+					case ClipGlobal.codeTop:
 						if( i > 0 ){
 							i--;
 						} else {
 							retTop = 1;
 						}
 						break;
-					case CLIP_CODE_END:
+					case ClipGlobal.codeEnd:
 						i++;
 						break;
-					case CLIP_CODE_STATEMENT:
-						_ins( tmpTop._next, param, String.fromCharCode( CLIP_CODE_TOP ), 1, strToVal );
+					case ClipGlobal.codeStatement:
+						_ins( tmpTop._next, param, String.fromCharCode( ClipGlobal.codeTop ), 1, strToVal );
 						retTop = 1;
 						break;
-					case CLIP_CODE_OPERATOR:
+					case ClipGlobal.codeOperator:
 						if( i == 0 ){
 							topLevel = _checkOp( tmpTop._token );
 							if( ((topLevel == assLevel) && (level == assLevel)) || (topLevel < level) ){
@@ -2075,18 +2074,24 @@ class ClipToken {
 						tmpEnd = cur._next;
 						while( tmpEnd != null ){
 							switch( tmpEnd._code ){
-							case CLIP_CODE_TOP:
+							case ClipGlobal.codeTop:
 								i++;
 								break;
-							case CLIP_CODE_END:
+							case ClipGlobal.codeEnd:
 								if( i > 0 ){
 									i--;
 								} else {
 									retEnd = 1;
 								}
 								break;
-							case CLIP_CODE_OPERATOR:
-								if( i == 0 ){
+							case ClipGlobal.codeOperator:
+								if( tmpEnd._token == ClipGlobal.opComma ){
+									if( i > 0 ){
+										i--;
+									} else {
+										retEnd = 1;
+									}
+								} else if( i == 0 ){
 									if( (topLevel != assLevel) && ((level == posLevel) || (_checkOp( tmpEnd._token ) <= topLevel)) ){
 										retEnd = 2;
 									}
@@ -2100,9 +2105,9 @@ class ClipToken {
 							tmpEnd = tmpEnd._next;
 						}
 
-						_ins( tmpTop._next, param, String.fromCharCode( CLIP_CODE_TOP ), 1, strToVal );
+						_ins( tmpTop._next, param, String.fromCharCode( ClipGlobal.codeTop ), 1, strToVal );
 						if( retEnd > 0 ){
-							_ins( tmpEnd, param, String.fromCharCode( CLIP_CODE_END ), 1, strToVal );
+							_ins( tmpEnd, param, String.fromCharCode( ClipGlobal.codeEnd ), 1, strToVal );
 						}
 					}
 
@@ -2115,7 +2120,7 @@ class ClipToken {
 			cur = cur._next;
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _formatSe( ClipParam param, bool strToVal ){
 		int i;
@@ -2127,19 +2132,19 @@ class ClipToken {
 		ClipTokenData? cur = _top;
 		ClipTokenData? cur2;
 		while( cur != null ){
-			if( cur._code == CLIP_CODE_ARRAY_TOP ){
-				cur._code = CLIP_CODE_TOP;
+			if( cur._code == ClipGlobal.codeArrayTop ){
+				cur._code = ClipGlobal.codeTop;
 				tmpTop = cur._next;
-			} else if( cur._code == CLIP_CODE_ARRAY_END ){
-				cur._code = CLIP_CODE_END;
+			} else if( cur._code == ClipGlobal.codeArrayEnd ){
+				cur._code = ClipGlobal.codeEnd;
 				if( tmpTop == null ){
-					return CLIP_PROC_ERR_SE_OPERAND;
+					return ClipGlobal.procErrSeOperand;
 				} else {
 					saveBefore = tmpTop._before;
 					tmpTop._before = null;
 					saveNext = cur._before!._next;
 					cur._before!._next = null;
-					if( (ret = _format( tmpTop, param, strToVal )) != CLIP_NO_ERR ){
+					if( (ret = _format( tmpTop, param, strToVal )) != ClipGlobal.noErr ){
 						return ret;
 					}
 					tmpTop._before = saveBefore;
@@ -2149,13 +2154,13 @@ class ClipToken {
 					cur2 = tmpTop;
 					while( cur2 != null ){
 						switch( cur2._code ){
-						case CLIP_CODE_TOP:
+						case ClipGlobal.codeTop:
 							i++;
 							break;
-						case CLIP_CODE_END:
+						case ClipGlobal.codeEnd:
 							i--;
 							for( ; i < 0; i++ ){
-								_ins( tmpTop, param, String.fromCharCode( CLIP_CODE_TOP ), 1, strToVal );
+								_ins( tmpTop, param, String.fromCharCode( ClipGlobal.codeTop ), 1, strToVal );
 							}
 							break;
 						}
@@ -2166,7 +2171,7 @@ class ClipToken {
 
 					// 括弧閉じを整える
 					for( ; i > 0; i-- ){
-						_ins( cur, param, String.fromCharCode( CLIP_CODE_END ), 1, strToVal );
+						_ins( cur, param, String.fromCharCode( ClipGlobal.codeEnd ), 1, strToVal );
 					}
 
 					tmpTop = null;
@@ -2175,53 +2180,53 @@ class ClipToken {
 			cur = cur._next;
 		}
 		if( tmpTop != null ){
-			return CLIP_PROC_ERR_SE_OPERAND;
+			return ClipGlobal.procErrSeOperand;
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int format( ClipParam param, bool strToVal ){
 		int ret;
 
 		if( _top != null ){
-			if( _top!._code == CLIP_CODE_SE ){
+			if( _top!._code == ClipGlobal.codeSe ){
 				return _formatSe( param, strToVal );
-			} else if( _top!._code == CLIP_CODE_STATEMENT ){
+			} else if( _top!._code == ClipGlobal.codeStatement ){
 				switch( _top!._token ){
-				case CLIP_STAT_START:
-				case CLIP_STAT_END:
-				case CLIP_STAT_END_INC:
-				case CLIP_STAT_END_DEC:
-				case CLIP_STAT_ENDEQ:
-				case CLIP_STAT_ENDEQ_INC:
-				case CLIP_STAT_ENDEQ_DEC:
-				case CLIP_STAT_CONT:
-				case CLIP_STAT_CONTINUE2:
-				case CLIP_STAT_BREAK2:
-				case CLIP_STAT_RETURN2:
-				case CLIP_STAT_RETURN3:
+				case ClipGlobal.statStart:
+				case ClipGlobal.statEnd:
+				case ClipGlobal.statEndInc:
+				case ClipGlobal.statEndDec:
+				case ClipGlobal.statEndEq:
+				case ClipGlobal.statEndEqInc:
+				case ClipGlobal.statEndEqDec:
+				case ClipGlobal.statCont:
+				case ClipGlobal.statContinue2:
+				case ClipGlobal.statBreak2:
+				case ClipGlobal.statReturn2:
+				case ClipGlobal.statReturn3:
 					return _formatSe( param, strToVal );
-				case CLIP_STAT_DO:
-				case CLIP_STAT_ENDWHILE:
-				case CLIP_STAT_NEXT:
-				case CLIP_STAT_ENDFUNC:
-				case CLIP_STAT_ELSE:
-				case CLIP_STAT_ENDIF:
-				case CLIP_STAT_DEFAULT:
-				case CLIP_STAT_ENDSWI:
-				case CLIP_STAT_BREAKSWI:
-				case CLIP_STAT_CONTINUE:
-				case CLIP_STAT_BREAK:
+				case ClipGlobal.statDo:
+				case ClipGlobal.statEndWhile:
+				case ClipGlobal.statNext:
+				case ClipGlobal.statEndFunc:
+				case ClipGlobal.statElse:
+				case ClipGlobal.statEndIf:
+				case ClipGlobal.statDefault:
+				case ClipGlobal.statEndSwi:
+				case ClipGlobal.statBreakSwi:
+				case ClipGlobal.statContinue:
+				case ClipGlobal.statBreak:
 					if( _top!._next != null ){
-						return CLIP_PROC_WARN_DEAD_TOKEN;
+						return ClipGlobal.procWarnDeadToken;
 					}
-					return CLIP_NO_ERR;
+					return ClipGlobal.noErr;
 				}
 			}
 		}
 
 		// 演算子の優先順位に従って括弧を付ける
-		if( (ret = _format( _top, param, strToVal )) != CLIP_NO_ERR ){
+		if( (ret = _format( _top, param, strToVal )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -2230,35 +2235,35 @@ class ClipToken {
 		ClipTokenData? cur = _top;
 		while( cur != null ){
 			switch( cur._code ){
-			case CLIP_CODE_TOP:
+			case ClipGlobal.codeTop:
 				i++;
 				break;
-			case CLIP_CODE_END:
+			case ClipGlobal.codeEnd:
 				i--;
 				for( ; i < 0; i++ ){
-					_ins( _top, param, String.fromCharCode( CLIP_CODE_TOP ), 1, strToVal );
+					_ins( _top, param, String.fromCharCode( ClipGlobal.codeTop ), 1, strToVal );
 				}
 				break;
 			}
 			cur = cur._next;
 		}
 		for( ; i > 0; i-- ){
-			add( param, String.fromCharCode( CLIP_CODE_END ), 1, strToVal );
+			add( param, String.fromCharCode( ClipGlobal.codeEnd ), 1, strToVal );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// トークン・リストを構築する
 	int regString( ClipParam param, String line, bool strToVal ){
 		int ret;
-		if( (ret = separate( param, line, strToVal )) != CLIP_NO_ERR ){
+		if( (ret = separate( param, line, strToVal )) != ClipGlobal.noErr ){
 			return ret;
 		}
-		if( (ret = format( param, strToVal )) != CLIP_NO_ERR ){
+		if( (ret = format( param, strToVal )) != ClipGlobal.noErr ){
 			return ret;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// トークン・リストをコピーする
@@ -2299,7 +2304,7 @@ class ClipToken {
 			dst._end     = dstCur;
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// カレント・トークンをロックする
@@ -2319,8 +2324,8 @@ class ClipToken {
 			return false;
 		}
 
-		_get_code  = _get!._code;
-		_get_token = _get!._token;
+		_getCode  = _get!._code;
+		_getToken = _get!._token;
 
 		_get = _get!._next;
 		return true;
@@ -2330,35 +2335,35 @@ class ClipToken {
 			return false;
 		}
 
-		if( _get!._code == CLIP_CODE_LABEL ){
+		if( _get!._code == ClipGlobal.codeLabel ){
 			// 重要：関数、ローカル、グローバルの順にチェックすること！
 			if( param.func().search( _get!._token, false, null ) != null ){
 				// 関数
-				_get_code = _get!._code;
+				_getCode = _get!._code;
 			} else if( param.variable().label().checkLabel( _get!._token ) >= 0 ){
 				// ローカル変数
-				_get_code = CLIP_CODE_AUTO_VAR;
+				_getCode = ClipGlobal.codeAutoVar;
 			} else if( param.array().label().checkLabel( _get!._token ) >= 0 ){
 				// ローカル配列
-				_get_code = CLIP_CODE_AUTO_ARRAY;
-			} else if( globalParam().variable().label().checkLabel( _get!._token ) >= 0 ){
+				_getCode = ClipGlobal.codeAutoArray;
+			} else if( ClipProc.globalParam().variable().label().checkLabel( _get!._token ) >= 0 ){
 				// グローバル変数
-				_get_code = CLIP_CODE_GLOBAL_VAR;
-			} else if( globalParam().array().label().checkLabel( _get!._token ) >= 0 ){
+				_getCode = ClipGlobal.codeGlobalVar;
+			} else if( ClipProc.globalParam().array().label().checkLabel( _get!._token ) >= 0 ){
 				// グローバル配列
-				_get_code = CLIP_CODE_GLOBAL_ARRAY;
+				_getCode = ClipGlobal.codeGlobalArray;
 			} else {
 				MathValue value = MathValue();
 				if( stringToValue( param, _get!._token, value ) ){
-					_get!._code  = CLIP_CODE_CONSTANT;
+					_get!._code  = ClipGlobal.codeConstant;
 					_get!._token = value;
 				}
-				_get_code = _get!._code;
+				_getCode = _get!._code;
 			}
 		} else {
-			_get_code = _get!._code;
+			_getCode = _get!._code;
 		}
-		_get_token = _get!._token;
+		_getToken = _get!._token;
 
 		_get = _get!._next;
 		return true;
@@ -2368,8 +2373,8 @@ class ClipToken {
 			return false;
 		}
 
-		_get_code  = _get!._code;
-		_get_token = _get!._token;
+		_getCode  = _get!._code;
+		_getToken = _get!._token;
 
 		return true;
 	}
@@ -2382,7 +2387,7 @@ class ClipToken {
 		}
 	}
 	bool skipComma(){
-		if( (_get == null) || (_get!._code != CLIP_CODE_OPERATOR) || (_get!._token != CLIP_OP_COMMA) ){
+		if( (_get == null) || (_get!._code != ClipGlobal.codeOperator) || (_get!._token != ClipGlobal.opComma) ){
 			return false;
 		}
 		_get = _get!._next;
@@ -2409,25 +2414,25 @@ class ClipToken {
 		int cur;
 
 		switch( code ){
-		case CLIP_CODE_TOP:
+		case ClipGlobal.codeTop:
 			string = "(";
 			break;
-		case CLIP_CODE_END:
+		case ClipGlobal.codeEnd:
 			string = ")";
 			break;
-		case CLIP_CODE_ARRAY_TOP:
+		case ClipGlobal.codeArrayTop:
 			string = "{";
 			break;
-		case CLIP_CODE_ARRAY_END:
+		case ClipGlobal.codeArrayEnd:
 			string = "}";
 			break;
-		case CLIP_CODE_PARAM_ANS:
+		case ClipGlobal.codeParamAns:
 			string = "&";
 			break;
-		case CLIP_CODE_PARAM_ARRAY:
+		case ClipGlobal.codeParamArray:
 			string = "[]";
 			break;
-		case CLIP_CODE_VARIABLE:
+		case ClipGlobal.codeVariable:
 			if( param.variable().label().label(token) != null ){
 				string = param.variable().label().label(token)!;
 			} else if( token == 0 ){
@@ -2436,66 +2441,66 @@ class ClipToken {
 				string = "@${String.fromCharCode( token )}";
 			}
 			break;
-		case CLIP_CODE_ARRAY:
+		case ClipGlobal.codeArray:
 			if( param.array().label().label(token) != null ){
 				string = param.array().label().label(token)!;
 			} else {
 				string = "@@${String.fromCharCode( token )}";
 			}
 			break;
-		case CLIP_CODE_AUTO_VAR:
-		case CLIP_CODE_AUTO_ARRAY:
-		case CLIP_CODE_GLOBAL_VAR:
-		case CLIP_CODE_GLOBAL_ARRAY:
-		case CLIP_CODE_LABEL:
+		case ClipGlobal.codeAutoVar:
+		case ClipGlobal.codeAutoArray:
+		case ClipGlobal.codeGlobalVar:
+		case ClipGlobal.codeGlobalArray:
+		case ClipGlobal.codeLabel:
 			string = token;
 			break;
-		case CLIP_CODE_OPERATOR:
+		case ClipGlobal.codeOperator:
 			string = _tokenOp[token];
 			break;
-		case CLIP_CODE_SE:
+		case ClipGlobal.codeSe:
 			string = "\$";
-			if( token == CLIP_SE_NULL ){
+			if( token == ClipGlobal.seNull ){
 				break;
 			} else if( token - 1 < _tokenSe.length ){
 				string += _tokenSe[token - 1];
 				break;
 			}
-			token -= CLIP_SE_FUNC;
+			token -= ClipGlobal.seFunc;
 			// そのまま下に流す
-			continue case_CLIP_CODE_FUNCTION;
-		case_CLIP_CODE_FUNCTION:
-		case CLIP_CODE_FUNCTION:
+			continue caseClipGlobalCodeFunction;
+		caseClipGlobalCodeFunction:
+		case ClipGlobal.codeFunction:
 			string += _tokenFunc[token];
 			break;
-		case CLIP_CODE_STATEMENT:
+		case ClipGlobal.codeStatement:
 			string = _tokenStat[token];
 			break;
-		case CLIP_CODE_EXTFUNC:
+		case ClipGlobal.codeExtFunc:
 			string = "!$token";
 			break;
-		case CLIP_CODE_COMMAND:
+		case ClipGlobal.codeCommand:
 			string = ":";
-			if( token != CLIP_COMMAND_NULL ){
+			if( token != ClipGlobal.commandNull ){
 				string += _tokenCommand[token - 1];
 			}
 			break;
-		case CLIP_CODE_CONSTANT:
+		case ClipGlobal.codeConstant:
 			valueToString( param, token, real, imag );
 			tmp = real.str() + imag.str();
 			cur = 0;
 			do {
-				switch( charAt( tmp, cur ) ){
+				switch( ClipMath.charAt( tmp, cur ) ){
 				case '-':
 				case '+':
 					string += '\\';
 					break;
 				}
-				string += charAt( tmp, cur );
+				string += ClipMath.charAt( tmp, cur );
 				cur++;
 			} while( cur < tmp.length );
 			break;
-		case CLIP_CODE_STRING:
+		case ClipGlobal.codeString:
 			cur = 0;
 			do {
 				if( token.charAt( cur ) == ']' ){
@@ -2510,7 +2515,7 @@ class ClipToken {
 			string = "";
 			break;
 		}
-		if( charAt( string, 0 ) == '\$' ){
+		if( ClipMath.charAt( string, 0 ) == '\$' ){
 			return string.toUpperCase();
 		}
 		return string;

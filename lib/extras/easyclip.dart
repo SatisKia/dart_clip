@@ -16,21 +16,21 @@ import '../system/tm.dart';
 import '../token.dart';
 import 'canvas.dart';
 
-late EasyClip _cur_clip;
-void setClip( EasyClip clip ){
-	_cur_clip = clip;
-}
-EasyClip curClip(){
-	return _cur_clip;
-}
-int curPaletteColor( int index ){
-	return _cur_clip._palette![index];
-}
-Canvas curCanvas(){
-	return _cur_clip._canvas!;
-}
-
 class EasyClip {
+	static late EasyClip _curClip;
+	static void setClip( EasyClip clip ){
+		_curClip = clip;
+	}
+	static EasyClip curClip(){
+		return _curClip;
+	}
+	static int curPaletteColor( int index ){
+		return _curClip._palette![index];
+	}
+	static Canvas curCanvas(){
+		return _curClip._canvas!;
+	}
+
 	static int loopMax = 65536;
 	static String arrayTokenStringSpace = " ";
 	static String arrayTokenStringBreak = "\n";
@@ -43,34 +43,34 @@ class EasyClip {
 	late Canvas? _canvas;
 
 	EasyClip(){
-		mainProc = ( parentProc, parentParam, func, funcParam, childProc, childParam ){
+		ClipProc.mainProc = ( parentProc, parentParam, func, funcParam, childProc, childParam ){
 			int ret = childProc.mainLoop( func, childParam, funcParam, parentParam );
-			resetProcLoopCount();
+			ClipProc.resetProcLoopCount();
 			return ret;
 		};
-		doFuncGColor = ( rgb ){
-			return doFuncGColorBGR( rgb, curClip()._palette! );
+		ClipProc.doFuncGColor = ( rgb ){
+			return ClipProc.doFuncGColorBGR( rgb, curClip()._palette! );
 		};
-		doFuncGColor24 = ( index ){
-			return CLIP_RGB2BGR( curClip()._palette![index] );
+		ClipProc.doFuncGColor24 = ( index ){
+			return ClipProc.rgb2bgr( curClip()._palette![index] );
 		};
-		doFuncEval = ( parentProc, childProc, childParam, string, value ){
+		ClipProc.doFuncEval = ( parentProc, childProc, childParam, string, value ){
 			return parentProc.doFuncEvalSub( childProc, childParam, string, value );
 		};
-		doCommandGColor = ( index, rgb ){
-			curClip()._palette![index] = CLIP_RGB2BGR( rgb );
+		ClipProc.doCommandGColor = ( index, rgb ){
+			curClip()._palette![index] = ClipProc.rgb2bgr( rgb );
 		};
-		doCommandGPut24 = ( x, y, rgb ){
+		ClipProc.doCommandGPut24 = ( x, y, rgb ){
       curCanvas().setColorRGB( rgb );
       curCanvas().put( x, y );
 		};
-		doCommandGPut24End = (){
+		ClipProc.doCommandGPut24End = (){
 			// キャンバスの現在色を戻す
-      curCanvas().setColorBGR( curClip()._palette![procGWorld().color()] );
+      curCanvas().setColorBGR( curClip()._palette![ClipProc.procGWorld().color()] );
 		};
-		doCommandGGet24Begin = ( w, h ){
-			int width  = procGWorld().width();
-			int height = procGWorld().height();
+		ClipProc.doCommandGGet24Begin = ( w, h ){
+			int width  = ClipProc.procGWorld().width();
+			int height = ClipProc.procGWorld().height();
 			if( (width > 0) && (height > 0) ){
 				w.set( width  );
 				h.set( height );
@@ -78,33 +78,33 @@ class EasyClip {
 			}
 			return null;
 		};
-		doCommandPlot = ( parentProc, childProc, childParam, graph, start, end, step ){
+		ClipProc.doCommandPlot = ( parentProc, childProc, childParam, graph, start, end, step ){
 			parentProc.doCommandPlotSub( childProc, childParam, graph, start, end, step );
 		};
-		doCommandRePlot = ( parentProc, childProc, childParam, graph, start, end, step ){
+		ClipProc.doCommandRePlot = ( parentProc, childProc, childParam, graph, start, end, step ){
 			parentProc.doCommandRePlotSub( childProc, childParam, graph, start, end, step );
 		};
 
 		// 定義定数の値
-		setDefineValue();
+		ClipToken.setDefineValue();
 
 		// 計算処理メイン・クラスを生成する
 		_procEnv = ClipProcEnv();
-		setProcEnv( _procEnv );
-		_proc = ClipProc( CLIP_PROC_DEF_PARENT_MODE, CLIP_PROC_DEF_PARENT_MP_PREC, CLIP_PROC_DEF_PARENT_MP_ROUND, false, CLIP_PROC_DEF_PRINT_ASSERT, CLIP_PROC_DEF_PRINT_WARN, false/*CLIP_PROC_DEF_GUPDATE_FLAG*/ );
-		setProcWarnFlowFlag( true );
-		setProcTraceFlag( false );
-		setProcLoopMax( loopMax );
+		ClipProc.setProcEnv( _procEnv );
+		_proc = ClipProc( ClipGlobal.procDefParentMode, ClipGlobal.procDefParentMPPrec, ClipGlobal.procDefParentMPRound, false, ClipGlobal.procDefPrintAssert, ClipGlobal.procDefPrintWarn, false/*ClipGlobal.procDefGUpdateFlag*/ );
+		ClipProc.setProcWarnFlowFlag( true );
+		ClipProc.setProcTraceFlag( false );
+		ClipProc.setProcLoopMax( loopMax );
 
 		// 計算パラメータ・クラスを生成する
 		_param = ClipParam();
-		setGlobalParam( _param );
+		ClipProc.setGlobalParam( _param );
 
-		initProc();	// setProcEnvより後に実行
+		ClipProc.initProc();	// setProcEnvより後に実行
 
 		// 乱数を初期化する
-		MATH_SRAND( Tm().time() );
-		MATH_RAND();
+		ClipMath.srand( Tm.time() );
+		ClipMath.rand();
 
 		// カラー・パレット
 		_palette = null;
@@ -116,9 +116,9 @@ class EasyClip {
 
 	void _setEnv(){
 		setClip( this );
-		setProcEnv( _procEnv );
+		ClipProc.setProcEnv( _procEnv );
 		if( _canvasEnv != null ){
-			setCanvasEnv( _canvasEnv! );
+			Canvas.setCanvasEnv( _canvasEnv! );
 		}
 	}
 
@@ -136,68 +136,68 @@ class EasyClip {
 	}
 	ClipGWorld gWorld(){
 		_setEnv();
-		return procGWorld();
+		return ClipProc.procGWorld();
 	}
 
 	// 変数・配列に値を設定する
 	EasyClip setValue( String chr, dynamic value ){
 		_setEnv();
-		_param.setVal( MATH_CHAR( chr ), value, false );
+		_param.setVal( ClipMath.char( chr ), value, false );
 		return this;
 	}
 	EasyClip setComplex( String chr, double real, double imag ){
 		_setEnv();
-		int index = MATH_CHAR( chr );
+		int index = ClipMath.char( chr );
 		_param.setReal( index, real, false );
 		_param.setImag( index, imag, false );
 		return this;
 	}
 	EasyClip setFract( String chr, int num, int denom ){
 		_setEnv();
-		int index = MATH_CHAR( chr );
+		int index = ClipMath.char( chr );
 		bool isMinus = ((num < 0) && (denom >= 0)) || ((num >= 0) && (denom < 0));
 		_param.fractSetMinus( index, isMinus, false );
-		_param.setNum       ( index, MATH_ABS( num  .toDouble() ), false );
-		_param.setDenom     ( index, MATH_ABS( denom.toDouble() ), false );
+		_param.setNum       ( index, ClipMath.abs( num  .toDouble() ), false );
+		_param.setDenom     ( index, ClipMath.abs( denom.toDouble() ), false );
 		_param.fractReduce  ( index, false );
 		return this;
 	}
 	EasyClip setMultiPrec( String chr, MPData n ){
 		_setEnv();
-		_param.array().mp(MATH_CHAR( chr )).attach( n.clone() );
+		_param.array().mp(ClipMath.char( chr )).attach( n.clone() );
 		return this;
 	}
 	EasyClip setVector( String chr, List<dynamic> value ){
 		_setEnv();
-		_param.array().setVector( MATH_CHAR( chr ), value, value.length );
+		_param.array().setVector( ClipMath.char( chr ), value, value.length );
 		return this;
 	}
 	EasyClip setComplexVector( String chr, List<double> real, List<double> imag ){
 		_setEnv();
-		_param.array().setComplexVector( MATH_CHAR( chr ), real, imag, (real.length < imag.length) ? real.length : imag.length );
+		_param.array().setComplexVector( ClipMath.char( chr ), real, imag, (real.length < imag.length) ? real.length : imag.length );
 		return this;
 	}
 	EasyClip setFractVector( chr, List<double> value, List<double> denom ){
 		_setEnv();
-		_param.array().setFractVector( MATH_CHAR( chr ), value, denom, (value.length < denom.length) ? value.length : denom.length );
+		_param.array().setFractVector( ClipMath.char( chr ), value, denom, (value.length < denom.length) ? value.length : denom.length );
 		return this;
 	}
 	EasyClip setMatrix( String chr, dynamic value ){
 		_setEnv();
 		if( value is! MathMatrix ){
-			value = arrayToMatrix( value );
+			value = MathMatrix.arrayToMatrix( value );
 		}
-		_param.array().setMatrix( MATH_CHAR( chr ), value, false );
+		_param.array().setMatrix( ClipMath.char( chr ), value, false );
 		return this;
 	}
 	EasyClip setComplexMatrix( String chr, List<List<double>> real, List<List<double>> imag ){
 		_setEnv();
-		_param.array().setComplexMatrix( MATH_CHAR( chr ), arrayToMatrix( real ), arrayToMatrix( imag ), false );
+		_param.array().setComplexMatrix( ClipMath.char( chr ), MathMatrix.arrayToMatrix( real ), MathMatrix.arrayToMatrix( imag ), false );
 		return this;
 	}
 	EasyClip setFractMatrix( String chr, List<List<double>> value, List<List<double>> denom ){
 		_setEnv();
-		_param.array().setFractMatrix( MATH_CHAR( chr ), arrayToMatrix( value ), arrayToMatrix( denom ), false );
+		_param.array().setFractMatrix( ClipMath.char( chr ), MathMatrix.arrayToMatrix( value ), MathMatrix.arrayToMatrix( denom ), false );
 		return this;
 	}
 	EasyClip setArrayValue( String chr, dynamic subIndex, dynamic value ){
@@ -206,7 +206,7 @@ class EasyClip {
 			subIndex[i] -= _param.base();
 		}
 		subIndex.add( -1 );
-		_param.array().set( MATH_CHAR( chr ), subIndex, subIndex.length - 1, value, false );
+		_param.array().set( ClipMath.char( chr ), subIndex, subIndex.length - 1, value, false );
 		return this;
 	}
 	EasyClip setArrayComplex( String chr, dynamic subIndex, double real, double imag ){
@@ -222,16 +222,16 @@ class EasyClip {
 		MathValue value = MathValue();
 		bool isMinus = ((num < 0) && (denom >= 0)) || ((num >= 0) && (denom < 0));
 		value.fractSetMinus( isMinus );
-		value.setNum  ( MATH_ABS( num   ) );
-		value.setDenom( MATH_ABS( denom ) );
+		value.setNum  ( ClipMath.abs( num   ) );
+		value.setDenom( ClipMath.abs( denom ) );
 		value.fractReduce();
-		_param.fractReduce( MATH_CHAR( chr ), false );
+		_param.fractReduce( ClipMath.char( chr ), false );
 		setArrayValue( chr, subIndex, value );
 		return this;
 	}
 	EasyClip setString( String chr, String string ){
 		_setEnv();
-		_proc.strSet( _param.array(), MATH_CHAR( chr ), string );
+		_proc.strSet( _param.array(), ClipMath.char( chr ), string );
 		return this;
 	}
 
@@ -254,7 +254,7 @@ class EasyClip {
 	}
 	String getAnsMultiPrecString(){
 		MPData array = getAnsMultiPrec();
-		MultiPrec mp = procMultiPrec();
+		MultiPrec mp = ClipProc.procMultiPrec();
 		if( mp.getPrec( array ) == 0 ){
 			return mp.num2str( array );
 		}
@@ -262,18 +262,18 @@ class EasyClip {
 	}
 	MathValue getValue( String chr ){
 		_setEnv();
-		return _param.val( MATH_CHAR( chr ) );
+		return _param.val( ClipMath.char( chr ) );
 	}
 	MPData getMultiPrec( String chr ){
 		_setEnv();
-		return _param.array().mp(MATH_CHAR( chr ));
+		return _param.array().mp(ClipMath.char( chr ));
 	}
 	String getComplexString( String chr ){
 		String string = "";
 		MathValue value = getValue( chr );
-		if( MATH_ISZERO( value.imag() ) ){
+		if( ClipMath.isZero( value.imag() ) ){
 			string = "${value.real()}";
-		} else if( MATH_ISZERO( value.real() ) ){
+		} else if( ClipMath.isZero( value.real() ) ){
 			string = "${value.imag()}i";
 		} else if( value.imag() > 0.0 ){
 			string = "${value.real()}+${value.imag()}i";
@@ -285,15 +285,15 @@ class EasyClip {
 	String getFractString( String chr, bool mixed ){
 		String string = "";
 		MathValue value = getValue( chr );
-		if( mixed && (value.denom() != 0) && (MATH_DIV( value.num(), value.denom() ) != 0) ){
-			if( MATH_MOD( value.num(), value.denom() ) != 0 ){
+		if( mixed && (value.denom() != 0) && (ClipMath.div( value.num(), value.denom() ) != 0) ){
+			if( ClipMath.mod( value.num(), value.denom() ) != 0 ){
 				string = value.fractMinus() ? "-" : "";
-				string += "${MATH_DIV( value.num(), value.denom() ).toInt()}";
-				string += "$CLIP_CHAR_FRACT${MATH_MOD( value.num(), value.denom() ).toInt()}";
-				string += "$CLIP_CHAR_FRACT${value.denom().toInt()}";
+				string += "${ClipMath.div( value.num(), value.denom() ).toInt()}";
+				string += "${ClipGlobal.charFract}${ClipMath.mod( value.num(), value.denom() ).toInt()}";
+				string += "${ClipGlobal.charFract}${value.denom().toInt()}";
 			} else {
 				string = value.fractMinus() ? "-" : "";
-				string += "${MATH_DIV( value.num(), value.denom() ).toInt()}";
+				string += "${ClipMath.div( value.num(), value.denom() ).toInt()}";
 			}
 		} else {
 			if( value.denom() == 0 ){
@@ -303,14 +303,14 @@ class EasyClip {
 				string += "${value.num().toInt()}";
 			} else {
 				string = value.fractMinus() ? "-" : "";
-				string += "${value.num().toInt()}$CLIP_CHAR_FRACT${value.denom().toInt()}";
+				string += "${value.num().toInt()}${ClipGlobal.charFract}${value.denom().toInt()}";
 			}
 		}
 		return string;
 	}
 	String getMultiPrecString( String chr ){
 		MPData array = getMultiPrec( chr );
-		MultiPrec mp = procMultiPrec();
+		MultiPrec mp = ClipProc.procMultiPrec();
 		if( mp.getPrec( array ) == 0 ){
 			return mp.num2str( array );
 		}
@@ -327,23 +327,23 @@ class EasyClip {
 		dynamic token;
 
 		int i;
-		ClipToken array = _param.array().makeToken( ClipToken(), MATH_CHAR( chr ) );
+		ClipToken array = _param.array().makeToken( ClipToken(), ClipMath.char( chr ) );
 		array.beginGetToken();
 		while( array.getToken() ){
-			code  = getCode();
-			token = getToken();
-			if( code == CLIP_CODE_ARRAY_TOP ){
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
+			if( code == ClipGlobal.codeArrayTop ){
 				_dim++;
 				if( _index.length <= _dim ){
 					_index.add( 0 );
 				}
-			} else if( code == CLIP_CODE_ARRAY_END ){
+			} else if( code == ClipGlobal.codeArrayEnd ){
 				_index[_dim] = 0;
 				_dim--;
 				if( _dim >= 0 ) {
 					_index[_dim]++;
 				}
-			} else if( code == CLIP_CODE_CONSTANT ){
+			} else if( code == ClipGlobal.codeConstant ){
 				if( (dim == null) || (dim == _dim + 1) ){
 					if( _dim > 0 ){
 						if( _array.length <= _index[0] ){
@@ -435,10 +435,10 @@ class EasyClip {
 
 		array.beginGetToken();
 		while( array.getToken() ){
-			code  = getCode();
-			token = getToken();
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
 			if( enter ){
-				if( code == CLIP_CODE_ARRAY_TOP ){
+				if( code == ClipGlobal.codeArrayTop ){
 					string += arrayTokenStringBreak;
 					for( i = 0; i < indent; i++ ){
 						string += arrayTokenStringSpace;
@@ -446,12 +446,12 @@ class EasyClip {
 				}
 				enter = false;
 			}
-			string += procToken().tokenString( param, code, token );
+			string += ClipProc.procToken().tokenString( param, code, token );
 			string += arrayTokenStringSpace;
-			if( code == CLIP_CODE_ARRAY_TOP ){
+			if( code == ClipGlobal.codeArrayTop ){
 				indent += 2;
 			}
-			if( code == CLIP_CODE_ARRAY_END ){
+			if( code == ClipGlobal.codeArrayEnd ){
 				indent -= 2;
 				enter = true;
 			}
@@ -461,18 +461,18 @@ class EasyClip {
 	}
 	String getArrayString( String chr, int indent ){
 		_setEnv();
-		return getArrayTokenString( _param, _param.array().makeToken( ClipToken(), MATH_CHAR( chr ) ), indent );
+		return getArrayTokenString( _param, _param.array().makeToken( ClipToken(), ClipMath.char( chr ) ), indent );
 	}
 	String getString( String chr ){
 		_setEnv();
-		return _proc.strGet( _param.array(), MATH_CHAR( chr ) );
+		return _proc.strGet( _param.array(), ClipMath.char( chr ) );
 	}
 
 	// 各種設定
 	EasyClip setMode( int mode, [dynamic param1, dynamic param2] ){
 		_setEnv();
 		_param.setMode( mode );
-		if( (mode & CLIP_MODE_MULTIPREC) != 0 ){
+		if( (mode & ClipGlobal.modeMultiPrec) != 0 ){
 			if( param1 != null ){
 				if( param2 != null ){
 					_param.mpSetPrec( param1 );
@@ -484,15 +484,15 @@ class EasyClip {
 					_param.mpSetPrec( param1 );
 				}
 			}
-		} else if( ((mode & CLIP_MODE_FLOAT) != 0) || ((mode & CLIP_MODE_COMPLEX) != 0) ){
+		} else if( ((mode & ClipGlobal.modeFloat) != 0) || ((mode & ClipGlobal.modeComplex) != 0) ){
 			if( param1 != null ){
 				_param.setPrec( param1 );
 			}
-		} else if( (mode & CLIP_MODE_TIME) != 0 ){
+		} else if( (mode & ClipGlobal.modeTime) != 0 ){
 			if( param1 != null ){
 				_param.setFps( param1 );
 			}
-		} else if( (mode & CLIP_MODE_INT) != 0 ){
+		} else if( (mode & ClipGlobal.modeInt) != 0 ){
 			if( param1 != null ){
 				_param.setRadix( param1 );
 			}
@@ -548,35 +548,35 @@ class EasyClip {
 	// コマンド
 	EasyClip commandGWorld( int width, int height ){
 		_setEnv();
-		doCommandGWorld( width, height );
-		procGWorld().create( width, height, true, false );
+		ClipProc.doCommandGWorld( width, height );
+		ClipProc.procGWorld().create( width, height, true, false );
 		return this;
 	}
 	EasyClip commandGWorld24( int width, int height ){
 		_setEnv();
-		doCommandGWorld24( width, height );
-		procGWorld().create( width, height, true, true );
+		ClipProc.doCommandGWorld24( width, height );
+		ClipProc.procGWorld().create( width, height, true, true );
 		return this;
 	}
 	EasyClip commandWindow( double left, double bottom, double right, double top ){
 		_setEnv();
-		doCommandWindow( left, bottom, right, top );
-		procGWorld().setWindowIndirect( left, bottom, right, top );
+		ClipProc.doCommandWindow( left, bottom, right, top );
+		ClipProc.procGWorld().setWindowIndirect( left, bottom, right, top );
 		return this;
 	}
 	EasyClip commandGClear( int index ){
 		_setEnv();
-		procGWorld().clear( index );
+		ClipProc.procGWorld().clear( index );
 		return this;
 	}
 	EasyClip commandGColor( int index ){
 		_setEnv();
-		procGWorld().setColor( index );
+		ClipProc.procGWorld().setColor( index );
 		return this;
 	}
 	EasyClip commandGPut( List<List<int>> array ){
 		_setEnv();
-		ClipGWorld gWorld = procGWorld();
+		ClipGWorld gWorld = ClipProc.procGWorld();
 		int x, y;
 		for( y = 0; y < gWorld.height(); y++ ){
 			for( x = 0; x < gWorld.width(); x++ ){
@@ -590,23 +590,23 @@ class EasyClip {
 	}
 	EasyClip commandGPut24( List<List<int>> array ){
 		_setEnv();
-		ClipGWorld gWorld = procGWorld();
+		ClipGWorld gWorld = ClipProc.procGWorld();
 		int x, y;
-		doCommandGPut24Begin();
+		ClipProc.doCommandGPut24Begin();
 		for( y = 0; y < gWorld.height(); y++ ){
 			for( x = 0; x < gWorld.width(); x++ ){
-				doCommandGPut24(
+				ClipProc.doCommandGPut24(
 						x, y,
 						(y < array.length) ? ((x < array[y].length) ? array[y][x] : 0) : 0
 				);
 			}
 		}
-		doCommandGPut24End();
+		ClipProc.doCommandGPut24End();
 		return this;
 	}
 	List<List<int>>? commandGGet(){
 		_setEnv();
-		ClipGWorld gWorld = procGWorld();
+		ClipGWorld gWorld = ClipProc.procGWorld();
 		int width  = gWorld.width();
 		int height = gWorld.height();
 		if( (width > 0) && (height > 0) ){
@@ -626,7 +626,7 @@ class EasyClip {
 		_setEnv();
 		ParamInteger w = ParamInteger();
 		ParamInteger h = ParamInteger();
-		List<int>? data = doCommandGGet24Begin( w, h );
+		List<int>? data = ClipProc.doCommandGGet24Begin( w, h );
 		if( data != null ){
 			int width  = w.val();
 			int height = h.val();
@@ -644,7 +644,7 @@ class EasyClip {
 						array[y][x] = (r << 16) + (g << 8) + b;
 					}
 				}
-				doCommandGGet24End();
+				ClipProc.doCommandGGet24End();
 				return array;
 			}
 		}
@@ -654,18 +654,18 @@ class EasyClip {
 	// 計算
 	int procLine( String line ){
 		_setEnv();
-		initProcLoopCount();
+		ClipProc.initProcLoopCount();
 		return _proc.processLoop( line, _param );
 	}
 	int procScript( List<String> script ){
 		_setEnv();
-		List<String>? Function( String ) saveFunc = getExtFuncDataDirect;
-		getExtFuncDataDirect = ( func ){
+		List<String>? Function( String ) saveFunc = ClipProc.getExtFuncDataDirect;
+		ClipProc.getExtFuncDataDirect = ( func ){
 			return script;
 		};
-		initProcLoopCount();
+		ClipProc.initProcLoopCount();
 		int ret = _proc.mainLoop( "", _param, null, null );
-		getExtFuncDataDirect = saveFunc;
+		ClipProc.getExtFuncDataDirect = saveFunc;
 		return ret;
 	}
 
@@ -692,7 +692,7 @@ class EasyClip {
 	// キャンバス
 	void _useCanvas(){
 		_canvasEnv ??= CanvasEnv();
-		setCanvasEnv( _canvasEnv! );
+		Canvas.setCanvasEnv( _canvasEnv! );
 	}
 	Canvas createCanvas( int width, int height ){
 		_useCanvas();
@@ -700,17 +700,17 @@ class EasyClip {
 		return _canvas!;
 	}
 	Canvas resizeCanvas( int width, int height ){
-		setCanvasEnv( _canvasEnv! );
+		Canvas.setCanvasEnv( _canvasEnv! );
 		_canvas!.setSize( width, height );
 		return _canvas!;
 	}
 	Canvas updateCanvas( [double scale = 1.0] ){
 		_setEnv();
 
-		_canvas!.setColorRGB( gWorldBgColor() );
+		_canvas!.setColorRGB( ClipGWorld.bgColor() );
 		_canvas!.fill( 0, 0, _canvas!.width().toDouble(), _canvas!.height().toDouble() );
 
-		ClipGWorld gWorld = procGWorld();
+		ClipGWorld gWorld = ClipProc.procGWorld();
 		List<int> image  = gWorld.image();
 		int offset = gWorld.offset();
 		int width  = gWorld.width();
@@ -721,7 +721,7 @@ class EasyClip {
 			yy = y * offset;
 			sy = y * scale;
 			for( x = 0; x < width; x++ ){
-				_canvas!.setColorBGR( gWorld.rgbFlag() ? CLIP_RGB2BGR( image[yy + x] ) : _palette![image[yy + x]] );
+				_canvas!.setColorBGR( gWorld.rgbFlag() ? ClipProc.rgb2bgr( image[yy + x] ) : _palette![image[yy + x]] );
 				_canvas!.fill( x * scale, sy, scale + 0.2, scale + 0.2 );
 			}
 		}

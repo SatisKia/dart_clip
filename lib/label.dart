@@ -16,7 +16,7 @@ class ClipLabel {
 		_obj = obj;
 
 		_label = List.filled( 256, null );
-		_flag  = List.filled( 256, CLIP_LABEL_UNUSED );
+		_flag  = List.filled( 256, ClipGlobal.labelUnused );
 
 		_index = {};
 	}
@@ -25,8 +25,8 @@ class ClipLabel {
 	int define( String? label ){
 		if( label != null ){
 			for( int i = 255; i >= 0; i-- ){
-				if( _flag[i] == CLIP_LABEL_UNUSED ){
-					_flag[i] = CLIP_LABEL_MOVABLE;
+				if( _flag[i] == ClipGlobal.labelUnused ){
+					_flag[i] = ClipGlobal.labelMovable;
 					setLabel( i, label, false );
 					return i;
 				}
@@ -40,7 +40,7 @@ class ClipLabel {
 		int index;
 		if( (index = checkLabel( label )) >= 0 ){
 			setLabel( index, null, false );
-			_flag[index] = CLIP_LABEL_UNUSED;
+			_flag[index] = ClipGlobal.labelUnused;
 		}
 		return index;
 	}

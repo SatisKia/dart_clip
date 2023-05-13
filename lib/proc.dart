@@ -12,7 +12,6 @@ import 'line.dart';
 import 'loop.dart';
 import 'math/complex.dart';
 import 'math/math.dart';
-import 'math/math_env.dart';
 import 'math/matrix.dart';
 import 'math/multiprec.dart';
 import 'math/value.dart';
@@ -24,106 +23,34 @@ import 'param/string.dart';
 import 'system/tm.dart';
 import 'token.dart';
 
-List<double> CLIP_MIN_VALUE = [ MATH_SMIN_8, 0              , MATH_SMIN_16, 0               , MATH_SMIN_32, 0                ];
-List<double> CLIP_MAX_VALUE = [ MATH_SMAX_8, MATH_UMAX_8 - 1, MATH_SMAX_16, MATH_UMAX_16 - 1, MATH_SMAX_32, MATH_UMAX_32 - 1 ];
-
-late ClipProcEnv _proc_env;
 class ClipProcEnv {
-	late ClipGraph _proc_graph; // グラフ描画サポート
-	late ClipGWorld _proc_gworld; // グラフィック描画サポート
-	late ClipFunc _proc_func; // 外部関数キャッシュ
-	late ClipParam? _global_param; // グローバル計算パラメータ
-	late bool _proc_warn_flow; // オーバーフロー／アンダーフローの警告を発生させるかどうか
-	late bool _proc_trace; // トレース表示するかどうか
-	late int _proc_loop_max; // ループ回数
-	late int _proc_loop_count;
-	late int _proc_loop_count_max;
-	late int _proc_loop_total;
+	late ClipGraph _procGraph; // グラフ描画サポート
+	late ClipGWorld _procGWorld; // グラフィック描画サポート
+	late ClipFunc _procFunc; // 外部関数キャッシュ
+	late ClipParam? _globalParam; // グローバル計算パラメータ
+	late bool _procWarnFlow; // オーバーフロー／アンダーフローの警告を発生させるかどうか
+	late bool _procTrace; // トレース表示するかどうか
+	late int _procLoopMax; // ループ回数
+	late int _procLoopCount;
+	late int _procLoopCountMax;
+	late int _procLoopTotal;
 
-	late MathEnv _math_env;
+	late ClipMathEnv _mathEnv;
 
 	ClipProcEnv(){
-		_proc_graph          = ClipGraph();
-		_proc_gworld         = _proc_graph.gWorld();
-		_proc_func           = ClipFunc();
-		_global_param        = null;
-		_proc_warn_flow      = false;
-		_proc_trace          = false;
-		_proc_loop_max       = 0;
-		_proc_loop_count     = 0;
-		_proc_loop_count_max = 0;
-		_proc_loop_total     = 0;
+		_procGraph        = ClipGraph();
+		_procGWorld       = _procGraph.gWorld();
+		_procFunc         = ClipFunc();
+		_globalParam      = null;
+		_procWarnFlow     = false;
+		_procTrace        = false;
+		_procLoopMax      = 0;
+		_procLoopCount    = 0;
+		_procLoopCountMax = 0;
+		_procLoopTotal    = 0;
 
-		_math_env = MathEnv();
+		_mathEnv = ClipMathEnv();
 	}
-}
-void setProcEnv( ClipProcEnv env ){
-	_proc_env = env;
-	setMathEnv( env._math_env );
-}
-
-ClipGraph procGraph(){
-	return _proc_env._proc_graph;
-}
-ClipGWorld procGWorld(){
-	return _proc_env._proc_gworld;
-}
-ClipFunc procFunc(){
-	return _proc_env._proc_func;
-}
-
-void setGlobalParam( ClipParam param ){
-	_proc_env._global_param = param;
-}
-ClipParam globalParam(){
-	return _proc_env._global_param!;
-}
-
-void setProcWarnFlowFlag( bool flag ){
-	_proc_env._proc_warn_flow = flag;
-}
-bool procWarnFlowFlag(){
-	return _proc_env._proc_warn_flow;
-}
-
-void setProcTraceFlag( bool flag ){
-	_proc_env._proc_trace = flag;
-}
-bool procTraceFlag(){
-	return _proc_env._proc_trace;
-}
-
-void setProcLoopMax( int max ){
-	_proc_env._proc_loop_max = max;
-}
-int procLoopMax(){
-	return _proc_env._proc_loop_max;
-}
-void initProcLoopCount(){
-	_proc_env._proc_loop_count     = 0;
-	_proc_env._proc_loop_count_max = 0;
-	_proc_env._proc_loop_total     = 0;
-}
-void resetProcLoopCount(){
-	if( _proc_env._proc_loop_count_max < _proc_env._proc_loop_count ){
-		_proc_env._proc_loop_count_max = _proc_env._proc_loop_count;
-	}
-	_proc_env._proc_loop_count = 0;
-}
-void setProcLoopCount( int count ){
-	_proc_env._proc_loop_count = count;
-}
-int procLoopCount(){
-	return _proc_env._proc_loop_count;
-}
-int procLoopCountMax(){
-	return _proc_env._proc_loop_count_max;
-}
-void incProcLoopTotal(){
-	_proc_env._proc_loop_total++;
-}
-int procLoopTotal(){
-	return _proc_env._proc_loop_total;
 }
 
 class ClipProcVal {
@@ -147,8 +74,8 @@ class ClipProcVal {
 	}
 	MathMatrix mat(){
 		if( _mpFlag ){
-			String str = _proc_mp.fnum2str( _mp, _param!.mpPrec() );
-			double val = stringToFloat( str, 0, ParamInteger() );
+			String str = ClipProc._procMp.fnum2str( _mp, _param!.mpPrec() );
+			double val = ClipMath.stringToFloat( str, 0, ParamInteger() );
 			_mat.ass( val );
 			_proc._updateMatrix( _param!, _mat );
 		}
@@ -160,14 +87,14 @@ class ClipProcVal {
 	}
 	MPData mp(){
 		if( _mpFlag ){
-			if( (_param!.mode() == CLIP_MODE_I_MULTIPREC) && (_proc_mp.getPrec( _mp ) > 0) ){
-				_proc_mp.ftrunc( _mp, _mp );
+			if( (_param!.mode() == ClipGlobal.modeIMultiPrec) && (ClipProc._procMp.getPrec( _mp ) > 0) ){
+				ClipProc._procMp.ftrunc( _mp, _mp );
 			}
 		} else {
 			_proc._updateMatrix( _param!, _mat );
 			double val = _mat.mat(0).toFloat();
-			String str = floatToFixed( val, MATH_FPREC( val ).toInt() );
-			_proc_mp.fstr2num( _mp, str );
+			String str = ClipMath.floatToFixed( val, ClipMath.fprec( val ).toInt() );
+			ClipProc._procMp.fstr2num( _mp, str );
 		}
 		_mpFlag = true;
 		return _mp;
@@ -178,13 +105,14 @@ class ClipProcVal {
 	bool mpFlag(){
 		return _mpFlag;
 	}
-}
-List<ClipProcVal> newProcValArray( int len, ClipProc proc, [ClipParam? param] ){
-	List<ClipProcVal> a = List.filled( len, ClipProcVal( proc, param ) );
-	for( var i = 0; i < len; i++ ){
-		a[i] = ClipProcVal( proc, param );
+
+	static List<ClipProcVal> newArray( int len, ClipProc proc, [ClipParam? param] ){
+		List<ClipProcVal> a = List.filled( len, ClipProcVal( proc, param ) );
+		for( var i = 0; i < len; i++ ){
+			a[i] = ClipProcVal( proc, param );
+		}
+		return a;
 	}
-	return a;
 }
 
 class _ClipInc {
@@ -254,24 +182,24 @@ class ClipProcScan {
 		String defString = "";
 
 		switch( _code ){
-		case CLIP_CODE_GLOBAL_ARRAY:
-			param = globalParam();
+		case ClipGlobal.codeGlobalArray:
+			param = ClipProc.globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_ARRAY;
-		case_CLIP_CODE_ARRAY:
-		case CLIP_CODE_ARRAY:
-		case CLIP_CODE_AUTO_ARRAY:
+			continue caseClipGlobalCodeArray;
+		caseClipGlobalCodeArray:
+		case ClipGlobal.codeArray:
+		case ClipGlobal.codeAutoArray:
 			defString = proc.strGet( param.array(), proc.arrayIndexDirect( param, _code, _token ) );
 			break;
-		case CLIP_CODE_GLOBAL_VAR:
-			param = globalParam();
+		case ClipGlobal.codeGlobalVar:
+			param = ClipProc.globalParam();
 			// そのまま下に流す
 			continue _default;
 		_default:
 		default:
 			ParamString real = ParamString();
 			ParamString imag = ParamString();
-			_proc_token.valueToString( param, param.val( proc.varIndexDirect( param, _code, _token ) ), real, imag );
+			ClipProc._procToken.valueToString( param, param.val( proc.varIndexDirect( param, _code, _token ) ), real, imag );
 			defString = real.str() + imag.str();
 			break;
 		}
@@ -280,18 +208,18 @@ class ClipProcScan {
 	}
 	void setNewValue( String newString, ClipProc proc, ClipParam param ){
 		switch( _code ){
-		case CLIP_CODE_GLOBAL_ARRAY:
-			param = globalParam();
+		case ClipGlobal.codeGlobalArray:
+			param = ClipProc.globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_ARRAY;
-		case_CLIP_CODE_ARRAY:
-		case CLIP_CODE_ARRAY:
-		case CLIP_CODE_AUTO_ARRAY:
+			continue caseClipGlobalCodeArray;
+		caseClipGlobalCodeArray:
+		case ClipGlobal.codeArray:
+		case ClipGlobal.codeAutoArray:
 			proc.strSet( param.array(), proc.arrayIndexDirect( param, _code, _token ), newString );
 			break;
 		default:
 			MathValue value = MathValue();
-			if( _proc_token.stringToValue( param, newString, value ) ){
+			if( ClipProc._procToken.stringToValue( param, newString, value ) ){
 				ParamBoolean moveFlag = ParamBoolean();
 				int index = proc.varIndexDirectMove( param, _code, _token, moveFlag );
 				param.setVal( index, value, moveFlag.val() );
@@ -318,7 +246,7 @@ class _ClipProcInfo {
 	late int _curArraySize;
 
 	_ClipProcInfo(){
-		_assCode  = CLIP_CODE_NULL;
+		_assCode  = ClipGlobal.codeNull;
 		_assToken = null;
 
 		_curArray     = null;
@@ -341,42 +269,96 @@ class _ClipIndex {
 	}
 }
 
-const int CLIP_STAT_IFMODE_DISABLE   = 0; // 無効（スキップ中）
-const int CLIP_STAT_IFMODE_ENABLE    = 1; // 有効（開始前または実行中）
-const int CLIP_STAT_IFMODE_PROCESSED = 2; // 実行済み（スキップ中）
-//const int CLIP_STAT_IFMODE_STARTED   = 3; // 開始した
-
-const int CLIP_STAT_SWIMODE_DISABLE   = 0; // 無効（スキップ中）
-const int CLIP_STAT_SWIMODE_ENABLE    = 1; // 有効（開始前または実行中）
-const int CLIP_STAT_SWIMODE_PROCESSED = 2; // 実行済み（スキップ中）
-//const int CLIP_STAT_SWIMODE_STARTED   = 3; // 開始した
-
-const int CLIP_STAT_MODE_NOT_START   = 0; // 開始前
-const int CLIP_STAT_MODE_REGISTERING = 1; // 行データの取り込み中
-const int CLIP_STAT_MODE_PROCESSING  = 2; // 制御処理実行中
-
-const int CLIP_PROC_END_TYPE_WHILE  = 0;
-const int CLIP_PROC_END_TYPE_FOR    = 1;
-const int CLIP_PROC_END_TYPE_IF     = 2;
-const int CLIP_PROC_END_TYPE_SWITCH = 3;
-
-late ClipToken _proc_token; // 汎用ClipTokenオブジェクト
-late MathValue _proc_val; // updateAns用
-late MultiPrec _proc_mp; // 多倍長演算サポート
-void initProc(){
-	_proc_token = ClipToken();
-	_proc_val   = MathValue();
-	_proc_mp    = MultiPrec();
-}
-ClipToken procToken(){
-	return _proc_token;
-}
-MultiPrec procMultiPrec(){
-	return _proc_mp;
-}
-
 // 計算クラス
 class ClipProc {
+	static final List<double> _minValue = [ ClipMath.smin8, 0, ClipMath.smin16, 0, ClipMath.smin32, 0 ];
+	static final List<double> _maxValue = [ ClipMath.smax8, ClipMath.umax8 - 1, ClipMath.smax16, ClipMath.umax16 - 1, ClipMath.smax32, ClipMath.umax32 - 1 ];
+
+	static late ClipProcEnv _procEnv;
+	static void setProcEnv( ClipProcEnv env ){
+		_procEnv = env;
+		ClipMath.setEnv( env._mathEnv );
+	}
+
+	static ClipGraph procGraph(){
+		return _procEnv._procGraph;
+	}
+	static ClipGWorld procGWorld(){
+		return _procEnv._procGWorld;
+	}
+	static ClipFunc procFunc(){
+		return _procEnv._procFunc;
+	}
+
+	static void setGlobalParam( ClipParam param ){
+		_procEnv._globalParam = param;
+	}
+	static ClipParam globalParam(){
+		return _procEnv._globalParam!;
+	}
+
+	static void setProcWarnFlowFlag( bool flag ){
+		_procEnv._procWarnFlow = flag;
+	}
+	static bool procWarnFlowFlag(){
+		return _procEnv._procWarnFlow;
+	}
+
+	static void setProcTraceFlag( bool flag ){
+		_procEnv._procTrace = flag;
+	}
+	static bool procTraceFlag(){
+		return _procEnv._procTrace;
+	}
+
+	static void setProcLoopMax( int max ){
+		_procEnv._procLoopMax = max;
+	}
+	static int procLoopMax(){
+		return _procEnv._procLoopMax;
+	}
+	static void initProcLoopCount(){
+		_procEnv._procLoopCount    = 0;
+		_procEnv._procLoopCountMax = 0;
+		_procEnv._procLoopTotal    = 0;
+	}
+	static void resetProcLoopCount(){
+		if( _procEnv._procLoopCountMax < _procEnv._procLoopCount ){
+			_procEnv._procLoopCountMax = _procEnv._procLoopCount;
+		}
+		_procEnv._procLoopCount = 0;
+	}
+	static void setProcLoopCount( int count ){
+		_procEnv._procLoopCount = count;
+	}
+	static int procLoopCount(){
+		return _procEnv._procLoopCount;
+	}
+	static int procLoopCountMax(){
+		return _procEnv._procLoopCountMax;
+	}
+	static void incProcLoopTotal(){
+		_procEnv._procLoopTotal++;
+	}
+	static int procLoopTotal(){
+		return _procEnv._procLoopTotal;
+	}
+
+	static late ClipToken _procToken; // 汎用ClipTokenオブジェクト
+	static late MathValue _procVal; // updateAns用
+	static late MultiPrec _procMp; // 多倍長演算サポート
+	static void initProc(){
+		_procToken = ClipToken();
+		_procVal   = MathValue();
+		_procMp    = MultiPrec();
+	}
+	static ClipToken procToken(){
+		return _procToken;
+	}
+	static MultiPrec procMultiPrec(){
+		return _procMp;
+	}
+
 	late ClipProcVal _valAns;
 	late ClipProcVal _valSeAns;
 
@@ -409,6 +391,20 @@ class ClipProc {
 	late bool _gUpdateFlag;
 	late bool _prevGUpdateFlag;
 
+	static const int _statIfModeDisable   = 0; // 無効（スキップ中）
+	static const int _statIfModeEnable    = 1; // 有効（開始前または実行中）
+	static const int _statIfModeProcessed = 2; // 実行済み（スキップ中）
+//	static const int _statIfModeStarted   = 3; // 開始した
+
+	static const int _statSwiModeDisable   = 0; // 無効（スキップ中）
+	static const int _statSwiModeEnable    = 1; // 有効（開始前または実行中）
+	static const int _statSwiModeProcessed = 2; // 実行済み（スキップ中）
+//	static const int _statSwiModeStarted   = 3; // 開始した
+
+	static const int _statModeNotStart    = 0; // 開始前
+	static const int _statModeRegistering = 1; // 行データの取り込み中
+	static const int _statModeProcessing  = 2; // 制御処理実行中
+
 	// ifステートメント情報
 	late List<int> _statIfMode;
 	late int _statIfCnt;
@@ -439,6 +435,11 @@ class ClipProc {
 	late ClipProcUsage? _topUsage;
 	late ClipProcUsage? _curUsage;
 
+	static const int _endTypeWhile  = 0;
+	static const int _endTypeFor    = 1;
+	static const int _endTypeIf     = 2;
+	static const int _endTypeSwitch = 3;
+
 	late List<int> _endType;
 	late int _endCnt;
 
@@ -460,11 +461,11 @@ class ClipProc {
 		_parentMode    = parentMode;
 		_parentMpPrec  = parentMpPrec;
 		_parentMpRound = parentMpRound;
-		_angType       = MATH_ANG_TYPE_RAD;
+		_angType       = ClipMath.angTypeRad;
 		_angUpdateFlag = false;
 
-		_parentAngType = complexAngType();
-		setComplexAngType( _angType );
+		_parentAngType = ClipMath.complexAngType();
+		ClipMath.setComplexAngType( _angType );
 
 		// 各種フラグ
 		_quitFlag        = false;
@@ -478,19 +479,19 @@ class ClipProc {
 
 		// ifステートメント情報
 		_statIfMode    = List.filled( 16, 0 );
-		_statIfMode[0] = CLIP_STAT_IFMODE_ENABLE;
+		_statIfMode[0] = _statIfModeEnable;
 		_statIfCnt     = 0;
 		_statIfMax     = 15;
 
 		// switchステートメント情報
 		_statSwiMode    = List.filled( 16, 0 );
-		_statSwiMode[0] = CLIP_STAT_SWIMODE_ENABLE;
-		_statSwiVal     = newProcValArray( 16, this );
+		_statSwiMode[0] = _statSwiModeEnable;
+		_statSwiVal     = ClipProcVal.newArray( 16, this );
 		_statSwiCnt     = 0;
 		_statSwiMax     = 15;
 
 		// ループ・ステートメント情報
-		_statMode = CLIP_STAT_MODE_NOT_START;
+		_statMode = _statModeNotStart;
 		_stat     = null;
 		_loopCnt  = 0;
 
@@ -513,7 +514,7 @@ class ClipProc {
 	}
 
 	void end(){
-		setComplexAngType( _parentAngType );
+		ClipMath.setComplexAngType( _parentAngType );
 	}
 
 //	curLine(){
@@ -617,7 +618,7 @@ class ClipProc {
 	void setAngType( int type, bool updateFlag ){
 		_angType       = type;
 		_angUpdateFlag = updateFlag;
-		setComplexAngType( _angType );
+		ClipMath.setComplexAngType( _angType );
 	}
 	void getAngType( ParamInteger type, ParamBoolean updateFlag ){
 		type.set( _angType );
@@ -625,52 +626,52 @@ class ClipProc {
 	}
 
 	int _index( ClipParam param, int code, dynamic token ){
-		if( token == MATH_CHAR_CODE_COLON ){
+		if( token == ClipMath.charCodeColon ){
 			ClipProcVal value = ClipProcVal( this, param );
-			if( _const( param, code, token, value ) == CLIP_NO_ERR ){
-				return MATH_UNSIGNED( value.mat().mat(0).toFloat(), MATH_UMAX_8.toDouble() ).toInt();
+			if( _const( param, code, token, value ) == ClipGlobal.noErr ){
+				return ClipMath.unsigned( value.mat().mat(0).toFloat(), ClipMath.umax8.toDouble() ).toInt();
 			}
 		}
 		return token;
 	}
 	int varIndexParam( ClipParam param, dynamic token ){
-		return _index( param, CLIP_CODE_VARIABLE, token );
+		return _index( param, ClipGlobal.codeVariable, token );
 	}
 	int autoVarIndex( ClipParam param, dynamic token ){
 		return param.variable().label().checkLabel( token );
 	}
 	int varIndexIndirect( ClipParam param, int code, dynamic token ){
-		return (code == CLIP_CODE_VARIABLE) ? _index( param, code, token ) : autoVarIndex( param, token );
+		return (code == ClipGlobal.codeVariable) ? _index( param, code, token ) : autoVarIndex( param, token );
 	}
 	int varIndexIndirectMove( ClipParam param, int code, dynamic token, ParamBoolean moveFlag ){
-		moveFlag.set( code == CLIP_CODE_VARIABLE );
+		moveFlag.set( code == ClipGlobal.codeVariable );
 		return moveFlag.val() ? _index( param, code, token ) : autoVarIndex( param, token );
 	}
 	int varIndexDirect( ClipParam param, int code, dynamic token ){
-		return (code == CLIP_CODE_VARIABLE) ? token : autoVarIndex( param, token );
+		return (code == ClipGlobal.codeVariable) ? token : autoVarIndex( param, token );
 	}
 	int varIndexDirectMove( ClipParam param, int code, dynamic token, ParamBoolean moveFlag ){
-		moveFlag.set( code == CLIP_CODE_VARIABLE );
+		moveFlag.set( code == ClipGlobal.codeVariable );
 		return moveFlag.val() ? token : autoVarIndex( param, token );
 	}
 	int arrayIndexParam( ClipParam param, dynamic token ){
-		return _index( param, CLIP_CODE_ARRAY, token );
+		return _index( param, ClipGlobal.codeArray, token );
 	}
 	int autoArrayIndex( ClipParam param, dynamic token ){
 		return param.array().label().checkLabel( token );
 	}
 	int arrayIndexIndirect( ClipParam param, int code, dynamic token ){
-		return (code == CLIP_CODE_ARRAY) ? _index( param, code, token ) : autoArrayIndex( param, token );
+		return (code == ClipGlobal.codeArray) ? _index( param, code, token ) : autoArrayIndex( param, token );
 	}
 	int arrayIndexIndirectMove( ClipParam param, int code, dynamic token, ParamBoolean moveFlag ){
-		moveFlag.set( code == CLIP_CODE_ARRAY );
+		moveFlag.set( code == ClipGlobal.codeArray );
 		return moveFlag.val() ? _index( param, code, token ) : autoArrayIndex( param, token );
 	}
 	int arrayIndexDirect( ClipParam param, int code, dynamic token ){
-		return (code == CLIP_CODE_ARRAY) ? token : autoArrayIndex( param, token );
+		return (code == ClipGlobal.codeArray) ? token : autoArrayIndex( param, token );
 	}
 	int arrayIndexDirectMove( ClipParam param, int code, dynamic token, ParamBoolean moveFlag ){
-		moveFlag.set( code == CLIP_CODE_ARRAY );
+		moveFlag.set( code == ClipGlobal.codeArray );
 		return moveFlag.val() ? token : autoArrayIndex( param, token );
 	}
 
@@ -682,7 +683,7 @@ class ClipProc {
 		dst = top;
 		for( src = 0; src < str.length; src++, dst++ ){
 			dst2[0] = dst;
-			array.set( index, dst2, 1, charCodeAt( str, src ).toDouble(), false );
+			array.set( index, dst2, 1, ClipMath.charCodeAt( str, src ).toDouble(), false );
 		}
 	}
 	void strSet( ClipArray array, int index, String str ){
@@ -697,7 +698,7 @@ class ClipProc {
 		String str = "";
 		int len = strLen( array, index );
 		for( int i = 0; i < len; i++ ){
-			str += String.fromCharCode( MATH_INT( array.val( index, i ).toFloat() ).toInt() );
+			str += String.fromCharCode( ClipMath.toInt( array.val( index, i ).toFloat() ).toInt() );
 		}
 		return str;
 	}
@@ -721,9 +722,9 @@ class ClipProc {
 			if( (chr = array.val( index, i ).toFloat().toInt()) == 0 ){
 				break;
 			}
-			if( (chr >= MATH_CHAR_CODE_UA) && (chr <= MATH_CHAR_CODE_UZ) ){
+			if( (chr >= ClipMath.charCodeUA) && (chr <= ClipMath.charCodeUZ) ){
 				dst[0] = i;
-				array.set( index, dst, 1, (chr - MATH_CHAR_CODE_UA + MATH_CHAR_CODE_LA).toDouble(), false );
+				array.set( index, dst, 1, (chr - ClipMath.charCodeUA + ClipMath.charCodeLA).toDouble(), false );
 			}
 		}
 	}
@@ -736,9 +737,9 @@ class ClipProc {
 			if( (chr = array.val( index, i ).toFloat().toInt()) == 0 ){
 				break;
 			}
-			if( (chr >= MATH_CHAR_CODE_LA) && (chr <= MATH_CHAR_CODE_LZ) ){
+			if( (chr >= ClipMath.charCodeLA) && (chr <= ClipMath.charCodeLZ) ){
 				dst[0] = i;
-				array.set( index, dst, 1, (chr - MATH_CHAR_CODE_LA + MATH_CHAR_CODE_UA).toDouble(), false );
+				array.set( index, dst, 1, (chr - ClipMath.charCodeLA + ClipMath.charCodeUA).toDouble(), false );
 			}
 		}
 	}
@@ -755,53 +756,53 @@ class ClipProc {
 	void _updateMatrix( ClipParam param, MathMatrix mat ){
 		int i;
 
-		if( (param.mode() & CLIP_MODE_FLOAT) != 0 ){
+		if( (param.mode() & ClipGlobal.modeFloat) != 0 ){
 			for( i = 0; i < mat.len(); i++ ){
 				mat.mat(i).setImag( 0.0 );
 			}
-		} else if( (param.mode() & CLIP_MODE_INT) != 0 ){
+		} else if( (param.mode() & ClipGlobal.modeInt) != 0 ){
 			if( _printWarn && procWarnFlowFlag() ){
 				int index = (param.mode() & 0x000F);
-				double minValue = CLIP_MIN_VALUE[index];
-				double maxValue = CLIP_MAX_VALUE[index];
+				double minValue = _minValue[index];
+				double maxValue = _maxValue[index];
 				int intValue;
 				for( i = 0; i < mat.len(); i++ ){
-					intValue = MATH_INT( mat.mat(i).toFloat() ).toInt();
+					intValue = ClipMath.toInt( mat.mat(i).toFloat() ).toInt();
 					if( (intValue < minValue) || (intValue > maxValue) ){
-						_errorProc( (intValue < minValue) ? CLIP_PROC_WARN_UNDERFLOW : CLIP_PROC_WARN_OVERFLOW, _curLine.num(), param, CLIP_CODE_LABEL, "$intValue" );
+						_errorProc( (intValue < minValue) ? ClipGlobal.procWarnUnderflow : ClipGlobal.procWarnOverflow, _curLine.num(), param, ClipGlobal.codeLabel, "$intValue" );
 					}
 				}
 			}
 
-			switch( param.mode() & CLIP_MODE_MASK ){
-			case CLIP_MODE_S_CHAR:
+			switch( param.mode() & ClipGlobal.modeMask ){
+			case ClipGlobal.modeSChar:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_SIGNED( mat.mat(i).toFloat(), MATH_UMAX_8, MATH_SMIN_8, MATH_SMAX_8 ) );
+					mat.mat(i).ass( ClipMath.signed( mat.mat(i).toFloat(), ClipMath.umax8, ClipMath.smin8, ClipMath.smax8 ) );
 				}
 				break;
-			case CLIP_MODE_U_CHAR:
+			case ClipGlobal.modeUChar:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_UNSIGNED( mat.mat(i).toFloat(), MATH_UMAX_8 ) );
+					mat.mat(i).ass( ClipMath.unsigned( mat.mat(i).toFloat(), ClipMath.umax8 ) );
 				}
 				break;
-			case CLIP_MODE_S_SHORT:
+			case ClipGlobal.modeSShort:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_SIGNED( mat.mat(i).toFloat(), MATH_UMAX_16, MATH_SMIN_16, MATH_SMAX_16 ) );
+					mat.mat(i).ass( ClipMath.signed( mat.mat(i).toFloat(), ClipMath.umax16, ClipMath.smin16, ClipMath.smax16 ) );
 				}
 				break;
-			case CLIP_MODE_U_SHORT:
+			case ClipGlobal.modeUShort:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_UNSIGNED( mat.mat(i).toFloat(), MATH_UMAX_16 ) );
+					mat.mat(i).ass( ClipMath.unsigned( mat.mat(i).toFloat(), ClipMath.umax16 ) );
 				}
 				break;
-			case CLIP_MODE_S_LONG:
+			case ClipGlobal.modeSLong:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_SIGNED( mat.mat(i).toFloat(), MATH_UMAX_32, MATH_SMIN_32, MATH_SMAX_32 ) );
+					mat.mat(i).ass( ClipMath.signed( mat.mat(i).toFloat(), ClipMath.umax32, ClipMath.smin32, ClipMath.smax32 ) );
 				}
 				break;
-			case CLIP_MODE_U_LONG:
+			case ClipGlobal.modeULong:
 				for( i = 0; i < mat.len(); i++ ){
-					mat.mat(i).ass( MATH_UNSIGNED( mat.mat(i).toFloat(), MATH_UMAX_32 ) );
+					mat.mat(i).ass( ClipMath.unsigned( mat.mat(i).toFloat(), ClipMath.umax32 ) );
 				}
 				break;
 			}
@@ -817,53 +818,53 @@ class ClipProc {
 		}
 
 		if( node.vectorNum() > 0 ){
-			if( (param.mode() & CLIP_MODE_FLOAT) != 0 ){
+			if( (param.mode() & ClipGlobal.modeFloat) != 0 ){
 				for( i = 0; i < node.vectorNum(); i++ ){
 					node.vector(i).setImag( 0.0 );
 				}
-			} else if( (param.mode() & CLIP_MODE_INT) != 0 ){
+			} else if( (param.mode() & ClipGlobal.modeInt) != 0 ){
 				if( _printWarn && procWarnFlowFlag() ){
 					int index = (param.mode() & 0x000F);
-					int minValue = CLIP_MIN_VALUE[index].toInt();
-					int maxValue = CLIP_MAX_VALUE[index].toInt();
+					int minValue = _minValue[index].toInt();
+					int maxValue = _maxValue[index].toInt();
 					int intValue;
 					for( i = 0; i < node.vectorNum(); i++ ){
-						intValue = MATH_INT( node.vector(i).toFloat() ).toInt();
+						intValue = ClipMath.toInt( node.vector(i).toFloat() ).toInt();
 						if( (intValue < minValue) || (intValue > maxValue) ){
-							_errorProc( (intValue < minValue) ? CLIP_PROC_WARN_UNDERFLOW : CLIP_PROC_WARN_OVERFLOW, _curLine.num(), param, CLIP_CODE_LABEL, "$intValue" );
+							_errorProc( (intValue < minValue) ? ClipGlobal.procWarnUnderflow : ClipGlobal.procWarnOverflow, _curLine.num(), param, ClipGlobal.codeLabel, "$intValue" );
 						}
 					}
 				}
 
-				switch( param.mode() & CLIP_MODE_MASK ){
-				case CLIP_MODE_S_CHAR:
+				switch( param.mode() & ClipGlobal.modeMask ){
+				case ClipGlobal.modeSChar:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_SIGNED( node.vector(i).toFloat(), MATH_UMAX_8, MATH_SMIN_8, MATH_SMAX_8 ) );
+						node.vector(i).ass( ClipMath.signed( node.vector(i).toFloat(), ClipMath.umax8, ClipMath.smin8, ClipMath.smax8 ) );
 					}
 					break;
-				case CLIP_MODE_U_CHAR:
+				case ClipGlobal.modeUChar:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_UNSIGNED( node.vector(i).toFloat(), MATH_UMAX_8 ) );
+						node.vector(i).ass( ClipMath.unsigned( node.vector(i).toFloat(), ClipMath.umax8 ) );
 					}
 					break;
-				case CLIP_MODE_S_SHORT:
+				case ClipGlobal.modeSShort:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_SIGNED( node.vector(i).toFloat(), MATH_UMAX_16, MATH_SMIN_16, MATH_SMAX_16 ) );
+						node.vector(i).ass( ClipMath.signed( node.vector(i).toFloat(), ClipMath.umax16, ClipMath.smin16, ClipMath.smax16 ) );
 					}
 					break;
-				case CLIP_MODE_U_SHORT:
+				case ClipGlobal.modeUShort:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_UNSIGNED( node.vector(i).toFloat(), MATH_UMAX_16 ) );
+						node.vector(i).ass( ClipMath.unsigned( node.vector(i).toFloat(), ClipMath.umax16 ) );
 					}
 					break;
-				case CLIP_MODE_S_LONG:
+				case ClipGlobal.modeSLong:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_SIGNED( node.vector(i).toFloat(), MATH_UMAX_32, MATH_SMIN_32, MATH_SMAX_32 ) );
+						node.vector(i).ass( ClipMath.signed( node.vector(i).toFloat(), ClipMath.umax32, ClipMath.smin32, ClipMath.smax32 ) );
 					}
 					break;
-				case CLIP_MODE_U_LONG:
+				case ClipGlobal.modeULong:
 					for( i = 0; i < node.vectorNum(); i++ ){
-						node.vector(i).ass( MATH_UNSIGNED( node.vector(i).toFloat(), MATH_UMAX_32 ) );
+						node.vector(i).ass( ClipMath.unsigned( node.vector(i).toFloat(), ClipMath.umax32 ) );
 					}
 					break;
 				}
@@ -875,37 +876,37 @@ class ClipProc {
 		_updateMatrix( param, array.matrix(index) );
 	}
 	void _updateValue( ClipParam param, MathValue val ){
-		if( (param.mode() & CLIP_MODE_FLOAT) != 0 ){
+		if( (param.mode() & ClipGlobal.modeFloat) != 0 ){
 			val.setImag( 0.0 );
-		} else if( (param.mode() & CLIP_MODE_INT) != 0 ){
+		} else if( (param.mode() & ClipGlobal.modeInt) != 0 ){
 			if( _printWarn && procWarnFlowFlag() ){
 				int index = (param.mode() & 0x000F);
-				int minValue = CLIP_MIN_VALUE[index].toInt();
-				int maxValue = CLIP_MAX_VALUE[index].toInt();
-				int intValue = MATH_INT( val.toFloat() ).toInt();
+				int minValue = _minValue[index].toInt();
+				int maxValue = _maxValue[index].toInt();
+				int intValue = ClipMath.toInt( val.toFloat() ).toInt();
 				if( (intValue < minValue) || (intValue > maxValue) ){
-					_errorProc( (intValue < minValue) ? CLIP_PROC_WARN_UNDERFLOW : CLIP_PROC_WARN_OVERFLOW, _curLine.num(), param, CLIP_CODE_LABEL, "$intValue" );
+					_errorProc( (intValue < minValue) ? ClipGlobal.procWarnUnderflow : ClipGlobal.procWarnOverflow, _curLine.num(), param, ClipGlobal.codeLabel, "$intValue" );
 				}
 			}
 
-			switch( param.mode() & CLIP_MODE_MASK ){
-			case CLIP_MODE_S_CHAR:
-				val.ass( MATH_SIGNED( val.toFloat(), MATH_UMAX_8, MATH_SMIN_8, MATH_SMAX_8 ) );
+			switch( param.mode() & ClipGlobal.modeMask ){
+			case ClipGlobal.modeSChar:
+				val.ass( ClipMath.signed( val.toFloat(), ClipMath.umax8, ClipMath.smin8, ClipMath.smax8 ) );
 				break;
-			case CLIP_MODE_U_CHAR:
-				val.ass( MATH_UNSIGNED( val.toFloat(), MATH_UMAX_8 ) );
+			case ClipGlobal.modeUChar:
+				val.ass( ClipMath.unsigned( val.toFloat(), ClipMath.umax8 ) );
 				break;
-			case CLIP_MODE_S_SHORT:
-				val.ass( MATH_SIGNED( val.toFloat(), MATH_UMAX_16, MATH_SMIN_16, MATH_SMAX_16 ) );
+			case ClipGlobal.modeSShort:
+				val.ass( ClipMath.signed( val.toFloat(), ClipMath.umax16, ClipMath.smin16, ClipMath.smax16 ) );
 				break;
-			case CLIP_MODE_U_SHORT:
-				val.ass( MATH_UNSIGNED( val.toFloat(), MATH_UMAX_16 ) );
+			case ClipGlobal.modeUShort:
+				val.ass( ClipMath.unsigned( val.toFloat(), ClipMath.umax16 ) );
 				break;
-			case CLIP_MODE_S_LONG:
-				val.ass( MATH_SIGNED( val.toFloat(), MATH_UMAX_32, MATH_SMIN_32, MATH_SMAX_32 ) );
+			case ClipGlobal.modeSLong:
+				val.ass( ClipMath.signed( val.toFloat(), ClipMath.umax32, ClipMath.smin32, ClipMath.smax32 ) );
 				break;
-			case CLIP_MODE_U_LONG:
-				val.ass( MATH_UNSIGNED( val.toFloat(), MATH_UMAX_32 ) );
+			case ClipGlobal.modeULong:
+				val.ass( ClipMath.unsigned( val.toFloat(), ClipMath.umax32 ) );
 				break;
 			}
 		}
@@ -914,7 +915,7 @@ class ClipProc {
 		bool flag;
 		int code;
 		dynamic token;
-		int ret = CLIP_NO_ERR;
+		int ret = ClipGlobal.noErr;
 		List<int>? arrayList;
 		List<int>? resizeList;
 		ClipToken? saveLine;
@@ -923,17 +924,17 @@ class ClipProc {
 
 		flag = false;
 		while( _curLine.token()!.getToken() ){
-			code  = getCode();
-			token = getToken();
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
 			_initArray!.addCode( code, token );
-			if( code == CLIP_CODE_ARRAY_TOP ){
+			if( code == ClipGlobal.codeArrayTop ){
 				_initArrayCnt++;
 				if( _initArrayCnt > _initArrayMax ){
 					_initArrayMax = _initArrayCnt;
 				}
-			} else if( code == CLIP_CODE_ARRAY_END ){
+			} else if( code == ClipGlobal.codeArrayEnd ){
 				if( _initArrayCnt <= 0 ){
-					ret = _retError( CLIP_PROC_ERR_ARRAY, code, token );
+					ret = _retError( ClipGlobal.procErrArray, code, token );
 					flag = true;
 					break;
 				}
@@ -952,13 +953,13 @@ class ClipProc {
 						if( !(_initArray!.getToken()) ){
 							break;
 						}
-						code  = getCode();
-						token = getToken();
-						if( code == CLIP_CODE_ARRAY_TOP ){
+						code  = ClipToken.curCode();
+						token = ClipToken.curToken();
+						if( code == ClipGlobal.codeArrayTop ){
 							_initArrayCnt++;
 							arrayList[_initArrayCnt - 1] = 0;
 							arrayList[_initArrayCnt    ] = -1;
-						} else if( code == CLIP_CODE_ARRAY_END ){
+						} else if( code == ClipGlobal.codeArrayEnd ){
 							_initArrayCnt--;
 							if( _initArrayCnt > 0 ){
 								arrayList[_initArrayCnt - 1]++;
@@ -966,7 +967,7 @@ class ClipProc {
 							}
 						} else {
 							_initArray!.unlock( lock );
-							if( _const( param, code, token, value ) == CLIP_NO_ERR ){
+							if( _const( param, code, token, value ) == ClipGlobal.noErr ){
 								if( _initArrayCnt == 2 ){
 									if( resizeList[0] < arrayList[0] ){
 										resizeList[0] = arrayList[0];
@@ -983,7 +984,7 @@ class ClipProc {
 									);
 								arrayList[_initArrayCnt - 1]++;
 							} else {
-								ret = _retError( CLIP_PROC_ERR_ARRAY, code, token );
+								ret = _retError( ClipGlobal.procErrArray, code, token );
 								flag = true;
 								break;
 							}
@@ -1003,7 +1004,7 @@ class ClipProc {
 			_initArray = null;
 		}
 
-		return (ret == CLIP_NO_ERR) ? CLIP_PROC_SUB_END : ret;
+		return (ret == ClipGlobal.noErr) ? ClipGlobal.procSubEnd : ret;
 	}
 	void _getArrayInfo( ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -1013,14 +1014,14 @@ class ClipProc {
 		_curInfo._curArray = List.filled( 16, 0 );
 		for( _curInfo._curArraySize = 0; ; _curInfo._curArraySize++ ){
 			lock = _curLine.token()!.lock();
-			if( _const( param, code, token, value ) != CLIP_NO_ERR ){
+			if( _const( param, code, token, value ) != ClipGlobal.noErr ){
 				_curLine.token()!.unlock( lock );
 				break;
 			}
-			index = MATH_INT( value.mat().mat(0).toFloat() ).toInt() - param.base();
+			index = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() - param.base();
 			if( index < 0 ){
-				_errorProc( CLIP_PROC_WARN_ARRAY, _curLine.num(), param, CLIP_CODE_NULL, null );
-				_curInfo._curArray![_curInfo._curArraySize] = CLIP_INVALID_ARRAY_INDEX;
+				_errorProc( ClipGlobal.procWarnArray, _curLine.num(), param, ClipGlobal.codeNull, null );
+				_curInfo._curArray![_curInfo._curArraySize] = ClipGlobal.invalidArrayIndex;
 			} else {
 				_curInfo._curArray![_curInfo._curArraySize] = index;
 			}
@@ -1044,18 +1045,18 @@ class ClipProc {
 			if( !(_curLine.token()!.getTokenParam( parentParam )) ){
 				break;
 			}
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			if(
-				((newCode & (CLIP_CODE_VAR_MASK | CLIP_CODE_ARRAY_MASK)) != 0) ||
-				(newCode == CLIP_CODE_CONSTANT) ||
-				(newCode == CLIP_CODE_MULTIPREC) ||
-				(newCode == CLIP_CODE_STRING)
+				((newCode & (ClipGlobal.codeVarMask | ClipGlobal.codeArrayMask)) != 0) ||
+				(newCode == ClipGlobal.codeConstant) ||
+				(newCode == ClipGlobal.codeMultiPrec) ||
+				(newCode == ClipGlobal.codeString)
 			){
 				funcParam.addCode( newCode, newToken );
 			} else {
 				_curLine.token()!.unlock( lock );
-				if( _const( parentParam, code, token, tmpValue ) == CLIP_NO_ERR ){
+				if( _const( parentParam, code, token, tmpValue ) == ClipGlobal.noErr ){
 					if( tmpValue.mpFlag() ){
 						funcParam.addMultiPrec( tmpValue._mp );
 					} else if( tmpValue._mat.len() > 1 ){
@@ -1080,18 +1081,18 @@ class ClipProc {
 		}
 	}
 	bool _checkSkipLoop(){
-		return (_statMode == CLIP_STAT_MODE_PROCESSING) && _stat!.checkBreak();
+		return (_statMode == _statModeProcessing) && _stat!.checkBreak();
 	}
 	bool _checkSkipIf(){
-		return ((_statIfMode[_statIfCnt] == CLIP_STAT_IFMODE_DISABLE) || (_statIfMode[_statIfCnt] == CLIP_STAT_IFMODE_PROCESSED)) ? true : _checkSkipLoop();
+		return ((_statIfMode[_statIfCnt] == _statIfModeDisable) || (_statIfMode[_statIfCnt] == _statIfModeProcessed)) ? true : _checkSkipLoop();
 	}
 	bool _checkSkipSwi(){
-		return ((_statSwiMode[_statSwiCnt] == CLIP_STAT_SWIMODE_DISABLE) || (_statSwiMode[_statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED)) ? true : _checkSkipLoop();
+		return ((_statSwiMode[_statSwiCnt] == _statSwiModeDisable) || (_statSwiMode[_statSwiCnt] == _statSwiModeProcessed)) ? true : _checkSkipLoop();
 	}
 	bool _checkSkip(){
 		return (
-			((_statIfMode [_statIfCnt ] == CLIP_STAT_IFMODE_DISABLE ) || (_statIfMode [_statIfCnt ] == CLIP_STAT_IFMODE_PROCESSED )) ||
-			((_statSwiMode[_statSwiCnt] == CLIP_STAT_SWIMODE_DISABLE) || (_statSwiMode[_statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED))
+			((_statIfMode [_statIfCnt ] == _statIfModeDisable ) || (_statIfMode [_statIfCnt ] == _statIfModeProcessed )) ||
+			((_statSwiMode[_statSwiCnt] == _statSwiModeDisable) || (_statSwiMode[_statSwiCnt] == _statSwiModeProcessed))
 			) ? true : _checkSkipLoop();
 	}
 	int _processLoop( ClipParam param ){
@@ -1100,55 +1101,55 @@ class ClipProc {
 
 		_curLine.token()!.beginGetToken();
 		if( !(_curLine.token()!.getTokenLock()) ){
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		code  = getCode();
-		token = getToken();
+		code  = ClipToken.curCode();
+		token = ClipToken.curToken();
 
 		switch( code ){
-		case CLIP_CODE_STATEMENT:
+		case ClipGlobal.codeStatement:
 			if( !(param.enableStat()) ){
-				return CLIP_LOOP_ERR_STAT;
+				return ClipGlobal.loopErrStat;
 			}
 
 			_setError( code, token );
 
 			return _procSubLoop[token]( this );
-		case CLIP_CODE_COMMAND:
+		case ClipGlobal.codeCommand:
 			if( !(param.enableCommand()) ){
-				return CLIP_LOOP_ERR_COMMAND;
+				return ClipGlobal.loopErrCommand;
 			}
 			break;
-		case CLIP_CODE_SE:
+		case ClipGlobal.codeSe:
 			param.setSeFlag( true );
 			param.setSeToken( token );
 			break;
 		}
 
-		return _checkSkip() ? CLIP_PROC_SUB_END : CLIP_NO_ERR;
+		return _checkSkip() ? ClipGlobal.procSubEnd : ClipGlobal.noErr;
 	}
 	int _constFirst( ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int newCode;
 		dynamic newToken;
 
 		if( !(_curLine.token()!.getTokenParam( param )) ){
-			return _retError( CLIP_PROC_ERR_RVALUE_NULL, code, token );
+			return _retError( ClipGlobal.procErrRValueNull, code, token );
 		}
-		newCode  = getCode();
-		newToken = getToken();
+		newCode  = ClipToken.curCode();
+		newToken = ClipToken.curToken();
 
-		_proc_token.delToken( _curInfo._assCode, _curInfo._assToken );
+		_procToken.delToken( _curInfo._assCode, _curInfo._assToken );
 		_curInfo._assCode = newCode;
-		_curInfo._assToken = _proc_token.newToken( newCode, newToken );
+		_curInfo._assToken = _procToken.newToken( newCode, newToken );
 
-		if( newCode == CLIP_CODE_VARIABLE ){
+		if( newCode == ClipGlobal.codeVariable ){
 			return _procVariableFirst( param, newToken, value );
-		} else if( newCode == CLIP_CODE_ARRAY ){
+		} else if( newCode == ClipGlobal.codeArray ){
 			return _procArrayFirst( param, newToken, value );
-		} else if( (newCode & CLIP_CODE_MASK) < CLIP_CODE_PROC_END ){
-			return _procSub[newCode & CLIP_CODE_MASK]( this, param, newCode, newToken, value, false );
+		} else if( (newCode & ClipGlobal.codeMask) < ClipGlobal.codeProcEnd ){
+			return _procSub[newCode & ClipGlobal.codeMask]( this, param, newCode, newToken, value, false );
 		} else {
-			return _retError( CLIP_PROC_ERR_CONSTANT, newCode, newToken );
+			return _retError( ClipGlobal.procErrConstant, newCode, newToken );
 		}
 	}
 	int _const( ClipParam param, int code, dynamic token, ClipProcVal value ){
@@ -1156,15 +1157,15 @@ class ClipProc {
 		dynamic newToken;
 
 		if( !(_curLine.token()!.getTokenParam( param )) ){
-			return _retError( CLIP_PROC_ERR_RVALUE_NULL, code, token );
+			return _retError( ClipGlobal.procErrRValueNull, code, token );
 		}
-		newCode  = getCode();
-		newToken = getToken();
+		newCode  = ClipToken.curCode();
+		newToken = ClipToken.curToken();
 
-		if( (newCode & CLIP_CODE_MASK) < CLIP_CODE_PROC_END ){
-			return _procSub[newCode & CLIP_CODE_MASK]( this, param, newCode, newToken, value, false );
+		if( (newCode & ClipGlobal.codeMask) < ClipGlobal.codeProcEnd ){
+			return _procSub[newCode & ClipGlobal.codeMask]( this, param, newCode, newToken, value, false );
 		} else {
-			return _retError( CLIP_PROC_ERR_CONSTANT, newCode, newToken );
+			return _retError( ClipGlobal.procErrConstant, newCode, newToken );
 		}
 	}
 	int _constSkip( int code, dynamic token ){
@@ -1175,21 +1176,21 @@ class ClipProc {
 		while( true ){
 			lock = _curLine.token()!.lock();
 			if( _curLine.token()!.getToken() ){
-				switch( getCode() ){
-				case CLIP_CODE_TOP:
+				switch( ClipToken.curCode() ){
+				case ClipGlobal.codeTop:
 					subStep++;
 					break;
-				case CLIP_CODE_END:
+				case ClipGlobal.codeEnd:
 					subStep--;
 					if( subStep < 0 ){
 						_curLine.token()!.unlock( lock );
-						return CLIP_NO_ERR;
+						return ClipGlobal.noErr;
 					}
 					break;
-				case CLIP_CODE_OPERATOR:
+				case ClipGlobal.codeOperator:
 					if( subStep <= 0 ){
 						_curLine.token()!.unlock( lock );
-						return CLIP_NO_ERR;
+						return ClipGlobal.noErr;
 					}
 					break;
 				}
@@ -1198,7 +1199,7 @@ class ClipProc {
 			}
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _constSkipConditional( int code, dynamic token ){
 		int subStep;
@@ -1206,14 +1207,14 @@ class ClipProc {
 		subStep = 0;
 		while( true ){
 			if( _curLine.token()!.getToken() ){
-				switch( getCode() ){
-				case CLIP_CODE_TOP:
+				switch( ClipToken.curCode() ){
+				case ClipGlobal.codeTop:
 					subStep++;
 					break;
-				case CLIP_CODE_END:
+				case ClipGlobal.codeEnd:
 					subStep--;
 					if( subStep < 0 ){
-						return _retError( CLIP_PROC_ERR_RVALUE_NULL, code, token );
+						return _retError( ClipGlobal.procErrRValueNull, code, token );
 					}
 					break;
 				}
@@ -1221,22 +1222,22 @@ class ClipProc {
 					break;
 				}
 			} else {
-				return _retError( CLIP_PROC_ERR_RVALUE_NULL, code, token );
+				return _retError( ClipGlobal.procErrRValueNull, code, token );
 			}
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	bool _getString( ClipParam param, ParamString string ){
 		int code;
 		dynamic token;
 		if( _curLine.token()!.getTokenParam( param ) ){
-			code  = getCode();
-			token = getToken();
-			if( code == CLIP_CODE_STRING ){
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
+			if( code == ClipGlobal.codeString ){
 				string.set( token );
-			} else if( (code & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( code == CLIP_CODE_GLOBAL_ARRAY ){
+			} else if( (code & ClipGlobal.codeArrayMask) != 0 ){
+				if( code == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 				var arrayIndex = arrayIndexIndirect( param, code, token );
@@ -1255,49 +1256,49 @@ class ClipProc {
 		dynamic token;
 
 		if( !(_curLine.token()!.getToken()) ){
-			return _retError( CLIP_PROC_ERR_OPERATOR, CLIP_CODE_NULL, null );
+			return _retError( ClipGlobal.procErrOperator, ClipGlobal.codeNull, null );
 		}
-		code  = getCode();
-		token = getToken();
+		code  = ClipToken.curCode();
+		token = ClipToken.curToken();
 
-		if( (code == CLIP_CODE_OPERATOR) && (token >= CLIP_OP_UNARY_END) ){
+		if( (code == ClipGlobal.codeOperator) && (token >= ClipGlobal.opUnaryEnd) ){
 			return _procSubOp[token]( this, param, code, token, value );
 		} else {
-			return _retError( CLIP_PROC_ERR_OPERATOR, code, token );
+			return _retError( ClipGlobal.procErrOperator, code, token );
 		}
 	}
 	int _regInc( bool flag, ClipParam param, int code, dynamic token ){
 		switch( _curInfo._assCode ){
-		case CLIP_CODE_VARIABLE:
+		case ClipGlobal.codeVariable:
 			if( param.variable().isLocked( _curInfo._assToken ) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			_regIncSub( flag, _curInfo._assCode, _curInfo._assToken, null, 0 );
 			break;
-		case CLIP_CODE_GLOBAL_VAR:
+		case ClipGlobal.codeGlobalVar:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_VAR;
-		case_CLIP_CODE_AUTO_VAR:
-		case CLIP_CODE_AUTO_VAR:
+			continue caseClipGlobalCodeAutoVar;
+		caseClipGlobalCodeAutoVar:
+		case ClipGlobal.codeAutoVar:
 			if( param.variable().isLocked( autoVarIndex( param, _curInfo._assToken ) ) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			_regIncSub( flag, _curInfo._assCode, _curInfo._assToken, null, 0 );
 			break;
-		case CLIP_CODE_ARRAY:
-		case CLIP_CODE_AUTO_ARRAY:
-		case CLIP_CODE_GLOBAL_ARRAY:
+		case ClipGlobal.codeArray:
+		case ClipGlobal.codeAutoArray:
+		case ClipGlobal.codeGlobalArray:
 			if( !(param.mpFlag()) && (_curInfo._curArraySize == 0) ){
-				return _retError( CLIP_PROC_ERR_LVALUE, code, token );
+				return _retError( ClipGlobal.procErrLValue, code, token );
 			} else {
 				_regIncSub( flag, _curInfo._assCode, _curInfo._assToken, _curInfo._curArray, _curInfo._curArraySize );
 			}
 			break;
 		default:
-			return _retError( CLIP_PROC_ERR_LVALUE, code, token );
+			return _retError( ClipGlobal.procErrLValue, code, token );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	_ClipInc _regIncSub( bool flag, int code, dynamic token, [List<int>? array, int arraySize = 0] ){
 		_ClipInc tmpInc = _ClipInc();
@@ -1316,7 +1317,7 @@ class ClipProc {
 
 		tmpInc._flag  = flag;
 		tmpInc._code  = code;
-		tmpInc._token = _proc_token.newToken( code, token );
+		tmpInc._token = _procToken.newToken( code, token );
 		if( array == null ){
 			tmpInc._array = null;
 		} else {
@@ -1339,7 +1340,7 @@ class ClipProc {
 			tmp = cur;
 			cur = cur._next;
 
-			_proc_token.delToken( tmp._code, tmp._token );
+			_procToken.delToken( tmp._code, tmp._token );
 			if( tmp._array != null ){
 				tmp._array = null;
 			}
@@ -1354,7 +1355,7 @@ class ClipProc {
 		cur = _topInc;
 		while( cur != null ){
 			switch( cur._code ){
-			case CLIP_CODE_VARIABLE:
+			case ClipGlobal.codeVariable:
 				index = cur._token;
 				val.ass( param.val( index ) );
 
@@ -1367,7 +1368,7 @@ class ClipProc {
 
 				param.setVal( index, val, true );
 				break;
-			case CLIP_CODE_AUTO_VAR:
+			case ClipGlobal.codeAutoVar:
 				index = autoVarIndex( param, cur._token );
 				val.ass( param.val( index ) );
 
@@ -1380,7 +1381,7 @@ class ClipProc {
 
 				param.setVal( index, val, false );
 				break;
-			case CLIP_CODE_GLOBAL_VAR:
+			case ClipGlobal.codeGlobalVar:
 				index = autoVarIndex( globalParam(), cur._token );
 				val.ass( globalParam().val( index ) );
 
@@ -1393,14 +1394,14 @@ class ClipProc {
 
 				globalParam().setVal( index, val, false );
 				break;
-			case CLIP_CODE_ARRAY:
+			case ClipGlobal.codeArray:
 				index = cur._token;
 				if( cur._arraySize == 0 ){
 					param.array().move( index );
 					if( cur._flag ){
-						_proc_mp.fadd( param.array().mp(index), param.array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fadd( param.array().mp(index), param.array().mp(index), _procMp.F( "1.0" ) );
 					} else {
-						_proc_mp.fsub( param.array().mp(index), param.array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fsub( param.array().mp(index), param.array().mp(index), _procMp.F( "1.0" ) );
 					}
 				} else {
 					val.ass( param.array().val( index, cur._array!, cur._arraySize ) );
@@ -1415,13 +1416,13 @@ class ClipProc {
 					param.array().set( index, cur._array!, cur._arraySize, val, true );
 				}
 				break;
-			case CLIP_CODE_AUTO_ARRAY:
+			case ClipGlobal.codeAutoArray:
 				index = autoArrayIndex( param, cur._token );
 				if( cur._arraySize == 0 ){
 					if( cur._flag ){
-						_proc_mp.fadd( param.array().mp(index), param.array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fadd( param.array().mp(index), param.array().mp(index), _procMp.F( "1.0" ) );
 					} else {
-						_proc_mp.fsub( param.array().mp(index), param.array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fsub( param.array().mp(index), param.array().mp(index), _procMp.F( "1.0" ) );
 					}
 				} else {
 					val.ass( param.array().val( index, cur._array!, cur._arraySize ) );
@@ -1436,13 +1437,13 @@ class ClipProc {
 					param.array().set( index, cur._array!, cur._arraySize, val, false );
 				}
 				break;
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeGlobalArray:
 				index = autoArrayIndex( globalParam(), cur._token );
 				if( cur._arraySize == 0 ){
 					if( cur._flag ){
-						_proc_mp.fadd( globalParam().array().mp(index), globalParam().array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fadd( globalParam().array().mp(index), globalParam().array().mp(index), _procMp.F( "1.0" ) );
 					} else {
-						_proc_mp.fsub( globalParam().array().mp(index), globalParam().array().mp(index), _proc_mp.F( "1.0" ) );
+						_procMp.fsub( globalParam().array().mp(index), globalParam().array().mp(index), _procMp.F( "1.0" ) );
 					}
 				} else {
 					val.ass( globalParam().array().val( index, cur._array, cur._arraySize ) );
@@ -1464,7 +1465,7 @@ class ClipProc {
 		_delInc();
 	}
 	int _processSub( ClipParam param, ClipProcVal value ){
-		int ret = CLIP_NO_ERR;
+		int ret = ClipGlobal.noErr;
 		ClipTokenData? lock;
 		int code;
 		dynamic token;
@@ -1475,11 +1476,11 @@ class ClipProc {
 		_curInfo = subInfo;
 
 		lock = _curLine.token()!.lock();
-		if( (ret = _processOp( param, value )) != CLIP_NO_ERR ){
+		if( (ret = _processOp( param, value )) != ClipGlobal.noErr ){
 			_curLine.token()!.unlock( lock );
-			if( (ret = _constFirst( param, CLIP_CODE_NULL, null, value )) != CLIP_NO_ERR ){
+			if( (ret = _constFirst( param, ClipGlobal.codeNull, null, value )) != ClipGlobal.noErr ){
 				_curInfo = savInfo;
-				_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+				_procToken.delToken( subInfo._assCode, subInfo._assToken );
 				subInfo._curArray = null;
 				return ret;
 			}
@@ -1487,45 +1488,45 @@ class ClipProc {
 			ClipProcVal tmpValue1 = ClipProcVal( this, param );
 
 			lock = _curLine.token()!.lock();
-			if( _const( param, CLIP_CODE_NULL, null, tmpValue1 ) != CLIP_NO_ERR ){
+			if( _const( param, ClipGlobal.codeNull, null, tmpValue1 ) != ClipGlobal.noErr ){
 				_curLine.token()!.unlock( lock );
-			} else if( (param.mode() & CLIP_MODE_COMPLEX) != 0 ){
-				if( _curLine.token()!.checkToken( CLIP_CODE_END ) ){
+			} else if( (param.mode() & ClipGlobal.modeComplex) != 0 ){
+				if( _curLine.token()!.checkToken( ClipGlobal.codeEnd ) ){
 					_curLine.token()!.getToken();
-					code  = getCode();
-					token = getToken();
+					code  = ClipToken.curCode();
+					token = ClipToken.curToken();
 
 					_curInfo = savInfo;
-					_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+					_procToken.delToken( subInfo._assCode, subInfo._assToken );
 					subInfo._curArray = null;
-					return _retError( CLIP_PROC_ERR_COMPLEX, code, token );
+					return _retError( ClipGlobal.procErrComplex, code, token );
 				} else {
 					value.mat().mat(0).setImag( tmpValue1.mat().mat(0).real() );
 
 					_curLine.token()!.getToken();
 
 					_curInfo = savInfo;
-					_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+					_procToken.delToken( subInfo._assCode, subInfo._assToken );
 					subInfo._curArray = null;
-					return CLIP_NO_ERR;
+					return ClipGlobal.noErr;
 				}
-			} else if( (param.mode() & (CLIP_MODE_FLOAT | CLIP_MODE_FRACT)) != 0 ){
+			} else if( (param.mode() & (ClipGlobal.modeFloat | ClipGlobal.modeFract)) != 0 ){
 				ClipProcVal tmpValue2 = ClipProcVal( this, param );
 
 				lock = _curLine.token()!.lock();
-				if( _const( param, CLIP_CODE_NULL, null, tmpValue2 ) != CLIP_NO_ERR ){
+				if( _const( param, ClipGlobal.codeNull, null, tmpValue2 ) != ClipGlobal.noErr ){
 					value.mat().divAndAss( tmpValue1.mat().mat(0).toFloat() );
 
 					_curLine.token()!.unlock( lock );
-				} else if( _curLine.token()!.checkToken( CLIP_CODE_END ) ){
+				} else if( _curLine.token()!.checkToken( ClipGlobal.codeEnd ) ){
 					_curLine.token()!.getToken();
-					code  = getCode();
-					token = getToken();
+					code  = ClipToken.curCode();
+					token = ClipToken.curToken();
 
 					_curInfo = savInfo;
-					_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+					_procToken.delToken( subInfo._assCode, subInfo._assToken );
 					subInfo._curArray = null;
-					return _retError( CLIP_PROC_ERR_FRACT, code, token );
+					return _retError( ClipGlobal.procErrFract, code, token );
 				} else {
 					tmpValue1.mat().divAndAss( tmpValue2.mat().mat(0).toFloat() );
 					value.mat().addAndAss( tmpValue1.mat() );
@@ -1533,17 +1534,17 @@ class ClipProc {
 					_curLine.token()!.getToken();
 
 					_curInfo = savInfo;
-					_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+					_procToken.delToken( subInfo._assCode, subInfo._assToken );
 					subInfo._curArray = null;
-					return CLIP_NO_ERR;
+					return ClipGlobal.noErr;
 				}
 			}
 		}
 
-		while( _curLine.token()!.checkToken( CLIP_CODE_END ) ){
-			if( (ret = _processOp( param, value )) != CLIP_NO_ERR ){
+		while( _curLine.token()!.checkToken( ClipGlobal.codeEnd ) ){
+			if( (ret = _processOp( param, value )) != ClipGlobal.noErr ){
 				_curInfo = savInfo;
-				_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+				_procToken.delToken( subInfo._assCode, subInfo._assToken );
 				subInfo._curArray = null;
 				return ret;
 			}
@@ -1552,34 +1553,34 @@ class ClipProc {
 		_curLine.token()!.getToken();
 
 		_curInfo = savInfo;
-		_proc_token.delToken( subInfo._assCode, subInfo._assToken );
+		_procToken.delToken( subInfo._assCode, subInfo._assToken );
 		subInfo._curArray = null;
 		return ret;
 	}
 	int _processSe( ClipParam param, ClipProcVal value ){
 		int ret;
 
-		if( (ret = _constFirst( param, CLIP_CODE_SE, param.seToken(), value )) != CLIP_NO_ERR ){
+		if( (ret = _constFirst( param, ClipGlobal.codeSe, param.seToken(), value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		List<int>? saveArray = _curInfo._curArray;
 		int saveArraySize   = _curInfo._curArraySize;
 
-		if( param.seToken() < CLIP_SE_FUNC ){
-			ret = _procSubSe[param.seToken()]( this, param, CLIP_CODE_SE, param.seToken(), value );
+		if( param.seToken() < ClipGlobal.seFunc ){
+			ret = _procSubSe[param.seToken()]( this, param, ClipGlobal.codeSe, param.seToken(), value );
 		} else {
-			ret = _procFunc( this, param, CLIP_CODE_FUNCTION, param.seToken() - CLIP_SE_FUNC, value, true );
+			ret = _procFunc( this, param, ClipGlobal.codeFunction, param.seToken() - ClipGlobal.seFunc, value, true );
 		}
 
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			if( _curLine.token()!.get() != null ){
-				ret = _retError( CLIP_PROC_ERR_SE_OPERAND, CLIP_CODE_SE, param.seToken() );
+				ret = _retError( ClipGlobal.procErrSeOperand, ClipGlobal.codeSe, param.seToken() );
 			} else {
 				if( !(param.mpFlag()) ){
 					_updateMatrix( param, value.mat() );
 				}
-				ret = _assVal( param, CLIP_CODE_SE, param.seToken(), saveArray, saveArraySize, value );
+				ret = _assVal( param, ClipGlobal.codeSe, param.seToken(), saveArray, saveArraySize, value );
 			}
 		}
 
@@ -1589,7 +1590,7 @@ class ClipProc {
 	}
 	bool _processFirst( ClipParam param, ParamInteger ret ){
 		if( _curLine.token()!.top() == null ){
-			ret.set( CLIP_PROC_END );
+			ret.set( ClipGlobal.procEnd );
 			return false;
 		}
 
@@ -1606,7 +1607,7 @@ class ClipProc {
 	}
 	void _processNext( ClipParam param, ParamInteger ret ){
 		while( true ){
-			if( ret.set( _processLoop( param ) ).val() != CLIP_NO_ERR ){
+			if( ret.set( _processLoop( param ) ).val() != ClipGlobal.noErr ){
 				break;
 			}
 
@@ -1624,7 +1625,7 @@ class ClipProc {
 			_curLine.token()!.beginGetToken();
 			if( param.seFlag() ){
 				_curLine.token()!.skipToken();
-				if( ret.set( _processSe( param, _valSeAns.setParam( param ) ) ).val() != CLIP_NO_ERR ){
+				if( ret.set( _processSe( param, _valSeAns.setParam( param ) ) ).val() != ClipGlobal.noErr ){
 					break;
 				}
 
@@ -1636,7 +1637,7 @@ class ClipProc {
 					_valAns._mat.ass( param.array().matrix(0) );
 				}
 
-				if( ret.set( _processSub( param, _valAns.setParam( param ) ) ).val() != CLIP_NO_ERR ){
+				if( ret.set( _processSub( param, _valAns.setParam( param ) ) ).val() != ClipGlobal.noErr ){
 					break;
 				}
 
@@ -1656,7 +1657,7 @@ class ClipProc {
 				}
 			}
 
-			ret.set( CLIP_PROC_END );
+			ret.set( ClipGlobal.procEnd );
 			break;
 		}
 
@@ -1669,7 +1670,7 @@ class ClipProc {
 			param.setSeFlag( false );
 		} else {
 			if( (_curLine.next() == null) && _printAns && !(param.assFlag()) ){
-				if( ret.val() == CLIP_PROC_END ){
+				if( ret.val() == ClipGlobal.procEnd ){
 					printAns( param );
 				}
 			}
@@ -1678,16 +1679,16 @@ class ClipProc {
 	bool _regProcess( ClipLineData line, ParamInteger err ){
 		_curLine = line;
 
-		if( _statMode == CLIP_STAT_MODE_REGISTERING ){
+		if( _statMode == _statModeRegistering ){
 			err.set( _stat!.regLine( _curLine ) );
 			switch( err.val() ){
-			case CLIP_LOOP_CONT:
+			case ClipGlobal.loopCont:
 				break;
-			case CLIP_PROC_END:
-				_statMode = CLIP_STAT_MODE_PROCESSING;
+			case ClipGlobal.procEnd:
+				_statMode = _statModeProcessing;
 				break;
 			default:
-				_statMode = CLIP_STAT_MODE_NOT_START;
+				_statMode = _statModeNotStart;
 				return false;
 			}
 		}
@@ -1695,27 +1696,27 @@ class ClipProc {
 	}
 	bool _process( ClipParam param, ParamInteger err ){
 		switch( _statMode ){
-		case CLIP_STAT_MODE_NOT_START:
+		case _statModeNotStart:
 			if( _processFirst( param, err ) ){
 				_processNext( param, err );
-				if( ((err.val() != CLIP_PROC_END) && (err.val() != CLIP_PROC_SUB_END)) || _quitFlag ){
+				if( ((err.val() != ClipGlobal.procEnd) && (err.val() != ClipGlobal.procSubEnd)) || _quitFlag ){
 					return false;
 				}
 			}
 			break;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeProcessing:
 			ClipLineData? line;
 			while( (line = _stat!.getLine()) != null ){
 				_curLine = line!;
 				if( _processFirst( param, err ) ){
 					_processNext( param, err );
-					if( ((err.val() != CLIP_PROC_END) && (err.val() != CLIP_PROC_SUB_END)) || _quitFlag ){
-						_statMode = CLIP_STAT_MODE_NOT_START;
+					if( ((err.val() != ClipGlobal.procEnd) && (err.val() != ClipGlobal.procSubEnd)) || _quitFlag ){
+						_statMode = _statModeNotStart;
 						return false;
 					}
 				}
 			}
-			_statMode = CLIP_STAT_MODE_NOT_START;
+			_statMode = _statModeNotStart;
 			break;
 		}
 		return true;
@@ -1724,14 +1725,14 @@ class ClipProc {
 		if( line is ClipLine ){
 			_procLine = line.dup();
 
-			err.set( CLIP_NO_ERR );
+			err.set( ClipGlobal.noErr );
 			_procLine!.beginGetLine();
 			return true;
 		}
 
 		_procLine = ClipLine( param.lineNum() );
 
-		if( err.set( _procLine!.regString( param, line, _statMode != CLIP_STAT_MODE_REGISTERING ) ).val() == CLIP_NO_ERR ){
+		if( err.set( _procLine!.regString( param, line, _statMode != _statModeRegistering ) ).val() == ClipGlobal.noErr ){
 			_procLine!.beginGetLine();
 			return true;
 		}
@@ -1748,12 +1749,12 @@ class ClipProc {
 		// 置き換え
 		ClipTokenData? cur = line!.token()!.top();
 		if( cur != null ){
-			if( (cur.code() != CLIP_CODE_COMMAND) || ((cur.token() != CLIP_COMMAND_USE) && (cur.token() != CLIP_COMMAND_UNUSE)) ){
+			if( (cur.code() != ClipGlobal.codeCommand) || ((cur.token() != ClipGlobal.commandUse) && (cur.token() != ClipGlobal.commandUnuse)) ){
 				while( cur != null ){
 					switch( cur.code() ){
-					case CLIP_CODE_LABEL:
-					case CLIP_CODE_FUNCTION:
-					case CLIP_CODE_EXTFUNC:
+					case ClipGlobal.codeLabel:
+					case ClipGlobal.codeFunction:
+					case ClipGlobal.codeExtFunc:
 						param.replace( cur );
 						break;
 					}
@@ -1769,16 +1770,16 @@ class ClipProc {
 			return false;
 		}
 
-		if( err.val() >= CLIP_ERR_START ){
+		if( err.val() >= ClipGlobal.errStart ){
 			if( _quitFlag ){
 				_errorProc( err.val(), _curLine.num(), param, _errCode, _errToken );
-			} else if( err.val() == CLIP_LOOP_STOP ){
+			} else if( err.val() == ClipGlobal.loopStop ){
 			} else {
 				_errorProc( err.val(), _curLine.num(), param, _errCode, _errToken );
 			}
 		}
 
-		if( (_statMode == CLIP_STAT_MODE_NOT_START) && (_stat != null) ){
+		if( (_statMode == _statModeNotStart) && (_stat != null) ){
 			// 制御構造管理クラスを消去する
 			_stat = null;
 		}
@@ -1789,21 +1790,21 @@ class ClipProc {
 		int ret;
 
 		if( _quitFlag ){
-			if( err.val() >= CLIP_ERR_START ){
+			if( err.val() >= ClipGlobal.errStart ){
 				_errorProc( err.val(), _curLine.num(), param, _errCode, _errToken );
 			}
-			ret = CLIP_PROC_END;
-		} else if( err.val() == CLIP_LOOP_STOP ){
-			ret = CLIP_LOOP_STOP;
+			ret = ClipGlobal.procEnd;
+		} else if( err.val() == ClipGlobal.loopStop ){
+			ret = ClipGlobal.loopStop;
 		} else {
-			if( err.val() >= CLIP_ERR_START ){
-				ret = _errorProc( err.val(), _curLine.num(), param, _errCode, _errToken ) ? CLIP_LOOP_STOP : CLIP_LOOP_CONT;
+			if( err.val() >= ClipGlobal.errStart ){
+				ret = _errorProc( err.val(), _curLine.num(), param, _errCode, _errToken ) ? ClipGlobal.loopStop : ClipGlobal.loopCont;
 			} else {
-				ret = CLIP_LOOP_CONT;
+				ret = ClipGlobal.loopCont;
 			}
 		}
 
-		if( (_statMode == CLIP_STAT_MODE_NOT_START) && (_stat != null) ){
+		if( (_statMode == _statModeNotStart) && (_stat != null) ){
 			// 制御構造管理クラスを消去する
 			_stat = null;
 		}
@@ -1835,7 +1836,7 @@ class ClipProc {
 	bool beginTestProcess( String line, ClipParam param, ParamInteger err ){
 		_procLine = ClipLine( param.lineNum() );
 
-		if( err.set( _procLine!.regString( param, line, false ) ).val() == CLIP_NO_ERR ){
+		if( err.set( _procLine!.regString( param, line, false ) ).val() == ClipGlobal.noErr ){
 			_procLine!.beginGetLine();
 			return true;
 		}
@@ -1856,10 +1857,10 @@ class ClipProc {
 	int termTestProcess( ClipParam param, ParamInteger err ){
 		int ret;
 
-		if( err.val() >= CLIP_ERR_START ){
-			ret = _errorProc( err.val(), _curLine.num(), param, _errCode, _errToken ) ? CLIP_LOOP_STOP : CLIP_LOOP_CONT;
+		if( err.val() >= ClipGlobal.errStart ){
+			ret = _errorProc( err.val(), _curLine.num(), param, _errCode, _errToken ) ? ClipGlobal.loopStop : ClipGlobal.loopCont;
 		} else {
-			ret = CLIP_LOOP_CONT;
+			ret = ClipGlobal.loopCont;
 		}
 
 		_procLine = null;
@@ -1886,39 +1887,39 @@ class ClipProc {
 		ClipToken? saveLine = _curLine.token();
 		_curLine.setToken( funcParam );
 
-		int i = MATH_CHAR_CODE_0;
+		int i = ClipMath.charCode0;
 		int j = 0;
 		childParam.initUpdateParam();
 		funcParam.beginGetToken();
 		while( funcParam.getTokenParam( parentParam ) ){
-			code  = getCode();
-			token = getToken();
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
 			if( j > 9 ){
 				_curLine.setToken( saveLine );
-				return _retError( CLIP_PROC_ERR_FUNC_PARANUM, code, token );
+				return _retError( ClipGlobal.procErrFuncParaNum, code, token );
 			}
 			childParam.updateParamCodeArray().add( code );
 			childParam.updateParamIndexArray().add( 0 );
 			switch( code ){
-			case CLIP_CODE_VARIABLE:
+			case ClipGlobal.codeVariable:
 				index = varIndexParam( parentParam, token );
 				childParam.setUpdateParamIndex( j, index );
 				childParam.variable().set( i, parentParam.val( index ), true );
 				_updateValue( parentParam, childParam.variable().val( i ) );
 				break;
-			case CLIP_CODE_AUTO_VAR:
+			case ClipGlobal.codeAutoVar:
 				index = autoVarIndex( parentParam, token );
 				childParam.setUpdateParamIndex( j, index );
 				childParam.variable().set( i, parentParam.val( index ), true );
 				_updateValue( parentParam, childParam.variable().val( i ) );
 				break;
-			case CLIP_CODE_GLOBAL_VAR:
+			case ClipGlobal.codeGlobalVar:
 				index = autoVarIndex( globalParam(), token );
 				childParam.setUpdateParamIndex( j, index );
 				childParam.variable().set( i, globalParam().val( index ), true );
 				_updateValue( globalParam(), childParam.variable().val( i ) );
 				break;
-			case CLIP_CODE_ARRAY:
+			case ClipGlobal.codeArray:
 				index = arrayIndexParam( parentParam, token );
 				childParam.setUpdateParamIndex( j, index );
 				parentParam.array().dup( childParam.array(), index, i, true );
@@ -1928,36 +1929,36 @@ class ClipProc {
 					_updateValue( parentParam, childParam.variable().val( i ) );
 				}
 				break;
-			case CLIP_CODE_AUTO_ARRAY:
+			case ClipGlobal.codeAutoArray:
 				index = autoArrayIndex( parentParam, token );
 				childParam.setUpdateParamIndex( j, index );
 				parentParam.array().dup( childParam.array(), index, i, true );
 				_updateArray( parentParam, childParam.array(), i );
 				break;
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeGlobalArray:
 				index = autoArrayIndex( globalParam(), token );
 				childParam.setUpdateParamIndex( j, index );
 				globalParam().array().dup( childParam.array(), index, i, true );
 				_updateArray( globalParam(), childParam.array(), i );
 				break;
-			case CLIP_CODE_STRING:
+			case ClipGlobal.codeString:
 				strSet( childParam.array(), i, token );
 				break;
-			case CLIP_CODE_CONSTANT:
+			case ClipGlobal.codeConstant:
 				childParam.variable().set( i, token, true );
 				_updateValue( parentParam, childParam.variable().val( i ) );
 				break;
-			case CLIP_CODE_MATRIX:
+			case ClipGlobal.codeMatrix:
 				childParam.array().setMatrix( i, token, true );
 				_updateMatrix( parentParam, childParam.array().matrix(i) );
 				break;
-			case CLIP_CODE_MULTIPREC:
+			case ClipGlobal.codeMultiPrec:
 				childParam.array().move( i );
 				childParam.array().mp(i).attach( (token as MPData).clone() );
 
 				{
-					var str = _proc_mp.fnum2str( childParam.array().mp(i), parentParam.mpPrec() );
-					var val = stringToFloat( str, 0, ParamInteger() );
+					var str = _procMp.fnum2str( childParam.array().mp(i), parentParam.mpPrec() );
+					var val = ClipMath.stringToFloat( str, 0, ParamInteger() );
 					childParam.variable().set( i, val, true );
 					_updateValue( parentParam, childParam.variable().val( i ) );
 				}
@@ -1965,7 +1966,7 @@ class ClipProc {
 				break;
 			default:
 				_curLine.setToken( saveLine );
-				return _retError( CLIP_PROC_ERR_FUNC_PARACODE, code, token );
+				return _retError( ClipGlobal.procErrFuncParaCode, code, token );
 			}
 			i++;
 			j++;
@@ -1973,9 +1974,9 @@ class ClipProc {
 
 		_curLine.setToken( saveLine );
 
-		childParam.variable().set( MATH_CHAR_CODE_EX, j, true );
+		childParam.variable().set( ClipMath.charCodeEx, j, true );
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// 外部関数の引数に指定されている変数の値を更新する
@@ -1987,9 +1988,9 @@ class ClipProc {
 		for( i = 0; i < j; i++ ){
 			if( childParam.updateParam(i) ){
 				switch( childParam.updateParamCode(i) ){
-				case CLIP_CODE_VARIABLE:
+				case ClipGlobal.codeVariable:
 					index = childParam.updateParamIndex(i);
-					if( parentParam.repVal( index, childParam.variable().val( i + MATH_CHAR_CODE_0 ), true ) ){
+					if( parentParam.repVal( index, childParam.variable().val( i + ClipMath.charCode0 ), true ) ){
 						if( index == 0 ){
 							_updateMatrix( childParam, parentParam.array().matrix(index) );
 						} else {
@@ -1997,9 +1998,9 @@ class ClipProc {
 						}
 					}
 					break;
-				case CLIP_CODE_AUTO_VAR:
+				case ClipGlobal.codeAutoVar:
 					index = childParam.updateParamIndex(i);
-					if( parentParam.repVal( index, childParam.variable().val( i + MATH_CHAR_CODE_0 ), false ) ){
+					if( parentParam.repVal( index, childParam.variable().val( i + ClipMath.charCode0 ), false ) ){
 						if( index == 0 ){
 							_updateMatrix( childParam, parentParam.array().matrix(index) );
 						} else {
@@ -2007,9 +2008,9 @@ class ClipProc {
 						}
 					}
 					break;
-				case CLIP_CODE_GLOBAL_VAR:
+				case ClipGlobal.codeGlobalVar:
 					index = childParam.updateParamIndex(i);
-					if( globalParam().repVal( index, childParam.variable().val( i + MATH_CHAR_CODE_0 ), false ) ){
+					if( globalParam().repVal( index, childParam.variable().val( i + ClipMath.charCode0 ), false ) ){
 						if( index == 0 ){
 							_updateMatrix( childParam, globalParam().array().matrix(index) );
 						} else {
@@ -2017,20 +2018,20 @@ class ClipProc {
 						}
 					}
 					break;
-				case CLIP_CODE_ARRAY:
-					childParam.array().rep( parentParam.array(), i + MATH_CHAR_CODE_0, childParam.updateParamIndex(i), true );
+				case ClipGlobal.codeArray:
+					childParam.array().rep( parentParam.array(), i + ClipMath.charCode0, childParam.updateParamIndex(i), true );
 					break;
-				case CLIP_CODE_AUTO_ARRAY:
-					childParam.array().rep( parentParam.array(), i + MATH_CHAR_CODE_0, childParam.updateParamIndex(i), false );
+				case ClipGlobal.codeAutoArray:
+					childParam.array().rep( parentParam.array(), i + ClipMath.charCode0, childParam.updateParamIndex(i), false );
 					break;
-				case CLIP_CODE_GLOBAL_ARRAY:
-					childParam.array().rep( globalParam().array(), i + MATH_CHAR_CODE_0, childParam.updateParamIndex(i), false );
+				case ClipGlobal.codeGlobalArray:
+					childParam.array().rep( globalParam().array(), i + ClipMath.charCode0, childParam.updateParamIndex(i), false );
 					break;
 				}
 			}
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	// 親プロセスの変数・配列を更新する
@@ -2060,11 +2061,11 @@ class ClipProc {
 
 	// 計算結果の値を更新する
 	void updateAns( ClipParam childParam ){
-		if( _angUpdateFlag && (complexAngType() != _parentAngType) ){
+		if( _angUpdateFlag && (ClipMath.complexAngType() != _parentAngType) ){
 			// 計算結果を親プロセスの角度の単位に変換する
-			_proc_val.ass( childParam.array().matrix(0).mat(0) );
-			_proc_val.angToAng( _angType, _parentAngType );
-			childParam.array().setMatrix( 0, _proc_val, true );
+			_procVal.ass( childParam.array().matrix(0).mat(0) );
+			_procVal.angToAng( _angType, _parentAngType );
+			childParam.array().setMatrix( 0, _procVal, true );
 		}
 	}
 
@@ -2099,8 +2100,8 @@ class ClipProc {
 
 		curFunc = procFunc().create( func2.str() )!;
 		for( int i = 0; i < fileData.length; i++ ){
-			if( curFunc.line().regString( childParam, fileData[i], false ) == CLIP_PROC_WARN_DEAD_TOKEN ){
-				errorProc( CLIP_PROC_WARN_DEAD_TOKEN, curFunc.line().nextNum() - 1, func, "" );
+			if( curFunc.line().regString( childParam, fileData[i], false ) == ClipGlobal.procWarnDeadToken ){
+				errorProc( ClipGlobal.procWarnDeadToken, curFunc.line().nextNum() - 1, func, "" );
 			}
 		}
 
@@ -2121,9 +2122,9 @@ class ClipProc {
 
 		if( (parentParam != null) && (funcParam != null) ){
 			// 外部関数の引数を取り込む
-			if( err.set( getParam( funcParam, parentParam, childParam ) ).val() != CLIP_NO_ERR ){
+			if( err.set( getParam( funcParam, parentParam, childParam ) ).val() != ClipGlobal.noErr ){
 				_errorProc( err.val(), 0, childParam, _errCode, _errToken );
-				ret.set( CLIP_LOOP_STOP );
+				ret.set( ClipGlobal.loopStop );
 				return false;
 			}
 		}
@@ -2136,8 +2137,8 @@ class ClipProc {
 		childParam.setFileDataGet( 0 );
 
 		if( childParam.fileDataArray() == null ){
-			_errorProc( CLIP_PROC_ERR_FUNC_OPEN, 0, childParam, CLIP_CODE_EXTFUNC, func );
-			ret.set( CLIP_LOOP_STOP );
+			_errorProc( ClipGlobal.procErrFuncOpen, 0, childParam, ClipGlobal.codeExtFunc, func );
+			ret.set( ClipGlobal.loopStop );
 			return false;
 		}
 
@@ -2164,9 +2165,9 @@ class ClipProc {
 
 		if( (parentParam != null) && (funcParam != null) ){
 			// 外部関数の引数を取り込む
-			if( err.set( getParam( funcParam, parentParam, childParam ) ).val() != CLIP_NO_ERR ){
+			if( err.set( getParam( funcParam, parentParam, childParam ) ).val() != ClipGlobal.noErr ){
 				_errorProc( err.val(), 0, childParam, _errCode, _errToken );
-				ret.set( CLIP_LOOP_STOP );
+				ret.set( ClipGlobal.loopStop );
 				return false;
 			}
 		}
@@ -2245,22 +2246,22 @@ class ClipProc {
 	}
 	MPData mpRound( ClipParam param, MPData val ){
 		MPData tmp = MPData();
-		if( (param.mode() == CLIP_MODE_I_MULTIPREC) && (_proc_mp.getPrec( val ) > 0) ){
-			_proc_mp.ftrunc( tmp, val );
+		if( (param.mode() == ClipGlobal.modeIMultiPrec) && (_procMp.getPrec( val ) > 0) ){
+			_procMp.ftrunc( tmp, val );
 		} else {
-			_proc_mp.fset( tmp, val );
-			_proc_mp.fround( tmp, param.mpPrec(), param.mpRound() );
+			_procMp.fset( tmp, val );
+			_procMp.fround( tmp, param.mpPrec(), param.mpRound() );
 		}
 		return tmp;
 	}
 	String mpNum2Str( ClipParam param, MPData val ){
 		MPData tmp = mpRound( param, val );
-		return _proc_mp.fnum2str( tmp, param.mpPrec() );
+		return _procMp.fnum2str( tmp, param.mpPrec() );
 	}
 	int mpfCmp( ClipParam param, MPData val1, MPData val2 ){
 		MPData tmp1 = mpRound( param, val1 );
 		MPData tmp2 = mpRound( param, val2 );
-		return _proc_mp.fcmp( tmp1, tmp2 );
+		return _procMp.fcmp( tmp1, tmp2 );
 	}
 	void printAns( ClipParam childParam ){
 		if( childParam.mpFlag() ){
@@ -2270,7 +2271,7 @@ class ClipProc {
 		} else {
 			ParamString real = ParamString();
 			ParamString imag = ParamString();
-			_proc_token.valueToString( childParam, childParam.val( 0 ), real, imag );
+			_procToken.valueToString( childParam, childParam.val( 0 ), real, imag );
 			printAnsComplex( real.str(), imag.str() );
 		}
 	}
@@ -2327,7 +2328,7 @@ class ClipProc {
 	int _firstChar( String line ){
 		int i = 0;
 		if( i < line.length ){
-			while( isCharSpace( line, i ) || (charAt( line, i ) == '\t') ){
+			while( ClipGlobal.isCharSpace( line, i ) || (ClipMath.charAt( line, i ) == '\t') ){
 				i++;
 				if( i >= line.length ){
 					break;
@@ -2341,20 +2342,20 @@ class ClipProc {
 
 		int cur = 0;
 		while( true ){
-			if( (cur >= format.length) || isCharEnter( format, cur ) ){
+			if( (cur >= format.length) || ClipGlobal.isCharEnter( format, cur ) ){
 				break;
-			} else if( isCharEscape( format, cur ) ){
+			} else if( ClipGlobal.isCharEscape( format, cur ) ){
 				cur++;
-				if( (cur >= format.length) || isCharEnter( format, cur ) ){
+				if( (cur >= format.length) || ClipGlobal.isCharEnter( format, cur ) ){
 					break;
 				}
-				usage.add( charAt( format, cur ) );
-			} else if( charAt( format, cur ) == '-' ){
+				usage.add( ClipMath.charAt( format, cur ) );
+			} else if( ClipMath.charAt( format, cur ) == '-' ){
 				for( i = 0; i < funcName.length; i++ ){
-					usage.add( charAt( funcName, i ) );
+					usage.add( ClipMath.charAt( funcName, i ) );
 				}
 			} else {
-				usage.add( charAt( format, cur ) );
+				usage.add( ClipMath.charAt( format, cur ) );
 			}
 			cur++;
 		}
@@ -2392,7 +2393,7 @@ class ClipProc {
 			curFunc.line().beginGetLine();
 			while( (line = curFunc.line().getLine()) != null ){
 				if( (line!.token()!.count() == 0) && (line.comment() != null) ){
-					if( charAt( line.comment()!, 0 ) != '!' ){
+					if( ClipMath.charAt( line.comment()!, 0 ) != '!' ){
 						_addUsage( line.comment()!, func );
 					}
 				} else {
@@ -2405,16 +2406,16 @@ class ClipProc {
 			ParamString func2 = ParamString( func );
 			List<String>? fileData = getExtFuncData( func2, null );
 			if( fileData == null ){
-				_errorProc( CLIP_PROC_ERR_FUNC_OPEN, 0, childParam, CLIP_CODE_EXTFUNC, func );
+				_errorProc( ClipGlobal.procErrFuncOpen, 0, childParam, ClipGlobal.codeExtFunc, func );
 				return;
 			}
 
 			for( int i = 0; i < fileData.length; i++ ){
 				String string = fileData[i];
 				cur = _firstChar( string );
-				if( (cur < string.length) && (charAt( string, cur ) == '#') ){
+				if( (cur < string.length) && (ClipMath.charAt( string, cur ) == '#') ){
 					cur++;
-					if( (cur < string.length) && (charAt( string, cur ) == '!') ){
+					if( (cur < string.length) && (ClipMath.charAt( string, cur ) == '!') ){
 					} else if( cur >= string.length ){
 						_addUsage( "", func );
 					} else {
@@ -2442,14 +2443,14 @@ class ClipProc {
 	void getAns( ClipParam childParam, ClipProcVal value, ClipParam parentParam ){
 		if( childParam.ansFlag() ){
 			if( childParam.mpFlag() && parentParam.mpFlag() ){
-				if( (parentParam.mode() == CLIP_MODE_I_MULTIPREC) && (_proc_mp.getPrec( childParam.array().mp(0) ) > 0) ){
-					_proc_mp.ftrunc( value.mp(), childParam.array().mp(0) );
+				if( (parentParam.mode() == ClipGlobal.modeIMultiPrec) && (_procMp.getPrec( childParam.array().mp(0) ) > 0) ){
+					_procMp.ftrunc( value.mp(), childParam.array().mp(0) );
 				} else {
-					_proc_mp.fset( value.mp(), childParam.array().mp(0) );
+					_procMp.fset( value.mp(), childParam.array().mp(0) );
 				}
 			} else {
 				if( childParam.mpFlag() ){
-					_proc_mp.fset( value.mp(), childParam.array().mp(0) );
+					_procMp.fset( value.mp(), childParam.array().mp(0) );
 				} else {
 					value.matAss( childParam.array().matrix(0) );
 				}
@@ -2469,7 +2470,7 @@ class ClipProc {
 			);
 	}
 	bool _errorProc( int err, int num, ClipParam param, int code, dynamic token ){
-		if( (err & CLIP_PROC_WARN) != 0 ){
+		if( (err & ClipGlobal.procWarn) != 0 ){
 			if( !_printWarn ){
 				// 警告レベルで、警告メッセージOFFの場合は処理を行わない
 				return false;
@@ -2478,16 +2479,16 @@ class ClipProc {
 				err,
 				param.fileFlag() ? ((param.topNum() > 0) ? num - param.topNum() + 1 : num) : 0,
 				(param.funcName() == null) ? "" : param.funcName()!,
-				_proc_token.tokenString( param, code, token )
+				_procToken.tokenString( param, code, token )
 				);
-		} else if( (err & CLIP_PROC_ERR) != 0 ){
+		} else if( (err & ClipGlobal.procErr) != 0 ){
 			errorProc(
 				err,
 				param.fileFlag() ? ((param.topNum() > 0) ? num - param.topNum() + 1 : num) : 0,
 				(param.funcName() == null) ? "" : param.funcName()!,
-				_proc_token.tokenString( param, code, token )
+				_procToken.tokenString( param, code, token )
 				);
-		} else if( err >= CLIP_ERR_START ){
+		} else if( err >= ClipGlobal.errStart ){
 			errorProc(
 				err,
 				param.fileFlag() ? ((param.topNum() > 0) ? num - param.topNum() + 1 : num) : 0,
@@ -2495,19 +2496,19 @@ class ClipProc {
 				""
 				);
 		}
-		return (((err & CLIP_ERROR) != 0) && param.fileFlag());
+		return (((err & ClipGlobal.error) != 0) && param.fileFlag());
 	}
 	void doCommandPlotSub( ClipProc childProc, ClipParam childParam, ClipGraph graph, double start, double end, double step ){
 		childProc.setAngType( _angType, false );
 		switch( graph.mode() ){
-		case CLIP_GRAPH_MODE_RECT:
-			childParam.variable().label().setLabel( MATH_CHAR( 'x' ), "x", true );
-			graph.setIndex( MATH_CHAR( 'x' ) );
+		case ClipGlobal.graphModeRect:
+			childParam.variable().label().setLabel( ClipMath.char( 'x' ), "x", true );
+			graph.setIndex( ClipMath.char( 'x' ) );
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
-		case CLIP_GRAPH_MODE_POLAR:
-			childParam.variable().label().setLabel( MATH_CHAR( 't' ), "t", true );
-			graph.setIndex( MATH_CHAR( 't' ) );
+		case ClipGlobal.graphModeParam:
+		case ClipGlobal.graphModePolar:
+			childParam.variable().label().setLabel( ClipMath.char( 't' ), "t", true );
+			graph.setIndex( ClipMath.char( 't' ) );
 			break;
 		}
 		graph.setStart( start );
@@ -2520,14 +2521,14 @@ class ClipProc {
 	void doCommandRePlotSub( ClipProc childProc, ClipParam childParam, ClipGraph graph, double start, double end, double step ){
 		childProc.setAngType( _angType, false );
 		switch( graph.mode() ){
-		case CLIP_GRAPH_MODE_RECT:
-			childParam.variable().label().setLabel( MATH_CHAR( 'x' ), "x", true );
-			graph.setIndex( MATH_CHAR( 'x' ) );
+		case ClipGlobal.graphModeRect:
+			childParam.variable().label().setLabel( ClipMath.char( 'x' ), "x", true );
+			graph.setIndex( ClipMath.char( 'x' ) );
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
-		case CLIP_GRAPH_MODE_POLAR:
-			childParam.variable().label().setLabel( MATH_CHAR( 't' ), "t", true );
-			graph.setIndex( MATH_CHAR( 't' ) );
+		case ClipGlobal.graphModeParam:
+		case ClipGlobal.graphModePolar:
+			childParam.variable().label().setLabel( ClipMath.char( 't' ), "t", true );
+			graph.setIndex( ClipMath.char( 't' ) );
 			break;
 		}
 		graph.setStart( start );
@@ -2542,252 +2543,252 @@ class ClipProc {
 		if( _curLine.token()!.skipComma() ){
 			return _const( param, code, token, value );
 		}
-		return _retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+		return _retError( ClipGlobal.procErrSeOperand, code, token );
 	}
 	int _skipSeOperand( int code, dynamic token ){
 		if( _curLine.token()!.skipComma() ){
 			return _constSkip( code, token );
 		}
-		return _retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+		return _retError( ClipGlobal.procErrSeOperand, code, token );
 	}
 
 	static int _seNull( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
-		return CLIP_PROC_ERR_SE_NULL;
+		return ClipGlobal.procErrSeNull;
 	}
 	static int _seIncrement( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		if( param.mpFlag() ){
-			_proc_mp.fadd( value.mp(), value.mp(), _proc_mp.F( "1.0" ) );
+			_procMp.fadd( value.mp(), value.mp(), _procMp.F( "1.0" ) );
 		} else {
 			value.mat().addAndAss( 1.0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seDecrement( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		if( param.mpFlag() ){
-			_proc_mp.fsub( value.mp(), value.mp(), _proc_mp.F( "1.0" ) );
+			_procMp.fsub( value.mp(), value.mp(), _procMp.F( "1.0" ) );
 		} else {
 			value.mat().subAndAss( 1.0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seNegative( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fneg( value.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fneg( value.mp() );
 			} else {
-				_proc_mp.neg( value.mp() );
+				_procMp.neg( value.mp() );
 			}
 		} else {
 			value.matAss( value.mat().minus() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seComplement( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( ~MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt() );
-		return CLIP_NO_ERR;
+		value.matAss( ~ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt() );
+		return ClipGlobal.noErr;
 	}
 	static int _seNot( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( (MATH_INT( tmpValue.mat().mat(0).toFloat() ) == 0) ? 1 : 0 );
-		return CLIP_NO_ERR;
+		value.matAss( (ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) == 0) ? 1 : 0 );
+		return ClipGlobal.noErr;
 	}
 	static int _seMinus( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fneg( value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fneg( value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.neg( value.mp(), tmpValue.mp() );
+				_procMp.neg( value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.matAss( tmpValue.mat().minus() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSet( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetC( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.mat().mat(0).setImag( tmpValue.mat().mat(0).real() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetF( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.mat().divAndAss( tmpValue.mat().mat(0).toFloat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetM( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		tmpValue[0].mat().divAndAss( tmpValue[1].mat().mat(0).toFloat() );
 		value.mat().addAndAss( tmpValue[0].mat().mat(0).toFloat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seMul( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fmul( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fmul( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
 			} else {
-				_proc_mp.mul( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.mul( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().mulAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seDiv( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				if( _this._printWarn && (_proc_mp.fcmp( tmpValue.mp(), _proc_mp.F( "0.0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				if( _this._printWarn && (_procMp.fcmp( tmpValue.mp(), _procMp.F( "0.0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.fdiv2( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
+				_procMp.fdiv2( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
 			} else {
-				if( _this._printWarn && (_proc_mp.cmp( tmpValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( _this._printWarn && (_procMp.cmp( tmpValue.mp(), _procMp.I( "0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.div( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.div( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			if( _this._printWarn && tmpValue.mat().equal( 0.0 ) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
 			value.mat().divAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seMod( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( _proc_mp.getPrec( value.mp() ) > 0 ){
-				_proc_mp.ftrunc( value.mp(), value.mp() );
+			if( _procMp.getPrec( value.mp() ) > 0 ){
+				_procMp.ftrunc( value.mp(), value.mp() );
 			}
-			if( _proc_mp.getPrec( tmpValue.mp() ) > 0 ){
-				_proc_mp.ftrunc( tmpValue.mp(), tmpValue.mp() );
+			if( _procMp.getPrec( tmpValue.mp() ) > 0 ){
+				_procMp.ftrunc( tmpValue.mp(), tmpValue.mp() );
 			}
-			if( _this._printWarn && (_proc_mp.cmp( tmpValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+			if( _this._printWarn && (_procMp.cmp( tmpValue.mp(), _procMp.I( "0" ) ) == 0) ){
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
-			_proc_mp.div( MPData(), value.mp(), tmpValue.mp(), value.mp() );
+			_procMp.div( MPData(), value.mp(), tmpValue.mp(), value.mp() );
 		} else {
 			if( _this._printWarn && tmpValue.mat().equal( 0.0 ) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
 			value.mat().modAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seAdd( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fadd( value.mp(), value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fadd( value.mp(), value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.add( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.add( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().addAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seAddS( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -2802,40 +2803,40 @@ class ClipProc {
 			value.matAss( a );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSub( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fsub( value.mp(), value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fsub( value.mp(), value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.sub( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.sub( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().subAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSubS( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -2850,203 +2851,203 @@ class ClipProc {
 			value.matAss( a );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _sePow( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			int y = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt();
+			int y = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt();
 			MPData x = MPData();
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fset( x, value.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fset( x, value.mp() );
 				for( int i = 1; i < y; i++ ){
-					_proc_mp.fmul( value.mp(), value.mp(), x, param.mpPrec() + 1 );
+					_procMp.fmul( value.mp(), value.mp(), x, param.mpPrec() + 1 );
 				}
 			} else {
-				_proc_mp.set( x, value.mp() );
+				_procMp.set( x, value.mp() );
 				for( int i = 1; i < y; i++ ){
-					_proc_mp.mul( value.mp(), value.mp(), x );
+					_procMp.mul( value.mp(), value.mp(), x );
 				}
 			}
 		} else {
 			value.matAss( value.mat().mat(0).pow( tmpValue.mat().mat(0) ) );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seShiftL( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTL( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftL( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seShiftR( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftR( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seAND( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_AND( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.and( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seOR( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_OR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.or( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seXOR( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_XOR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.xor( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seLess( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() < tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLessOrEq( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() <= tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seGreat( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() > tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seGreatOrEq( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() >= tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seEqual( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( value.mat().equal( tmpValue.mat() ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seNotEqual( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( value.mat().notEqual( tmpValue.mat() ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLogAND( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
@@ -3054,25 +3055,25 @@ class ClipProc {
 		if( value.mat().notEqual( 0.0 ) ){
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 		} else {
-			if( (ret = _this._skipSeOperand( code, token )) != CLIP_NO_ERR ){
+			if( (ret = _this._skipSeOperand( code, token )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLogOR( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 
 		if( value.mat().notEqual( 0.0 ) ){
-			if( (ret = _this._skipSeOperand( code, token )) != CLIP_NO_ERR ){
+			if( (ret = _this._skipSeOperand( code, token )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
@@ -3080,140 +3081,140 @@ class ClipProc {
 		} else {
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seMulAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fmul( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fmul( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
 			} else {
-				_proc_mp.mul( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.mul( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().mulAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seDivAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				if( _this._printWarn && (_proc_mp.fcmp( tmpValue.mp(), _proc_mp.F( "0.0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				if( _this._printWarn && (_procMp.fcmp( tmpValue.mp(), _procMp.F( "0.0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.fdiv2( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
+				_procMp.fdiv2( value.mp(), value.mp(), tmpValue.mp(), param.mpPrec() + 1 );
 			} else {
-				if( _this._printWarn && (_proc_mp.cmp( tmpValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( _this._printWarn && (_procMp.cmp( tmpValue.mp(), _procMp.I( "0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.div( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.div( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			if( _this._printWarn && tmpValue.mat().equal( 0.0 ) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
 			value.mat().divAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seModAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( _proc_mp.getPrec( value.mp() ) > 0 ){
-				_proc_mp.ftrunc( value.mp(), value.mp() );
+			if( _procMp.getPrec( value.mp() ) > 0 ){
+				_procMp.ftrunc( value.mp(), value.mp() );
 			}
-			if( _proc_mp.getPrec( tmpValue.mp() ) > 0 ){
-				_proc_mp.ftrunc( tmpValue.mp(), tmpValue.mp() );
+			if( _procMp.getPrec( tmpValue.mp() ) > 0 ){
+				_procMp.ftrunc( tmpValue.mp(), tmpValue.mp() );
 			}
-			if( _this._printWarn && (_proc_mp.cmp( tmpValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+			if( _this._printWarn && (_procMp.cmp( tmpValue.mp(), _procMp.I( "0" ) ) == 0) ){
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
-			_proc_mp.div( MPData(), value.mp(), tmpValue.mp(), value.mp() );
+			_procMp.div( MPData(), value.mp(), tmpValue.mp(), value.mp() );
 		} else {
 			if( _this._printWarn && tmpValue.mat().equal( 0.0 ) ){
-				_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
 			value.mat().modAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seAddAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fadd( value.mp(), value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fadd( value.mp(), value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.add( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.add( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().addAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seAddSAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -3228,48 +3229,48 @@ class ClipProc {
 			value.matAss( a );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSubAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fsub( value.mp(), value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fsub( value.mp(), value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.sub( value.mp(), value.mp(), tmpValue.mp() );
+				_procMp.sub( value.mp(), value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.mat().subAndAss( tmpValue.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSubSAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int  ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[2] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -3284,285 +3285,285 @@ class ClipProc {
 			value.matAss( a );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _sePowAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			int y = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt();
+			int y = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt();
 			MPData x = MPData();
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fset( x, value.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fset( x, value.mp() );
 				for( int i = 1; i < y; i++ ){
-					_proc_mp.fmul( value.mp(), value.mp(), x, param.mpPrec() + 1 );
+					_procMp.fmul( value.mp(), value.mp(), x, param.mpPrec() + 1 );
 				}
 			} else {
-				_proc_mp.set( x, value.mp() );
+				_procMp.set( x, value.mp() );
 				for( int i = 1; i < y; i++ ){
-					_proc_mp.mul( value.mp(), value.mp(), x );
+					_procMp.mul( value.mp(), value.mp(), x );
 				}
 			}
 		} else {
 			value.matAss( value.mat().mat(0).pow( tmpValue.mat().mat(0) ) );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seShiftLAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTL( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftL( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seShiftRAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftR( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seANDAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_AND( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.and( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seORAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_OR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.or( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seXORAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_XOR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( tmpValue.mat().mat(0).toFloat() ) ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.xor( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ) ) );
+		return ClipGlobal.noErr;
 	}
 	static int _seLessAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) < 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() < tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLessOrEqAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) <= 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() <= tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seGreatAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) > 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() > tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seGreatOrEqAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) >= 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( (value.mat().mat(0).toFloat() >= tmpValue.mat().mat(0).toFloat()) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seEqualAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) == 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( value.mat().equal( tmpValue.mat() ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seNotEqualAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
 				value.matAss( (_this.mpfCmp( param, value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
 			} else {
-				value.matAss( (_proc_mp.cmp( value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
+				value.matAss( (_procMp.cmp( value.mp(), tmpValue.mp() ) != 0) ? 1 : 0 );
 			}
 		} else {
 			value.matAss( value.mat().notEqual( tmpValue.mat() ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLogANDAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( value.mat().notEqual( 0.0 ) ){
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 		} else {
-			if( (ret = _this._skipSeOperand( code, token )) != CLIP_NO_ERR ){
+			if( (ret = _this._skipSeOperand( code, token )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seLogORAndAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( value.mat().notEqual( 0.0 ) ){
-			if( (ret = _this._skipSeOperand( code, token )) != CLIP_NO_ERR ){
+			if( (ret = _this._skipSeOperand( code, token )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
@@ -3570,24 +3571,24 @@ class ClipProc {
 		} else {
 			var tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seConditional( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue )) == ClipGlobal.noErr ){
 			if( tmpValue.mat().notEqual( 0.0 ) ){
-				if( (ret = _this._getSeOperand( param, code, token, value )) == CLIP_NO_ERR ){
+				if( (ret = _this._getSeOperand( param, code, token, value )) == ClipGlobal.noErr ){
 					ret = _this._skipSeOperand( code, token );
 				}
 			} else {
-				if( (ret = _this._skipSeOperand( code, token )) == CLIP_NO_ERR ){
+				if( (ret = _this._skipSeOperand( code, token )) == ClipGlobal.noErr ){
 					ret = _this._getSeOperand( param, code, token, value );
 				}
 			}
@@ -3596,29 +3597,29 @@ class ClipProc {
 	}
 	static int _seSetFALSE( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		value.matAss( 0 );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetTRUE( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		value.matAss( 1 );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetZero( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		if( param.mpFlag() ){
-			_proc_mp.fset( value.mp(), _proc_mp.F( "0.0" ) );
+			_procMp.fset( value.mp(), _procMp.F( "0.0" ) );
 		} else {
 			value.matAss( 0.0 );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSaturate( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -3631,21 +3632,21 @@ class ClipProc {
 			value.matAss( c );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _seSetS( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getSeOperand( param, code, token, value )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, value )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+		if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -3658,42 +3659,42 @@ class ClipProc {
 			value.matAss( c );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	void mpPow( ClipParam param, MPData ret, MPData x, int y ){
-		x = _proc_mp.clone( x );
-		if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+		x = _procMp.clone( x );
+		if( param.mode() == ClipGlobal.modeFMultiPrec ){
 /*
-			_proc_mp.fset( ret, x );
+			_procMp.fset( ret, x );
 			for( int i = 1; i < y; i++ ){
-				_proc_mp.fmul( ret, ret, x, param.mpPrec() + 1 );
+				_procMp.fmul( ret, ret, x, param.mpPrec() + 1 );
 			}
 */
-			_proc_mp.fset( ret, _proc_mp.F( "1.0" ) );
+			_procMp.fset( ret, _procMp.F( "1.0" ) );
 			while( y > 0 ){
 				if( (y % 2) == 0 ){
-					_proc_mp.fmul( x, x, x, param.mpPrec() + 1 );
+					_procMp.fmul( x, x, x, param.mpPrec() + 1 );
 					y = y ~/ 2;
 				} else {
-					_proc_mp.fmul( ret, ret, x, param.mpPrec() + 1 );
+					_procMp.fmul( ret, ret, x, param.mpPrec() + 1 );
 					y--;
 				}
 			}
 		} else {
 /*
-			_proc_mp.set( ret, x );
+			_procMp.set( ret, x );
 			for( int i = 1; i < y; i++ ){
-				_proc_mp.mul( ret, ret, x );
+				_procMp.mul( ret, ret, x );
 			}
 */
-			_proc_mp.set( ret, _proc_mp.I( "1" ) );
+			_procMp.set( ret, _procMp.I( "1" ) );
 			while( y > 0 ){
 				if( (y % 2) == 0 ){
-					_proc_mp.mul( x, x, x );
+					_procMp.mul( x, x, x );
 					y = y ~/ 2;
 				} else {
-					_proc_mp.mul( ret, ret, x );
+					_procMp.mul( ret, ret, x );
 					y--;
 				}
 			}
@@ -3704,16 +3705,16 @@ class ClipProc {
 
 		ret = MPData();
 		if( n < r ){
-			_proc_mp.set( ret, _proc_mp.I( "0" ) );
+			_procMp.set( ret, _procMp.I( "0" ) );
 			return ret;
 		}
 		if( n - r < r ) r = n - r;
 		if( r == 0 ){
-			_proc_mp.set( ret, _proc_mp.I( "1" ) );
+			_procMp.set( ret, _procMp.I( "1" ) );
 			return ret;
 		}
 		if( r == 1 ){
-			_proc_mp.str2num( ret, "$n" );
+			_procMp.str2num( ret, "$n" );
 			return ret;
 		}
 
@@ -3732,7 +3733,7 @@ class ClipProc {
 		for( k = 2; k <= r; k++ ){
 			pivot = denom[k - 1];
 			if( pivot > 1 ){
-				offset = MATH_IMOD( n - r, k );
+				offset = ClipMath.imod( n - r, k );
 				for( i = k - 1; i < r; i += k ){
 					numer[i - offset] = numer[i - offset] ~/ pivot;
 					denom[i] = denom[i] ~/ pivot;
@@ -3741,12 +3742,12 @@ class ClipProc {
 		}
 
 		ret = MPData();
-		_proc_mp.set( ret, _proc_mp.I( "1" ) );
+		_procMp.set( ret, _procMp.I( "1" ) );
 		MPData ii = MPData();
 		for( i = 0; i < r; i++ ){
 			if( numer[i] > 1 ){
-				_proc_mp.str2num( ii, "${numer[i]}" );
-				_proc_mp.mul( ret, ret, ii );
+				_procMp.str2num( ii, "${numer[i]}" );
+				_procMp.mul( ret, ret, ii );
 			}
 		}
 		return ret;
@@ -3754,16 +3755,16 @@ class ClipProc {
 	MPData _mpFactorial( int n ){
 		if( n == 0 ){
 			MPData ret = MPData();
-			_proc_mp.set( ret, _proc_mp.I( "1" ) );
+			_procMp.set( ret, _procMp.I( "1" ) );
 			return ret;
 		}
 		MPData value = _mpFactorial( n ~/ 2 );
-		_proc_mp.mul( value, value, value );
-		_proc_mp.mul( value, value, _mpCombination( n, n ~/ 2 ) );
+		_procMp.mul( value, value, value );
+		_procMp.mul( value, value, _mpCombination( n, n ~/ 2 ) );
 		if( (n & 1) != 0 ){
 			MPData tmp = MPData();
-			_proc_mp.str2num( tmp, "${(n + 1) ~/ 2}" );
-			_proc_mp.mul( value, value, tmp );
+			_procMp.str2num( tmp, "${(n + 1) ~/ 2}" );
+			_procMp.mul( value, value, tmp );
 		}
 		return value;
 	}
@@ -3773,15 +3774,15 @@ class ClipProc {
 			m = true;
 			x = 0 - x;
 		}
-//		_proc_mp.str2num( ret, "1" );
+//		_procMp.str2num( ret, "1" );
 //		MPData ii = MPData();
 //		for( int i = 2; i <= x; i++ ){
-//			_proc_mp.str2num( ii, "$i" );
-//			_proc_mp.mul( ret, ret, ii );
+//			_procMp.str2num( ii, "$i" );
+//			_procMp.mul( ret, ret, ii );
 //		}
-		_proc_mp.set( ret, _mpFactorial( x ) );
+		_procMp.set( ret, _mpFactorial( x ) );
 		if( m ){
-			_proc_mp.neg( ret );
+			_procMp.neg( ret );
 		}
 	}
 
@@ -3790,13 +3791,13 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_curLine.token()!.skipComma()) ){
-				return _retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		ret = _const( param, code, token, value );
-		if( ret == CLIP_PROC_ERR_RVALUE_NULL ){
-			return _retError( CLIP_PROC_ERR_FUNCTION, code, token );
+		if( ret == ClipGlobal.procErrRValueNull ){
+			return _retError( ClipGlobal.procErrFunction, code, token );
 		}
 		return ret;
 	}
@@ -3805,33 +3806,33 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_curLine.token()!.skipComma()) ){
-				return _retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		if( !(_curLine.token()!.getTokenParam( param )) ){
-			return _retError( CLIP_PROC_ERR_FUNCTION, code, token );
+			return _retError( ClipGlobal.procErrFunction, code, token );
 		}
-		newToken = getToken();
-		switch( getCode() ){
-		case CLIP_CODE_VARIABLE:
+		newToken = ClipToken.curToken();
+		switch( ClipToken.curCode() ){
+		case ClipGlobal.codeVariable:
 			index.set( param, varIndexParam( param, newToken ) );
 			moveFlag.set( true );
 			break;
-		case CLIP_CODE_GLOBAL_VAR:
+		case ClipGlobal.codeGlobalVar:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_VAR;
-		case_CLIP_CODE_AUTO_VAR:
-		case CLIP_CODE_AUTO_VAR:
+			continue caseClipGlobalCodeAutoVar;
+		caseClipGlobalCodeAutoVar:
+		case ClipGlobal.codeAutoVar:
 			index.set( param, autoVarIndex( param, newToken ) );
 			moveFlag.set( false );
 			break;
 		default:
-			return _retError( CLIP_PROC_ERR_FUNCTION, code, token );
+			return _retError( ClipGlobal.procErrFunction, code, token );
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	_ClipIndex? _getFuncParamArray( ClipParam param, int code, dynamic token, ParamBoolean moveFlag, bool seFlag ){
 		ClipTokenData? lock = _curLine.token()!.lock();
@@ -3843,20 +3844,20 @@ class ClipProc {
 		}
 		_ClipIndex index = _ClipIndex();
 		if( _curLine.token()!.getTokenParam( param ) ){
-			int newCode  = getCode();
-			dynamic newToken = getToken();
+			int newCode  = ClipToken.curCode();
+			dynamic newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeGlobalArray:
 				param = globalParam();
 				// そのまま下に流す
-				continue case_CLIP_CODE_ARRAY;
-			case_CLIP_CODE_ARRAY:
-			case CLIP_CODE_ARRAY:
-			case CLIP_CODE_AUTO_ARRAY:
+				continue caseClipGlobalCodeArray;
+			caseClipGlobalCodeArray:
+			case ClipGlobal.codeArray:
+			case ClipGlobal.codeAutoArray:
 				index.set( param, arrayIndexIndirectMove( param, newCode, newToken, moveFlag ) );
 				break;
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
 				index.set( param, param.array().label().checkLabel( newToken ) );
 				moveFlag.set( false );
 				break;
@@ -3879,73 +3880,73 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode = getCode();
-			value.matAss( ((newCode == CLIP_CODE_LABEL) || (newCode == CLIP_CODE_GLOBAL_VAR) || (newCode == CLIP_CODE_GLOBAL_ARRAY)) ? 0.0 : 1.0 );
-			return CLIP_NO_ERR;
+			newCode = ClipToken.curCode();
+			value.matAss( ((newCode == ClipGlobal.codeLabel) || (newCode == ClipGlobal.codeGlobalVar) || (newCode == ClipGlobal.codeGlobalArray)) ? 0.0 : 1.0 );
+			return ClipGlobal.noErr;
 		}
 
-		return _this._retError( CLIP_PROC_ERR_FUNCTION, code, token );
+		return _this._retError( ClipGlobal.procErrFunction, code, token );
 	}
 	static int _funcIndexOf( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int newToken;
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newToken = getToken();
-			switch( getCode() ){
-			case CLIP_CODE_AUTO_VAR:
+			newToken = ClipToken.curToken();
+			switch( ClipToken.curCode() ){
+			case ClipGlobal.codeAutoVar:
 				value.matAss( _this.autoVarIndex( param, newToken ) );
-				return CLIP_NO_ERR;
-			case CLIP_CODE_AUTO_ARRAY:
+				return ClipGlobal.noErr;
+			case ClipGlobal.codeAutoArray:
 				value.matAss( _this.autoArrayIndex( param, newToken ) );
-				return CLIP_NO_ERR;
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+				return ClipGlobal.noErr;
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				break;
 			}
 		}
 
-		return _this._retError( CLIP_PROC_ERR_FUNCTION, code, token );
+		return _this._retError( ClipGlobal.procErrFunction, code, token );
 	}
 	static int _funcIsInf( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_ISINF( tmpValue.mat().mat(0).toFloat() ) ? 1.0 : 0.0 );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.isInf( tmpValue.mat().mat(0).toFloat() ) ? 1.0 : 0.0 );
+		return ClipGlobal.noErr;
 	}
 	static int _funcIsNaN( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_ISNAN( tmpValue.mat().mat(0).toFloat() ) ? 1.0 : 0.0 );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.isNan( tmpValue.mat().mat(0).toFloat() ) ? 1.0 : 0.0 );
+		return ClipGlobal.noErr;
 	}
 	static int _funcRand( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
-		value.matAss( MATH_RAND() );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.rand() );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTime( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( DateTime.now().millisecondsSinceEpoch ~/ 1000 );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcMkTime( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int i;
@@ -3955,43 +3956,42 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		// 書式制御文字列の取得
 		_this._getString( param, format );
 		if( format.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		Tm tm = Tm();
-		int t = tm.time();
-		tm.localtime( t );
+		tm.localtime( Tm.time() );
 
 		errFlag = false;
 		for( i = 0; i < format.str().length; i++ ){
-			if( charAt( format.str(), i ) == '%' ){
+			if( ClipMath.charAt( format.str(), i ) == '%' ){
 				i++;
 				if( i >= format.str().length ){
 					errFlag = true;
 					break;
 				}
 
-				if( _this._getFuncParam( param, code, token, tmpValue, seFlag ) != CLIP_NO_ERR ){
+				if( _this._getFuncParam( param, code, token, tmpValue, seFlag ) != ClipGlobal.noErr ){
 					errFlag = true;
 					break;
 				}
 
-				switch( charAt( format.str(), i ) ){
-				case 's': tm.sec  = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'm': tm.min  = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'h': tm.hour = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'D': tm.mday = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'M': tm.mon  = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'Y': tm.year = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'w': tm.wday = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
-				case 'y': tm.yday = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				switch( ClipMath.charAt( format.str(), i ) ){
+				case 's': tm.sec  = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'm': tm.min  = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'h': tm.hour = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'D': tm.mday = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'M': tm.mon  = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'Y': tm.year = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'w': tm.wday = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
+				case 'y': tm.yday = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt(); break;
 				default:
 					errFlag = true;
 					break;
@@ -4007,399 +4007,389 @@ class ClipProc {
 		format = null;
 
 		if( errFlag ){
-			return _this._retError( CLIP_PROC_ERR_FUNCTION, code, token );
+			return _this._retError( ClipGlobal.procErrFunction, code, token );
 		}
 
 		value.matAss( tm.mktime() );
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmSec( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).sec );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).sec );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmMin( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).min );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).min );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmHour( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).hour );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).hour );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmMDay( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).mday );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).mday );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmMon( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).mon );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).mon );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmYear( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).year );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).year );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmWDay( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).wday );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).wday );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmYDay( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).yday );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).yday );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmXMon( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( tm.localtime( t ).mon + 1 );
-		return CLIP_NO_ERR;
+		value.matAss( tm.localtime( Tm.time() ).mon + 1 );
+		return ClipGlobal.noErr;
 	}
 	static int _funcTmXYear( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		Tm tm = Tm();
-		int t = tm.time();
-		value.matAss( 1900 + tm.localtime( t ).year );
-		return CLIP_NO_ERR;
+		value.matAss( 1900 + tm.localtime( Tm.time() ).year );
+		return ClipGlobal.noErr;
 	}
 	static int _funcA2D( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 
 		}
 
-		value.mat().mat(0).angToAng( complexAngType(), MATH_ANG_TYPE_DEG );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.complexAngType(), ClipMath.angTypeDeg );
+		return ClipGlobal.noErr;
 	}
 	static int _funcA2G( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( complexAngType(), MATH_ANG_TYPE_GRAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.complexAngType(), ClipMath.angTypeGrad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcA2R( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( complexAngType(), MATH_ANG_TYPE_RAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.complexAngType(), ClipMath.angTypeRad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcD2A( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+		return ClipGlobal.noErr;
 	}
 	static int _funcD2G( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, MATH_ANG_TYPE_GRAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.angTypeGrad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcD2R( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, MATH_ANG_TYPE_RAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.angTypeRad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcG2A( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_GRAD, complexAngType() );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeGrad, ClipMath.complexAngType() );
+		return ClipGlobal.noErr;
 	}
 	static int _funcG2D( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_GRAD, MATH_ANG_TYPE_DEG );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeGrad, ClipMath.angTypeDeg );
+		return ClipGlobal.noErr;
 	}
 	static int _funcG2R( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_GRAD, MATH_ANG_TYPE_RAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeGrad, ClipMath.angTypeRad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcR2A( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_RAD, complexAngType() );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeRad, ClipMath.complexAngType() );
+		return ClipGlobal.noErr;
 	}
 	static int _funcR2D( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_RAD, MATH_ANG_TYPE_DEG );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeRad, ClipMath.angTypeDeg );
+		return ClipGlobal.noErr;
 	}
 	static int _funcR2G( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.mat().mat(0).angToAng( MATH_ANG_TYPE_RAD, MATH_ANG_TYPE_GRAD );
-		return CLIP_NO_ERR;
+		value.mat().mat(0).angToAng( ClipMath.angTypeRad, ClipMath.angTypeGrad );
+		return ClipGlobal.noErr;
 	}
 	static int _funcSin( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).sin() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcCos( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).cos() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcTan( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).tan() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcASin( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).asin() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_ASIN, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnAsin, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcACos( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).acos() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_ACOS, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnAcos, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcATan( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).atan() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcATan2( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( fatan2( tmpValue[0].mat().mat(0).toFloat(), tmpValue[1].mat().mat(0).toFloat() ) );
-		return CLIP_NO_ERR;
+		value.matAss( MathComplex.fatan2( tmpValue[0].mat().mat(0).toFloat(), tmpValue[1].mat().mat(0).toFloat() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcSinH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).sinh() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcCosH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).cosh() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcTanH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).tanh() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcASinH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).asinh() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcACosH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).acosh() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_ACOSH, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnAcosh, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcATanH( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).atanh() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_ATANH, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnAtanh, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcExp( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).exp() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcExp10( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).exp10() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcLn( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).log() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_LOG, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnLog, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcLog( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -4408,30 +4398,30 @@ class ClipProc {
 		} else {
 			value.matAss( tmpValue.mat().mat(0).log() );
 		}
-		if( valueError() ){
-			_this._errorProc( param.isCalculator() ? CLIP_PROC_WARN_LOG10 : CLIP_PROC_WARN_LOG, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( param.isCalculator() ? ClipGlobal.procWarnLog10 : ClipGlobal.procWarnLog, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcLog10( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).log10() );
-		if( valueError() ){
-			_this._errorProc( CLIP_PROC_WARN_LOG10, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-			clearValueError();
+		if( ClipMath.valueError() ){
+			_this._errorProc( ClipGlobal.procWarnLog10, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+			ClipMath.clearValueError();
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcPow( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
 		_ClipIndex? index;
 		ParamBoolean moveFlag = ParamBoolean();
@@ -4439,122 +4429,122 @@ class ClipProc {
 		if( param.mpFlag() && ((index = _this._getFuncParamArray( param, code, token, moveFlag, seFlag )) != null) ){
 			tmpValue[0]._mp.attach( index!._param!.array().mp(index._index) );
 			tmpValue[0].setMpFlag( true );
-		} else if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		} else if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			_this.mpPow( param, value.mp(), tmpValue[0].mp(), MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt() );
+			_this.mpPow( param, value.mp(), tmpValue[0].mp(), ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt() );
 		} else {
 			value.matAss( tmpValue[0].mat().mat(0).pow( tmpValue[1].mat().mat(0) ) );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcSqr( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fmul( value.mp(), tmpValue.mp(), tmpValue.mp(), param.mpPrec() + 1 );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fmul( value.mp(), tmpValue.mp(), tmpValue.mp(), param.mpPrec() + 1 );
 			} else {
-				_proc_mp.mul( value.mp(), tmpValue.mp(), tmpValue.mp() );
+				_procMp.mul( value.mp(), tmpValue.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.matAss( tmpValue.mat().mat(0).sqr() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcSqrt( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				if( _proc_mp.fsqrt2( value.mp(), tmpValue.mp(), param.mpPrec() + 1, 4 ) ){
-					_this._errorProc( CLIP_PROC_WARN_SQRT, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				if( _procMp.fsqrt2( value.mp(), tmpValue.mp(), param.mpPrec() + 1, 4 ) ){
+					_this._errorProc( ClipGlobal.procWarnSqrt, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 			} else {
-				if( _proc_mp.sqrt( value.mp(), tmpValue.mp() ) ){
-					_this._errorProc( CLIP_PROC_WARN_SQRT, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( _procMp.sqrt( value.mp(), tmpValue.mp() ) ){
+					_this._errorProc( ClipGlobal.procWarnSqrt, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 			}
 		} else {
 			value.matAss( tmpValue.mat().mat(0).sqrt() );
-			if( valueError() ){
-				_this._errorProc( CLIP_PROC_WARN_SQRT, _this._curLine.num(), param, CLIP_CODE_NULL, null );
-				clearValueError();
+			if( ClipMath.valueError() ){
+				_this._errorProc( ClipGlobal.procWarnSqrt, _this._curLine.num(), param, ClipGlobal.codeNull, null );
+				ClipMath.clearValueError();
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcCeil( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).ceil() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcFloor( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).floor() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcAbs( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				_proc_mp.fabs( value.mp(), tmpValue.mp() );
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				_procMp.fabs( value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.abs( value.mp(), tmpValue.mp() );
+				_procMp.abs( value.mp(), tmpValue.mp() );
 			}
 		} else {
 			value.matAss( tmpValue.mat().mat(0).abs() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcLdexp( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( tmpValue[0].mat().mat(0).ldexp( MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt() ) );
-		return CLIP_NO_ERR;
+		value.matAss( tmpValue[0].mat().mat(0).ldexp( ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcFrexp( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
@@ -4562,20 +4552,20 @@ class ClipProc {
 		_ClipIndex index = _ClipIndex();
 		ParamBoolean moveFlag = ParamBoolean();
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParamIndex( param, code, token, index, moveFlag, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParamIndex( param, code, token, index, moveFlag, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		ParamInteger _n = ParamInteger();
 		value.matAss( tmpValue.mat().mat(0).frexp( _n ) );
 		if( !(index._param!.setVal( index._index, _n.val(), moveFlag.val() )) ){
-			return _this._retError( CLIP_PROC_ERR_ASS, code, token );
+			return _this._retError( ClipGlobal.procErrAss, code, token );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcModf( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
@@ -4583,131 +4573,131 @@ class ClipProc {
 		_ClipIndex index = _ClipIndex();
 		ParamBoolean moveFlag = ParamBoolean();
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParamIndex( param, code, token, index, moveFlag, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParamIndex( param, code, token, index, moveFlag, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		ParamFloat _f = ParamFloat();
 		value.matAss( tmpValue.mat().mat(0).modf( _f ) );
 		if( !(index._param!.setVal( index._index, _f.val(), moveFlag.val() )) ){
-			return _this._retError( CLIP_PROC_ERR_ASS, code, token );
+			return _this._retError( ClipGlobal.procErrAss, code, token );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcFact( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			_this.mpFactorial( value.mp(), MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt() );
+			_this.mpFactorial( value.mp(), ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt() );
 		} else {
 			value.matAss( tmpValue.mat().mat(0).factorial() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcInt( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		if( param.mpFlag() ){
-			if( _proc_mp.getPrec( tmpValue.mp() ) > 0 ){
-				_proc_mp.ftrunc( value.mp(), tmpValue.mp() );
+			if( _procMp.getPrec( tmpValue.mp() ) > 0 ){
+				_procMp.ftrunc( value.mp(), tmpValue.mp() );
 			} else {
-				_proc_mp.fset( value.mp(), tmpValue.mp() );
+				_procMp.fset( value.mp(), tmpValue.mp() );
 			}
 		} else {
-			value.mat().mat(0).setReal( MATH_INT( tmpValue.mat().mat(0).real() ) );
-			value.mat().mat(0).setImag( MATH_INT( tmpValue.mat().mat(0).imag() ) );
+			value.mat().mat(0).setReal( ClipMath.toInt( tmpValue.mat().mat(0).real() ) );
+			value.mat().mat(0).setImag( ClipMath.toInt( tmpValue.mat().mat(0).imag() ) );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcReal( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).real() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcImag( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).imag() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcArg( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).farg() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcNorm( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).fnorm() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcConjg( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).conjg() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcPolar( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.mat().mat(0).polar( tmpValue[0].mat().mat(0).toFloat(), tmpValue[1].mat().mat(0).toFloat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcNum( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
@@ -4716,18 +4706,18 @@ class ClipProc {
 		} else {
 			value.matAss( tmpValue.mat().mat(0).num() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcDenom( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( tmpValue.mat().mat(0).denom() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcRow( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		_ClipIndex? index;
@@ -4739,13 +4729,13 @@ class ClipProc {
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().row().toDouble() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcCol( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		_ClipIndex? index;
@@ -4757,13 +4747,13 @@ class ClipProc {
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().col().toDouble() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcTrans( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		_ClipIndex? index;
@@ -4775,18 +4765,18 @@ class ClipProc {
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+			if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			value.matAss( tmpValue.mat().trans() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcStrCmp( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
@@ -4794,7 +4784,7 @@ class ClipProc {
 		if( _this._getString( param, string1 ) ){
 			if( seFlag ){
 				if( !(_this._curLine.token()!.skipComma()) ){
-					return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+					return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 				}
 			}
 
@@ -4806,24 +4796,24 @@ class ClipProc {
 				if( val == 0 ){
 					int i;
 					switch( token ){
-					case CLIP_FUNC_STRCMP:
+					case ClipGlobal.funcStrCmp:
 						for( i = 0; i < str1.length; i++ ){
-							val = charCodeAt( str1, i ) - charCodeAt( str2, i );
+							val = ClipMath.charCodeAt( str1, i ) - ClipMath.charCodeAt( str2, i );
 							if( val != 0 ){
 								break;
 							}
 						}
 						break;
-					case CLIP_FUNC_STRICMP:
+					case ClipGlobal.funcStrICmp:
 						int chr1, chr2;
 						for( i = 0; i < str1.length; i++ ){
-							chr1 = charCodeAt( str1, i );
-							if( (chr1 >= MATH_CHAR_CODE_UA) && (chr1 <= MATH_CHAR_CODE_UZ) ){
-								chr1 = chr1 - MATH_CHAR_CODE_UA + MATH_CHAR_CODE_LA;
+							chr1 = ClipMath.charCodeAt( str1, i );
+							if( (chr1 >= ClipMath.charCodeUA) && (chr1 <= ClipMath.charCodeUZ) ){
+								chr1 = chr1 - ClipMath.charCodeUA + ClipMath.charCodeLA;
 							}
-							chr2 = charCodeAt( str2, i );
-							if( (chr2 >= MATH_CHAR_CODE_UA) && (chr2 <= MATH_CHAR_CODE_UZ) ){
-								chr2 = chr2 - MATH_CHAR_CODE_UA + MATH_CHAR_CODE_LA;
+							chr2 = ClipMath.charCodeAt( str2, i );
+							if( (chr2 >= ClipMath.charCodeUA) && (chr2 <= ClipMath.charCodeUZ) ){
+								chr2 = chr2 - ClipMath.charCodeUA + ClipMath.charCodeLA;
 							}
 							val = chr1 - chr2;
 							if( val != 0 ){
@@ -4834,250 +4824,250 @@ class ClipProc {
 					}
 				}
 				value.matAss( val );
-				return CLIP_NO_ERR;
+				return ClipGlobal.noErr;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_FUNCTION, code, token );
+		return _this._retError( ClipGlobal.procErrFunction, code, token );
 	}
 	static int _funcStrLen( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		ParamString string = ParamString();
 		if( _this._getString( param, string ) ){
 			value.matAss( string.str().length );
-			return CLIP_NO_ERR;
+			return ClipGlobal.noErr;
 		}
-		return _this._retError( CLIP_PROC_ERR_FUNCTION, code, token );
+		return _this._retError( ClipGlobal.procErrFunction, code, token );
 	}
 	static int _funcGWidth( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().width().toDouble() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGHeight( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().height().toDouble() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGColor( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		if( procGWorld().rgbFlag() ){
 			value.matAss( procGWorld().color().toDouble() );
-			return CLIP_NO_ERR;
+			return ClipGlobal.noErr;
 		}
 
 		ClipTokenData? lock;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
 		lock = _this._curLine.token()!.lock();
-		if( _this._getFuncParam( param, code, token, tmpValue, seFlag ) == CLIP_NO_ERR ){
-			procGWorld().setColor( doFuncGColor( MATH_UNSIGNED( tmpValue.mat().mat(0).toFloat(), MATH_UMAX_24 ).toInt() ) );
+		if( _this._getFuncParam( param, code, token, tmpValue, seFlag ) == ClipGlobal.noErr ){
+			procGWorld().setColor( doFuncGColor( ClipMath.unsigned( tmpValue.mat().mat(0).toFloat(), ClipMath.umax24 ).toInt() ) );
 		} else {
 			_this._curLine.token()!.unlock( lock );
 		}
 
-		value.matAss( (token == CLIP_FUNC_GCOLOR) ? procGWorld().color() : doFuncGColor24( procGWorld().color() ) );
-		return CLIP_NO_ERR;
+		value.matAss( (token == ClipGlobal.funcGColor) ? procGWorld().color() : doFuncGColor24( procGWorld().color() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcGCX( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().imgMoveX().toDouble() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGCY( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().imgMoveY().toDouble() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcWCX( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().wndMoveX() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcWCY( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( procGWorld().wndMoveY() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGGet( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( procGWorld().get( MATH_INT( tmpValue[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt() ) );
-		return CLIP_NO_ERR;
+		value.matAss( procGWorld().get( ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcWGet( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( procGWorld().wndGet( tmpValue[0].mat().mat(0).toFloat(), tmpValue[1].mat().mat(0).toFloat() ) );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGX( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( procGWorld().imgPosX( tmpValue.mat().mat(0).toFloat() ) );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcGY( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
 		value.matAss( procGWorld().imgPosY( tmpValue.mat().mat(0).toFloat() ) );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _funcWX( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( procGWorld().wndPosX( MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt() ) );
-		return CLIP_NO_ERR;
+		value.matAss( procGWorld().wndPosX( ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcWY( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( procGWorld().wndPosY( MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt() ) );
-		return CLIP_NO_ERR;
+		value.matAss( procGWorld().wndPosY( ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt() ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcMkColor( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[2], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[2], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		int r = MATH_INT( tmpValue[0].mat().mat(0).toFloat() ).toInt();
-		int g = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
-		int b = MATH_INT( tmpValue[2].mat().mat(0).toFloat() ).toInt();
-		value.matAss( MATH_SHIFTL( r.toDouble(), 16 ) + MATH_SHIFTL( g.toDouble(), 8 ) + b );
-		return CLIP_NO_ERR;
+		int r = ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ).toInt();
+		int g = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+		int b = ClipMath.toInt( tmpValue[2].mat().mat(0).toFloat() ).toInt();
+		value.matAss( ClipMath.shiftL( r.toDouble(), 16 ) + ClipMath.shiftL( g.toDouble(), 8 ) + b );
+		return ClipGlobal.noErr;
 	}
 	static int _funcMkColorS( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
-		List<ClipProcVal> tmpValue = newProcValArray( 3, _this, param );
+		List<ClipProcVal> tmpValue = ClipProcVal.newArray( 3, _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[0], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[1], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue[2], seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue[2], seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		int r = MATH_INT( tmpValue[0].mat().mat(0).toFloat() ).toInt();
-		int g = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
-		int b = MATH_INT( tmpValue[2].mat().mat(0).toFloat() ).toInt();
+		int r = ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ).toInt();
+		int g = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+		int b = ClipMath.toInt( tmpValue[2].mat().mat(0).toFloat() ).toInt();
 		if( r < 0 ){ r = 0; } else if( r > 255 ){ r = 255; }
 		if( g < 0 ){ g = 0; } else if( g > 255 ){ g = 255; }
 		if( b < 0 ){ b = 0; } else if( b > 255 ){ b = 255; }
-		value.matAss( MATH_SHIFTL( r.toDouble(), 16 ) + MATH_SHIFTL( g.toDouble(), 8 ) + b );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftL( r.toDouble(), 16 ) + ClipMath.shiftL( g.toDouble(), 8 ) + b );
+		return ClipGlobal.noErr;
 	}
 	static int _funcColGetR( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTR( MATH_AND( MATH_INT( tmpValue.mat().mat(0).toFloat() ), 0xFF0000 ), 16 ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftR( ClipMath.and( ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ), 0xFF0000 ), 16 ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcColGetG( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_SHIFTR( MATH_AND( MATH_INT( tmpValue.mat().mat(0).toFloat() ), 0x00FF00 ), 8 ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.shiftR( ClipMath.and( ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ), 0x00FF00 ), 8 ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcColGetB( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		value.matAss( MATH_AND( MATH_INT( tmpValue.mat().mat(0).toFloat() ), 0x0000FF ) );
-		return CLIP_NO_ERR;
+		value.matAss( ClipMath.and( ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ), 0x0000FF ) );
+		return ClipGlobal.noErr;
 	}
 	static int _funcCall( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		ParamString func = ParamString();
 		_this._getString( param, func );
 		if( func.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
-		if( charAt( func.str(), 0 ) == '!' ){
-			ret = _procExtFunc( _this, param, CLIP_CODE_EXTFUNC, func.str().substring( 1 ), value, seFlag );
-			if( ret != CLIP_NO_ERR ){
-				ret = _this._retError( CLIP_PROC_ERR_CALL, code, token );
+		if( ClipMath.charAt( func.str(), 0 ) == '!' ){
+			ret = _procExtFunc( _this, param, ClipGlobal.codeExtFunc, func.str().substring( 1 ), value, seFlag );
+			if( ret != ClipGlobal.noErr ){
+				ret = _this._retError( ClipGlobal.procErrCall, code, token );
 			}
 		} else {
 			ParamInteger _func = ParamInteger();
-			if( _proc_token.checkFunc( func.str(), _func ) ){
-				ret = _procFunc( _this, param, CLIP_CODE_FUNCTION, _func.val(), value, seFlag );
+			if( _procToken.checkFunc( func.str(), _func ) ){
+				ret = _procFunc( _this, param, ClipGlobal.codeFunction, _func.val(), value, seFlag );
 			} else {
-				ret = _procLabel( _this, param, CLIP_CODE_LABEL, func.str(), value, seFlag );
-				if( ret != CLIP_NO_ERR ){
-					ret = _this._retError( CLIP_PROC_ERR_CALL, code, token );
+				ret = _procLabel( _this, param, ClipGlobal.codeLabel, func.str(), value, seFlag );
+				if( ret != ClipGlobal.noErr ){
+					ret = _this._retError( ClipGlobal.procErrCall, code, token );
 				}
 			}
 		}
@@ -5097,14 +5087,14 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		ParamString string = ParamString();
 		_this._getString( param, string );
 		if( string.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		// 親プロセスの環境を受け継いで、子プロセスを実行する
@@ -5115,14 +5105,14 @@ class ClipProc {
 		childProc.end();
 		childParam.end();
 
-		return (ret == CLIP_NO_ERR) ? CLIP_NO_ERR : _this._retError( CLIP_PROC_ERR_EVAL, code, token );
+		return (ret == ClipGlobal.noErr) ? ClipGlobal.noErr : _this._retError( ClipGlobal.procErrEval, code, token );
 	}
 	int doFuncEvalSub( ClipProc childProc, ClipParam childParam, String string, ClipProcVal value ){
 		int ret;
 		childProc.setAngType( _angType, false );
-		if( (ret = childProc.processLoop( string, childParam )) == CLIP_PROC_END ){
+		if( (ret = childProc.processLoop( string, childParam )) == ClipGlobal.procEnd ){
 			value.matAss( childParam.array().matrix(0) );
-			return CLIP_NO_ERR;
+			return ClipGlobal.noErr;
 		}
 		return ret;
 	}
@@ -5131,79 +5121,79 @@ class ClipProc {
 
 		if( seFlag ){
 			if( !(_this._curLine.token()!.skipComma()) ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 		}
 
 		ParamString string = ParamString();
 		_this._getString( param, string );
 		if( string.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
-		if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-			ret = _proc_mp.fstr2num( value.mp(), string.str() );
+		if( param.mode() == ClipGlobal.modeFMultiPrec ){
+			ret = _procMp.fstr2num( value.mp(), string.str() );
 		} else {
-			ret = _proc_mp.str2num( value.mp(), string.str() );
+			ret = _procMp.str2num( value.mp(), string.str() );
 		}
 
-		return ret ? CLIP_NO_ERR : _this._retError( CLIP_PROC_ERR_MULTIPREC, CLIP_CODE_LABEL, string.str() );
+		return ret ? ClipGlobal.noErr : _this._retError( ClipGlobal.procErrMultiPrec, ClipGlobal.codeLabel, string.str() );
 	}
 	static int _funcMRound( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _this._getFuncParam( param, code, token, tmpValue, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 
-		if( (param.mode() == CLIP_MODE_I_MULTIPREC) && (_proc_mp.getPrec( tmpValue.mp() ) > 0) ){
-			_proc_mp.ftrunc( value.mp(), tmpValue.mp() );
+		if( (param.mode() == ClipGlobal.modeIMultiPrec) && (_procMp.getPrec( tmpValue.mp() ) > 0) ){
+			_procMp.ftrunc( value.mp(), tmpValue.mp() );
 		} else {
-			_proc_mp.fset( value.mp(), tmpValue.mp() );
-			_proc_mp.fround( value.mp(), param.mpPrec(), param.mpRound() );
+			_procMp.fset( value.mp(), tmpValue.mp() );
+			_procMp.fround( value.mp(), param.mpPrec(), param.mpRound() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	int _incVal( ClipParam param, int code, dynamic token, ClipProcVal value, bool incFlag ){
 		switch( _curInfo._assCode ){
-		case CLIP_CODE_VARIABLE:
+		case ClipGlobal.codeVariable:
 			if( incFlag ){
 				value.mat().addAndAss( 1.0 );
 			} else {
 				value.mat().subAndAss( 1.0 );
 			}
 			if( !(param.setVal( _curInfo._assToken, value.mat().mat(0), true )) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			break;
-		case CLIP_CODE_GLOBAL_VAR:
+		case ClipGlobal.codeGlobalVar:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_VAR;
-		case_CLIP_CODE_AUTO_VAR:
-		case CLIP_CODE_AUTO_VAR:
+			continue caseClipGlobalCodeAutoVar;
+		caseClipGlobalCodeAutoVar:
+		case ClipGlobal.codeAutoVar:
 			if( incFlag ){
 				value.mat().addAndAss( 1.0 );
 			} else {
 				value.mat().subAndAss( 1.0 );
 			}
 			if( !(param.setVal( autoVarIndex( param, _curInfo._assToken ), value.mat().mat(0), false )) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			break;
-		case CLIP_CODE_ARRAY:
+		case ClipGlobal.codeArray:
 			if( _curInfo._curArraySize == 0 ){
 				if( param.mpFlag() ){
 					param.array().move( _curInfo._assToken );
 					if( incFlag ){
-						_proc_mp.fadd( param.array().mp(_curInfo._assToken), value.mp(), _proc_mp.F( "1.0" ) );
+						_procMp.fadd( param.array().mp(_curInfo._assToken), value.mp(), _procMp.F( "1.0" ) );
 					} else {
-						_proc_mp.fsub( param.array().mp(_curInfo._assToken), value.mp(), _proc_mp.F( "1.0" ) );
+						_procMp.fsub( param.array().mp(_curInfo._assToken), value.mp(), _procMp.F( "1.0" ) );
 					}
 				} else {
-					return _retError( CLIP_PROC_ERR_RVALUE, code, token );
+					return _retError( ClipGlobal.procErrRValue, code, token );
 				}
 			} else {
 				if( incFlag ){
@@ -5218,22 +5208,22 @@ class ClipProc {
 					);
 			}
 			break;
-		case CLIP_CODE_GLOBAL_ARRAY:
+		case ClipGlobal.codeGlobalArray:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_ARRAY;
-		case_CLIP_CODE_AUTO_ARRAY:
-		case CLIP_CODE_AUTO_ARRAY:
+			continue caseClipGlobalCodeAutoArray;
+		caseClipGlobalCodeAutoArray:
+		case ClipGlobal.codeAutoArray:
 			if( _curInfo._curArraySize == 0 ){
 				if( param.mpFlag() ){
 					var index = autoArrayIndex( param, _curInfo._assToken );
 					if( incFlag ){
-						_proc_mp.fadd( param.array().mp(index), value.mp(), _proc_mp.F( "1.0" ) );
+						_procMp.fadd( param.array().mp(index), value.mp(), _procMp.F( "1.0" ) );
 					} else {
-						_proc_mp.fsub( param.array().mp(index), value.mp(), _proc_mp.F( "1.0" ) );
+						_procMp.fsub( param.array().mp(index), value.mp(), _procMp.F( "1.0" ) );
 					}
 				} else {
-					return _retError( CLIP_PROC_ERR_RVALUE, code, token );
+					return _retError( ClipGlobal.procErrRValue, code, token );
 				}
 			} else {
 				if( incFlag ){
@@ -5249,28 +5239,28 @@ class ClipProc {
 			}
 			break;
 		default:
-			return _retError( CLIP_PROC_ERR_RVALUE, code, token );
+			return _retError( ClipGlobal.procErrRValue, code, token );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _assVal( ClipParam param, int code, dynamic token, List<int>? array, int arraySize, ClipProcVal value ){
 		switch( _curInfo._assCode ){
-		case CLIP_CODE_VARIABLE:
+		case ClipGlobal.codeVariable:
 			if( !(param.setVal( _curInfo._assToken, value.mat().mat(0), true )) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			break;
-		case CLIP_CODE_GLOBAL_VAR:
+		case ClipGlobal.codeGlobalVar:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_VAR;
-		case_CLIP_CODE_AUTO_VAR:
-		case CLIP_CODE_AUTO_VAR:
+			continue caseClipGlobalCodeAutoVar;
+		caseClipGlobalCodeAutoVar:
+		case ClipGlobal.codeAutoVar:
 			if( !(param.setVal( autoVarIndex( param, _curInfo._assToken ), value.mat().mat(0), false )) ){
-				return _retError( CLIP_PROC_ERR_ASS, code, token );
+				return _retError( ClipGlobal.procErrAss, code, token );
 			}
 			break;
-		case CLIP_CODE_ARRAY:
+		case ClipGlobal.codeArray:
 			if( arraySize == 0 ){
 				if( param.mpFlag() ){
 					param.array().move( _curInfo._assToken );
@@ -5282,12 +5272,12 @@ class ClipProc {
 				param.array().set( _curInfo._assToken, array, arraySize, value.mat().mat(0), true );
 			}
 			break;
-		case CLIP_CODE_GLOBAL_ARRAY:
+		case ClipGlobal.codeGlobalArray:
 			param = globalParam();
 			// そのまま下に流す
-			continue case_CLIP_CODE_AUTO_ARRAY;
-		case_CLIP_CODE_AUTO_ARRAY:
-		case CLIP_CODE_AUTO_ARRAY:
+			continue caseClipGlobalCodeAutoArray;
+		caseClipGlobalCodeAutoArray:
+		case ClipGlobal.codeAutoArray:
 			if( arraySize == 0 ){
 				if( param.mpFlag() ){
 					param.array().mp(autoArrayIndex( param, _curInfo._assToken )).attach( value.mp().clone() );
@@ -5299,9 +5289,9 @@ class ClipProc {
 			}
 			break;
 		default:
-			return _retError( CLIP_PROC_ERR_LVALUE, code, token );
+			return _retError( ClipGlobal.procErrLValue, code, token );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	static int _unaryIncrement( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
@@ -5310,7 +5300,7 @@ class ClipProc {
 		if( param.subStep() == 0 ){
 			param.setAssFlag( true );
 		}
-		if( (ret = _this._constFirst( param, code, token, value )) == CLIP_NO_ERR ){
+		if( (ret = _this._constFirst( param, code, token, value )) == ClipGlobal.noErr ){
 			return _this._incVal( param, code, token, value, true );
 		}
 		return ret;
@@ -5321,7 +5311,7 @@ class ClipProc {
 		if( param.subStep() == 0 ){
 			param.setAssFlag( true );
 		}
-		if( (ret = _this._constFirst( param, code, token, value )) == CLIP_NO_ERR ){
+		if( (ret = _this._constFirst( param, code, token, value )) == ClipGlobal.noErr ){
 			return _this._incVal( param, code, token, value, false );
 		}
 		return ret;
@@ -5330,8 +5320,8 @@ class ClipProc {
 		int ret;
 		ClipProcVal rightValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( ~MATH_INT( rightValue.mat().mat(0).toFloat() ).toInt() );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ~ClipMath.toInt( rightValue.mat().mat(0).toFloat() ).toInt() );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5340,8 +5330,8 @@ class ClipProc {
 		int ret;
 		ClipProcVal rightValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( (MATH_INT( rightValue.mat().mat(0).toFloat() ) == 0) ? 1 : 0 );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( (ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) == 0) ? 1 : 0 );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5350,12 +5340,12 @@ class ClipProc {
 		int ret;
 		ClipProcVal rightValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fneg( value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fneg( value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.neg( value.mp(), rightValue.mp() );
+					_procMp.neg( value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.matAss( rightValue.mat().minus() );
@@ -5368,12 +5358,12 @@ class ClipProc {
 		int ret;
 		ClipProcVal rightValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fset( value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fset( value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.set( value.mp(), rightValue.mp() );
+					_procMp.set( value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.matAss( rightValue.mat() );
@@ -5397,12 +5387,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fmul( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fmul( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
 				} else {
-					_proc_mp.mul( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.mul( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().mulAndAss( rightValue.mat() );
@@ -5419,22 +5409,22 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					if( _this._printWarn && (_proc_mp.fcmp( rightValue.mp(), _proc_mp.F( "0.0" ) ) == 0) ){
-						_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					if( _this._printWarn && (_procMp.fcmp( rightValue.mp(), _procMp.F( "0.0" ) ) == 0) ){
+						_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 					}
-					_proc_mp.fdiv2( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
+					_procMp.fdiv2( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
 				} else {
-					if( _this._printWarn && (_proc_mp.cmp( rightValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-						_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					if( _this._printWarn && (_procMp.cmp( rightValue.mp(), _procMp.I( "0" ) ) == 0) ){
+						_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 					}
-					_proc_mp.div( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.div( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				if( _this._printWarn && rightValue.mat().equal( 0.0 ) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 				value.mat().divAndAss( rightValue.mat() );
 				_this._updateMatrix( param, value.mat() );
@@ -5450,21 +5440,21 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( _proc_mp.getPrec( value.mp() ) > 0 ){
-					_proc_mp.ftrunc( value.mp(), value.mp() );
+				if( _procMp.getPrec( value.mp() ) > 0 ){
+					_procMp.ftrunc( value.mp(), value.mp() );
 				}
-				if( _proc_mp.getPrec( rightValue.mp() ) > 0 ){
-					_proc_mp.ftrunc( rightValue.mp(), rightValue.mp() );
+				if( _procMp.getPrec( rightValue.mp() ) > 0 ){
+					_procMp.ftrunc( rightValue.mp(), rightValue.mp() );
 				}
-				if( _this._printWarn && (_proc_mp.cmp( rightValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( _this._printWarn && (_procMp.cmp( rightValue.mp(), _procMp.I( "0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.div( MPData(), value.mp(), rightValue.mp(), value.mp() );
+				_procMp.div( MPData(), value.mp(), rightValue.mp(), value.mp() );
 			} else {
 				if( _this._printWarn && rightValue.mat().equal( 0.0 ) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 				value.mat().modAndAss( rightValue.mat() );
 				_this._updateMatrix( param, value.mat() );
@@ -5480,12 +5470,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fadd( value.mp(), value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fadd( value.mp(), value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.add( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.add( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().addAndAss( rightValue.mat() );
@@ -5502,12 +5492,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fsub( value.mp(), value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fsub( value.mp(), value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.sub( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.sub( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().subAndAss( rightValue.mat() );
@@ -5524,8 +5514,8 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_SHIFTL( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.shiftL( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5538,8 +5528,8 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_SHIFTR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.shiftR( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5552,12 +5542,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) < 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) < 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) < 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( (value.mat().mat(0).toFloat() < rightValue.mat().mat(0).toFloat()) ? 1 : 0 );
@@ -5573,12 +5563,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) <= 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) <= 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) <= 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( (value.mat().mat(0).toFloat() <= rightValue.mat().mat(0).toFloat()) ? 1 : 0 );
@@ -5594,12 +5584,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) > 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) > 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) > 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( (value.mat().mat(0).toFloat() > rightValue.mat().mat(0).toFloat()) ? 1 : 0 );
@@ -5615,12 +5605,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) >= 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) >= 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) >= 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( (value.mat().mat(0).toFloat() >= rightValue.mat().mat(0).toFloat()) ? 1 : 0 );
@@ -5636,12 +5626,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) == 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) == 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) == 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( value.mat().equal( rightValue.mat() ) ? 1 : 0 );
@@ -5657,12 +5647,12 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
 					value.matAss( (_this.mpfCmp( param, value.mp(), rightValue.mp() ) != 0) ? 1 : 0 );
 				} else {
-					value.matAss( (_proc_mp.cmp( value.mp(), rightValue.mp() ) != 0) ? 1 : 0 );
+					value.matAss( (_procMp.cmp( value.mp(), rightValue.mp() ) != 0) ? 1 : 0 );
 				}
 			} else {
 				value.matAss( value.mat().notEqual( rightValue.mat() ) ? 1 : 0 );
@@ -5678,8 +5668,8 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_AND( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.and( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5692,8 +5682,8 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_XOR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.xor( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5706,8 +5696,8 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_OR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.or( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 		}
 		return ret;
@@ -5722,11 +5712,11 @@ class ClipProc {
 		if( value.mat().notEqual( 0.0 ) ){
 			ClipProcVal rightValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 				value.matAss( rightValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 			}
 		} else {
-			if( (ret = _this._constSkip( code, token )) == CLIP_NO_ERR ){
+			if( (ret = _this._constSkip( code, token )) == ClipGlobal.noErr ){
 				value.matAss( 0 );
 			}
 		}
@@ -5740,13 +5730,13 @@ class ClipProc {
 		}
 
 		if( value.mat().notEqual( 0.0 ) ){
-			if( (ret = _this._constSkip( code, token )) == CLIP_NO_ERR ){
+			if( (ret = _this._constSkip( code, token )) == ClipGlobal.noErr ){
 				value.matAss( 1 );
 			}
 		} else {
 			ClipProcVal rightValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 				value.matAss( rightValue.mat().notEqual( 0.0 ) ? 1 : 0 );
 			}
 		}
@@ -5758,53 +5748,53 @@ class ClipProc {
 		}
 
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				if( _proc_mp.fcmp( value.mp(), _proc_mp.F( "0.0" ) ) != 0 ){
-					if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-						if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-							return CLIP_NO_ERR;
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				if( _procMp.fcmp( value.mp(), _procMp.F( "0.0" ) ) != 0 ){
+					if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+						if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+							return ClipGlobal.noErr;
 						}
 					}
 				} else {
-					if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-						if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-							return CLIP_NO_ERR;
+					if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+						if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+							return ClipGlobal.noErr;
 						}
 					}
 				}
 			} else {
-				if( _proc_mp.cmp( value.mp(), _proc_mp.I( "0" ) ) != 0 ){
-					if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-						if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-							return CLIP_NO_ERR;
+				if( _procMp.cmp( value.mp(), _procMp.I( "0" ) ) != 0 ){
+					if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+						if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+							return ClipGlobal.noErr;
 						}
 					}
 				} else {
-					if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-						if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-							return CLIP_NO_ERR;
+					if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+						if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+							return ClipGlobal.noErr;
 						}
 					}
 				}
 			}
 		} else {
 			if( value.mat().notEqual( 0.0 ) ){
-				if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+				if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 					_this._updateMatrix( param, value.mat() );
-					if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-						return CLIP_NO_ERR;
+					if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+						return ClipGlobal.noErr;
 					}
 				}
 			} else {
-				if( _this._constSkipConditional( code, token ) == CLIP_NO_ERR ){
-					if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+				if( _this._constSkipConditional( code, token ) == ClipGlobal.noErr ){
+					if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 						_this._updateMatrix( param, value.mat() );
-						return CLIP_NO_ERR;
+						return ClipGlobal.noErr;
 					}
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_CONDITIONAL, code, token );
+		return _this._retError( ClipGlobal.procErrConditional, code, token );
 	}
 	static int _opAss( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		int ret;
@@ -5816,7 +5806,7 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, value )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, value )) == ClipGlobal.noErr ){
 			if( !(param.mpFlag()) ){
 				_this._updateMatrix( param, value.mat() );
 			}
@@ -5838,12 +5828,12 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fmul( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fmul( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
 				} else {
-					_proc_mp.mul( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.mul( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().mulAndAss( rightValue.mat() );
@@ -5867,22 +5857,22 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					if( _this._printWarn && (_proc_mp.fcmp( rightValue.mp(), _proc_mp.F( "0.0" ) ) == 0) ){
-						_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					if( _this._printWarn && (_procMp.fcmp( rightValue.mp(), _procMp.F( "0.0" ) ) == 0) ){
+						_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 					}
-					_proc_mp.fdiv2( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
+					_procMp.fdiv2( value.mp(), value.mp(), rightValue.mp(), param.mpPrec() + 1 );
 				} else {
-					if( _this._printWarn && (_proc_mp.cmp( rightValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-						_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					if( _this._printWarn && (_procMp.cmp( rightValue.mp(), _procMp.I( "0" ) ) == 0) ){
+						_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 					}
-					_proc_mp.div( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.div( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				if( _this._printWarn && rightValue.mat().equal( 0.0 ) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 				value.mat().divAndAss( rightValue.mat() );
 				_this._updateMatrix( param, value.mat() );
@@ -5905,21 +5895,21 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( _proc_mp.getPrec( value.mp() ) > 0 ){
-					_proc_mp.ftrunc( value.mp(), value.mp() );
+				if( _procMp.getPrec( value.mp() ) > 0 ){
+					_procMp.ftrunc( value.mp(), value.mp() );
 				}
-				if( _proc_mp.getPrec( rightValue.mp() ) > 0 ){
-					_proc_mp.ftrunc( rightValue.mp(), rightValue.mp() );
+				if( _procMp.getPrec( rightValue.mp() ) > 0 ){
+					_procMp.ftrunc( rightValue.mp(), rightValue.mp() );
 				}
-				if( _this._printWarn && (_proc_mp.cmp( rightValue.mp(), _proc_mp.I( "0" ) ) == 0) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				if( _this._printWarn && (_procMp.cmp( rightValue.mp(), _procMp.I( "0" ) ) == 0) ){
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
-				_proc_mp.div( MPData(), value.mp(), rightValue.mp(), value.mp() );
+				_procMp.div( MPData(), value.mp(), rightValue.mp(), value.mp() );
 			} else {
 				if( _this._printWarn && rightValue.mat().equal( 0.0 ) ){
-					_this._errorProc( CLIP_PROC_WARN_DIV, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					_this._errorProc( ClipGlobal.procWarnDiv, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 				value.mat().modAndAss( rightValue.mat() );
 				_this._updateMatrix( param, value.mat() );
@@ -5942,12 +5932,12 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fadd( value.mp(), value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fadd( value.mp(), value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.add( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.add( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().addAndAss( rightValue.mat() );
@@ -5971,12 +5961,12 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-					_proc_mp.fsub( value.mp(), value.mp(), rightValue.mp() );
+				if( param.mode() == ClipGlobal.modeFMultiPrec ){
+					_procMp.fsub( value.mp(), value.mp(), rightValue.mp() );
 				} else {
-					_proc_mp.sub( value.mp(), value.mp(), rightValue.mp() );
+					_procMp.sub( value.mp(), value.mp(), rightValue.mp() );
 				}
 			} else {
 				value.mat().subAndAss( rightValue.mat() );
@@ -6000,8 +5990,8 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_SHIFTL( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.shiftL( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 			ret = _this._assVal( param, code, token, saveArray, saveArraySize, value );
 		}
@@ -6021,8 +6011,8 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_SHIFTR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.shiftR( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 			ret = _this._assVal( param, code, token, saveArray, saveArraySize, value );
 		}
@@ -6042,8 +6032,8 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_AND( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.and( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 			ret = _this._assVal( param, code, token, saveArray, saveArraySize, value );
 		}
@@ -6063,8 +6053,8 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_OR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.or( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 			ret = _this._assVal( param, code, token, saveArray, saveArraySize, value );
 		}
@@ -6084,8 +6074,8 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
-			value.matAss( MATH_XOR( MATH_INT( value.mat().mat(0).toFloat() ), MATH_INT( rightValue.mat().mat(0).toFloat() ) ) );
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
+			value.matAss( ClipMath.xor( ClipMath.toInt( value.mat().mat(0).toFloat() ), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ) ) );
 			_this._updateMatrix( param, value.mat() );
 			ret = _this._assVal( param, code, token, saveArray, saveArraySize, value );
 		}
@@ -6101,7 +6091,7 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, value )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, value )) == ClipGlobal.noErr ){
 			if( !(param.mpFlag()) ){
 				_this._updateMatrix( param, value.mat() );
 			}
@@ -6116,9 +6106,9 @@ class ClipProc {
 			param.setAssFlag( false );
 		}
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				_this.mpPow( param, value.mp(), value.mp(), MATH_INT( rightValue.mat().mat(0).toFloat() ).toInt() );
+				_this.mpPow( param, value.mp(), value.mp(), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ).toInt() );
 			} else {
 				value.matAss( value.mat().mat(0).pow( rightValue.mat().mat(0) ) );
 				_this._updateMatrix( param, value.mat() );
@@ -6137,9 +6127,9 @@ class ClipProc {
 		List<int>? saveArray = _this._curInfo._curArray;
 		int saveArraySize    = _this._curInfo._curArraySize;
 
-		if( (ret = _this._const( param, code, token, rightValue )) == CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, rightValue )) == ClipGlobal.noErr ){
 			if( param.mpFlag() ){
-				_this.mpPow( param, value.mp(), value.mp(), MATH_INT( rightValue.mat().mat(0).toFloat() ).toInt() );
+				_this.mpPow( param, value.mp(), value.mp(), ClipMath.toInt( rightValue.mat().mat(0).toFloat() ).toInt() );
 			} else {
 				value.matAss( value.mat().mat(0).pow( rightValue.mat().mat(0) ) );
 				_this._updateMatrix( param, value.mat() );
@@ -6153,36 +6143,36 @@ class ClipProc {
 	}
 	static int _opFact( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value ){
 		if( param.mpFlag() ){
-			int tmp = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+			int tmp = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 			_this.mpFactorial( value.mp(), tmp );
 		} else {
 			value.matAss( value.mat().mat(0).factorial() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	static int _loopBegin( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
+		if( _this._statMode == _statModeNotStart ){
 			int ret;
 
-			_this._statMode = CLIP_STAT_MODE_REGISTERING;
+			_this._statMode = _statModeRegistering;
 			_this._stat = ClipLoop();
-			if( (ret = _this._stat!.regLine( _this._curLine )) != CLIP_LOOP_CONT ){
+			if( (ret = _this._stat!.regLine( _this._curLine )) != ClipGlobal.loopCont ){
 				_this._stat = null;
-				_this._statMode = CLIP_STAT_MODE_NOT_START;
+				_this._statMode = _statModeNotStart;
 				return ret;
 			}
-			return CLIP_PROC_SUB_END;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+			return ClipGlobal.procSubEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
 				_this._stat!.doBreak();
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopEnd( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
 				bool _continue = _this._stat!.checkContinue();
 
@@ -6190,24 +6180,24 @@ class ClipProc {
 				_this._stat!.doEnd();
 
 				if( !_continue ){
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopCont( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
 				_this._stat!.doBreak();
 				_this._stat!.doEnd();
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopUntil( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
 				bool _continue = _this._stat!.checkContinue();
 
@@ -6215,22 +6205,22 @@ class ClipProc {
 				_this._stat!.doEnd();
 
 				if( !_continue ){
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopWhile( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
-			_this._endType[_this._endCnt] = CLIP_PROC_END_TYPE_WHILE;
+		if( _this._statMode == _statModeProcessing ){
+			_this._endType[_this._endCnt] = _endTypeWhile;
 			_this._endCnt++;
 		}
 
 		return _loopBegin( _this );
 	}
 	static int _loopEndWhile( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._endCnt > 0 ){
 				_this._endCnt--;
 			}
@@ -6238,21 +6228,21 @@ class ClipProc {
 			if( _this._checkSkip() ){
 				_this._stat!.doBreak();
 				_this._stat!.doEnd();
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopFor( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
-			_this._endType[_this._endCnt] = CLIP_PROC_END_TYPE_FOR;
+		if( _this._statMode == _statModeProcessing ){
+			_this._endType[_this._endCnt] = _endTypeFor;
 			_this._endCnt++;
 		}
 
 		return _loopBegin( _this );
 	}
 	static int _loopNext( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._endCnt > 0 ){
 				_this._endCnt--;
 			}
@@ -6260,76 +6250,76 @@ class ClipProc {
 			if( _this._checkSkip() ){
 				_this._stat!.doBreak();
 				_this._stat!.doEnd();
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopFunc( ClipProc _this ){
 		return _loopBegin( _this );
 	}
 	static int _loopEndFunc( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
 				_this._stat!.doBreak();
 				_this._stat!.doEnd();
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopMultiEnd( ClipProc _this ){
 		if( _this._endCnt > 0 ){
 			switch( _this._endType[_this._endCnt - 1] ){
-			case CLIP_PROC_END_TYPE_WHILE:
+			case _endTypeWhile:
 				return _loopEndWhile( _this );
-			case CLIP_PROC_END_TYPE_FOR:
+			case _endTypeFor:
 				return _loopNext( _this );
-			case CLIP_PROC_END_TYPE_IF:
+			case _endTypeIf:
 				return _loopEndIf( _this );
-			case CLIP_PROC_END_TYPE_SWITCH:
+			case _endTypeSwitch:
 				return _loopEndSwi( _this );
 			}
 		}
-		return CLIP_PROC_ERR_STAT_END;
+		return ClipGlobal.procErrStatEnd;
 	}
 	static int _loopIf( ClipProc _this ){
-		_this._endType[_this._endCnt] = CLIP_PROC_END_TYPE_IF;
+		_this._endType[_this._endCnt] = _endTypeIf;
 		_this._endCnt++;
 
 //		if( _this._statIfMode[_this._statIfCnt] != CLIP_STAT_IFMODE_STARTED ){
 			_this._statIfCnt++;
 			if( _this._statIfCnt > _this._statIfMax ){
 				_this._statIfCnt--;
-				return CLIP_PROC_ERR_STAT_IF;
+				return ClipGlobal.procErrStatIf;
 			}
-			if( _this._checkSkipSwi() || ((_this._statIfMode[_this._statIfCnt - 1] == CLIP_STAT_IFMODE_DISABLE) || (_this._statIfMode[_this._statIfCnt - 1] == CLIP_STAT_IFMODE_PROCESSED)) ){
-				_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_PROCESSED;
-				return CLIP_PROC_SUB_END;
+			if( _this._checkSkipSwi() || ((_this._statIfMode[_this._statIfCnt - 1] == _statIfModeDisable) || (_this._statIfMode[_this._statIfCnt - 1] == _statIfModeProcessed)) ){
+				_this._statIfMode[_this._statIfCnt] = _statIfModeProcessed;
+				return ClipGlobal.procSubEnd;
 			} else {
 //				_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_STARTED;
-				_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_ENABLE;
+				_this._statIfMode[_this._statIfCnt] = _statIfModeEnable;
 			}
 //		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopElIf( ClipProc _this ){
 		if( _this._statIfCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDIF;
+			return ClipGlobal.procErrStatEndIf;
 		}
-		if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statIfMode[_this._statIfCnt] == _statIfModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopElse( ClipProc _this ){
 		if( _this._statIfCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDIF;
+			return ClipGlobal.procErrStatEndIf;
 		}
-		if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statIfMode[_this._statIfCnt] == _statIfModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopEndIf( ClipProc _this ){
 		if( _this._endCnt > 0 ){
@@ -6337,51 +6327,51 @@ class ClipProc {
 		}
 
 		if( _this._statIfCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDIF;
+			return ClipGlobal.procErrStatEndIf;
 		}
 		_this._statIfCnt--;
-		if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statIfMode[_this._statIfCnt] == _statIfModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopSwitch( ClipProc _this ){
-		_this._endType[_this._endCnt] = CLIP_PROC_END_TYPE_SWITCH;
+		_this._endType[_this._endCnt] = _endTypeSwitch;
 		_this._endCnt++;
 
-//		if( _this._statSwiMode[_this._statSwiCnt] != CLIP_STAT_SWIMODE_STARTED ){
+//		if( _this._statSwiMode[_this._statSwiCnt] != ClipGlobal.STAT_SWIMODE_STARTED ){
 			_this._statSwiCnt++;
 			if( _this._statSwiCnt > _this._statSwiMax ){
 				_this._statSwiCnt--;
-				return CLIP_PROC_ERR_STAT_SWITCH;
+				return ClipGlobal.procErrStatSwitch;
 			}
-			if( _this._checkSkipIf() || ((_this._statSwiMode[_this._statSwiCnt - 1] == CLIP_STAT_SWIMODE_DISABLE) || (_this._statSwiMode[_this._statSwiCnt - 1] == CLIP_STAT_SWIMODE_PROCESSED)) ){
-				_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_PROCESSED;
-				return CLIP_PROC_SUB_END;
+			if( _this._checkSkipIf() || ((_this._statSwiMode[_this._statSwiCnt - 1] == _statSwiModeDisable) || (_this._statSwiMode[_this._statSwiCnt - 1] == _statSwiModeProcessed)) ){
+				_this._statSwiMode[_this._statSwiCnt] = _statSwiModeProcessed;
+				return ClipGlobal.procSubEnd;
 			} else {
-//				_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_STARTED;
-				_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_ENABLE;
+//				_this._statSwiMode[_this._statSwiCnt] = ClipGlobal.STAT_SWIMODE_STARTED;
+				_this._statSwiMode[_this._statSwiCnt] = _statSwiModeEnable;
 			}
 //		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopCase( ClipProc _this ){
 		if( _this._statSwiCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDSWI;
+			return ClipGlobal.procErrStatEndSwi;
 		}
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopDefault( ClipProc _this ){
 		if( _this._statSwiCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDSWI;
+			return ClipGlobal.procErrStatEndSwi;
 		}
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopEndSwi( ClipProc _this ){
 		if( _this._endCnt > 0 ){
@@ -6389,54 +6379,54 @@ class ClipProc {
 		}
 
 		if( _this._statSwiCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDSWI;
+			return ClipGlobal.procErrStatEndSwi;
 		}
 		_this._statSwiCnt--;
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopBreakSwi( ClipProc _this ){
 		if( _this._statSwiCnt == 0 ){
-			return CLIP_PROC_ERR_STAT_ENDSWI;
+			return ClipGlobal.procErrStatEndSwi;
 		}
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_PROCESSED ){
-			return CLIP_PROC_SUB_END;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeProcessed ){
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopContinue( ClipProc _this ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopBreak( ClipProc _this ){
-		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == CLIP_PROC_END_TYPE_SWITCH) ){
+		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == _endTypeSwitch) ){
 			return _loopBreakSwi( _this );
 		}
 
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			if( _this._checkSkip() ){
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopAssert( ClipProc _this ){
 		if( _this._checkSkip() ){
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _loopReturn( ClipProc _this ){
 		if( _this._checkSkip() ){
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	void _doStatBreak(){
@@ -6445,44 +6435,44 @@ class ClipProc {
 		resetLoopCount();
 	}
 	static int _statStart( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			_this._loopCnt++;
 			incProcLoopTotal();
 			if( (procLoopMax() > 0) && (_this._loopCnt > procLoopMax()) ){
-				return CLIP_PROC_ERR_STAT_LOOP;
+				return ClipGlobal.procErrStatLoop;
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEnd( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
-			int stop = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+			int stop = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
-			int step = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+			int step = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
 			if( step == 0 ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().addAndAss( step );
@@ -6491,43 +6481,43 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			bool _break;
 			if( step < 0 ){
-				_break = (MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) <= stop);
+				_break = (ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) <= stop);
 			} else {
-				_break = (MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) >= stop);
+				_break = (ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) >= stop);
 			}
 			if( _break ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndInc( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().addAndAss( 1 );
@@ -6536,37 +6526,37 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
-			if( MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) >= MATH_INT( tmpValue[1].mat().mat(0).toFloat() ) ){
+			if( ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) >= ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ) ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndDec( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().subAndAss( 1 );
@@ -6575,46 +6565,46 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
-			if( MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) <= MATH_INT( tmpValue[1].mat().mat(0).toFloat() ) ){
+			if( ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) <= ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ) ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndEq( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
-			int stop = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+			int stop = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
-			int step = MATH_INT( tmpValue[1].mat().mat(0).toFloat() ).toInt();
+			int step = ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ).toInt();
 			if( step == 0 ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().addAndAss( step );
@@ -6623,43 +6613,43 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			bool _break;
 			if( step < 0 ){
-				_break = (MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) < stop);
+				_break = (ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) < stop);
 			} else {
-				_break = (MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) > stop);
+				_break = (ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) > stop);
 			}
 			if( _break ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndEqInc( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().addAndAss( 1 );
@@ -6668,37 +6658,37 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
-			if( MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) > MATH_INT( tmpValue[1].mat().mat(0).toFloat() ) ){
+			if( ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) > ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ) ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndEqDec( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_SE_LOOPEND;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrSeLoopEnd;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
-			List<ClipProcVal> tmpValue = newProcValArray( 2, _this, param );
+			List<ClipProcVal> tmpValue = ClipProcVal.newArray( 2, _this, param );
 
-			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != CLIP_NO_ERR ){
+			if( (ret = _this._constFirst( param, code, token, tmpValue[0] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			List<int>? saveArray = _this._curInfo._curArray;
 			int saveArraySize    = _this._curInfo._curArraySize;
 
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != CLIP_NO_ERR ){
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue[1] )) != ClipGlobal.noErr ){
 				return ret;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+				return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 			}
 
 			tmpValue[0].mat().subAndAss( 1 );
@@ -6707,45 +6697,45 @@ class ClipProc {
 
 			saveArray = null;
 
-			if( ret != CLIP_NO_ERR ){
+			if( ret != ClipGlobal.noErr ){
 				return ret;
 			}
 
-			if( MATH_INT( tmpValue[0].mat().mat(0).toFloat() ) < MATH_INT( tmpValue[1].mat().mat(0).toFloat() ) ){
+			if( ClipMath.toInt( tmpValue[0].mat().mat(0).toFloat() ) < ClipMath.toInt( tmpValue[1].mat().mat(0).toFloat() ) ){
 				_this._doStatBreak();
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statCont( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_SE_LOOPCONT;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrSeLoopCont;
+		case _statModeProcessing:
 			_this._stat!.doEnd();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statDo( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			_this._loopCnt++;
 			incProcLoopTotal();
 			if( (procLoopMax() > 0) && (_this._loopCnt > procLoopMax()) ){
-				return CLIP_PROC_ERR_STAT_LOOP;
+				return ClipGlobal.procErrStatLoop;
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statUntil( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_NOT_START ){
-			return CLIP_PROC_ERR_STAT_UNTIL;
-		} else if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeNotStart ){
+			return ClipGlobal.procErrStatUntil;
+		} else if( _this._statMode == _statModeProcessing ){
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 			if( tmpValue.mat().equal( 0.0 ) ){
@@ -6753,118 +6743,118 @@ class ClipProc {
 			}
 			_this._stat!.doEnd();
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statWhile( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			_this._loopCnt++;
 			incProcLoopTotal();
 			if( (procLoopMax() > 0) && (_this._loopCnt > procLoopMax()) ){
-				return CLIP_PROC_ERR_STAT_LOOP;
+				return ClipGlobal.procErrStatLoop;
 			}
 
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 			if( tmpValue.mat().equal( 0.0 ) ){
 				_this._doStatBreak();
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndWhile( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_ENDWHILE;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatEndWhile;
+		case _statModeProcessing:
 			_this._stat!.doEnd();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statFor( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			_this._loopCnt++;
 			incProcLoopTotal();
 			if( (procLoopMax() > 0) && (_this._loopCnt > procLoopMax()) ){
-				return CLIP_PROC_ERR_STAT_LOOP;
+				return ClipGlobal.procErrStatLoop;
 			}
 
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 			if( tmpValue.mat().equal( 0.0 ) ){
 				_this._doStatBreak();
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statFor2( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			_this._loopCnt++;
 			incProcLoopTotal();
 			if( (procLoopMax() > 0) && (_this._loopCnt > procLoopMax()) ){
-				return CLIP_PROC_ERR_STAT_LOOP;
+				return ClipGlobal.procErrStatLoop;
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statNext( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_NEXT;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatNext;
+		case _statModeProcessing:
 			_this._stat!.doEnd();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statFunc( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
 
-		if( _this._statMode == CLIP_STAT_MODE_PROCESSING ){
+		if( _this._statMode == _statModeProcessing ){
 			int newCode = 0;
 			dynamic newToken;
 
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( newCode == CLIP_CODE_TOP ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( newCode == ClipGlobal.codeTop ){
 					if( !(_this._curLine.token()!.getTokenParam( param )) ){
-						return _this._retError( CLIP_PROC_ERR_STAT_FUNCNAME, newCode, newToken );
+						return _this._retError( ClipGlobal.procErrStatFuncName, newCode, newToken );
 					}
-					newCode  = getCode();
-					newToken = getToken();
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
 				}
-				if( (newCode == CLIP_CODE_LABEL) || (newCode == CLIP_CODE_GLOBAL_VAR) || (newCode == CLIP_CODE_GLOBAL_ARRAY) ){
+				if( (newCode == ClipGlobal.codeLabel) || (newCode == ClipGlobal.codeGlobalVar) || (newCode == ClipGlobal.codeGlobalArray) ){
 					_this._stat!.doBreak();
 
 					if( param.func().search( newToken, false, null ) != null ){
-						return _this._retError( CLIP_PROC_ERR_STAT_FUNCNAME, newCode, newToken );
+						return _this._retError( ClipGlobal.procErrStatFuncName, newCode, newToken );
 					}
 					ClipFuncData? func;
 					if( (func = param.func().create( newToken, _this._curLine.num() + 1 )) != null ){
 						// 関数パラメータのラベルを取り込む
 						i = 0;
 						while( _this._curLine.token()!.getToken() ){
-							newCode  = getCode();
-							newToken = getToken();
+							newCode  = ClipToken.curCode();
+							newToken = ClipToken.curToken();
 							switch( newCode ){
-							case CLIP_CODE_TOP:
-							case CLIP_CODE_END:
+							case ClipGlobal.codeTop:
+							case ClipGlobal.codeEnd:
 								break;
-							case CLIP_CODE_PARAM_ANS:
-							case CLIP_CODE_PARAM_ARRAY:
-							case CLIP_CODE_OPERATOR:
+							case ClipGlobal.codeParamAns:
+							case ClipGlobal.codeParamArray:
+							case ClipGlobal.codeOperator:
 								func!.label().addCode( newCode, newToken );
 								break;
-							case CLIP_CODE_LABEL:
+							case ClipGlobal.codeLabel:
 								if( i <= 9 ){
 									func!.label().addCode( newCode, newToken );
 									i++;
@@ -6875,7 +6865,7 @@ class ClipProc {
 							_default:
 							default:
 								param.func().del( func! );
-								return _this._retError( CLIP_PROC_ERR_STAT_FUNCPARAM, newCode, newToken );
+								return _this._retError( ClipGlobal.procErrStatFuncParam, newCode, newToken );
 							}
 						}
 
@@ -6886,164 +6876,164 @@ class ClipProc {
 							func!.line().regLine( _this._curLine );
 						}
 					} else {
-						return CLIP_PROC_ERR_STAT_FUNC;
+						return ClipGlobal.procErrStatFunc;
 					}
 
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
-			return _this._retError( CLIP_PROC_ERR_STAT_FUNCNAME, newCode, newToken );
+			return _this._retError( ClipGlobal.procErrStatFuncName, newCode, newToken );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndFunc( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_ENDFUNC;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatEndFunc;
+		case _statModeProcessing:
 			_this._stat!.doEnd();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statMultiEnd( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._endType[_this._endCnt] ){
-		case CLIP_PROC_END_TYPE_WHILE:
+		case _endTypeWhile:
 			return _statEndWhile( _this, param, code, token );
-		case CLIP_PROC_END_TYPE_FOR:
+		case _endTypeFor:
 			return _statNext( _this, param, code, token );
-		case CLIP_PROC_END_TYPE_IF:
+		case _endTypeIf:
 			return _statEndIf( _this, param, code, token );
-		case CLIP_PROC_END_TYPE_SWITCH:
+		case _endTypeSwitch:
 			return _statEndSwi( _this, param, code, token );
 		}
 
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_END;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatEnd;
+		case _statModeProcessing:
 			_this._stat!.doEnd();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statIf( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 			_this._statIfCnt--;
 			return ret;
 		}
-		_this._statIfMode[_this._statIfCnt] = (tmpValue.mat().notEqual( 0.0 ) ? CLIP_STAT_IFMODE_ENABLE : CLIP_STAT_IFMODE_DISABLE);
-		return CLIP_PROC_SUB_END;
+		_this._statIfMode[_this._statIfCnt] = (tmpValue.mat().notEqual( 0.0 ) ? _statIfModeEnable : _statIfModeDisable);
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statElIf( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_DISABLE ){
+		if( _this._statIfMode[_this._statIfCnt] == _statIfModeDisable ){
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 			if( tmpValue.mat().notEqual( 0.0 ) ){
-				_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_ENABLE;
+				_this._statIfMode[_this._statIfCnt] = _statIfModeEnable;
 			}
-		} else if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_ENABLE ){
-			_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_PROCESSED;
+		} else if( _this._statIfMode[_this._statIfCnt] == _statIfModeEnable ){
+			_this._statIfMode[_this._statIfCnt] = _statIfModeProcessed;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statElse( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_DISABLE ){
-			_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_ENABLE;
-		} else if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_ENABLE ){
-			_this._statIfMode[_this._statIfCnt] = CLIP_STAT_IFMODE_PROCESSED;
+		if( _this._statIfMode[_this._statIfCnt] == _statIfModeDisable ){
+			_this._statIfMode[_this._statIfCnt] = _statIfModeEnable;
+		} else if( _this._statIfMode[_this._statIfCnt] == _statIfModeEnable ){
+			_this._statIfMode[_this._statIfCnt] = _statIfModeProcessed;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndIf( ClipProc _this, ClipParam param, int code, dynamic token ){
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statSwitch( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int ret;
 
-		if( (ret = _this._const( param, code, token, _this._statSwiVal[_this._statSwiCnt].setParam( param ) )) != CLIP_NO_ERR ){
+		if( (ret = _this._const( param, code, token, _this._statSwiVal[_this._statSwiCnt].setParam( param ) )) != ClipGlobal.noErr ){
 			_this._statSwiCnt--;
 			return ret;
 		}
-		_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_DISABLE;
-		return CLIP_PROC_SUB_END;
+		_this._statSwiMode[_this._statSwiCnt] = _statSwiModeDisable;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statCase( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_DISABLE ){
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeDisable ){
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
 				return ret;
 			}
 			if( tmpValue.mat().equal( _this._statSwiVal[_this._statSwiCnt].setParam( param ).mat() ) ){
-				_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_ENABLE;
+				_this._statSwiMode[_this._statSwiCnt] = _statSwiModeEnable;
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statDefault( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_DISABLE ){
-			_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_ENABLE;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeDisable ){
+			_this._statSwiMode[_this._statSwiCnt] = _statSwiModeEnable;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statEndSwi( ClipProc _this, ClipParam param, int code, dynamic token ){
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statBreakSwi( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( _this._statSwiMode[_this._statSwiCnt] == CLIP_STAT_SWIMODE_ENABLE ){
-			if( _this._statIfMode[_this._statIfCnt] == CLIP_STAT_IFMODE_ENABLE ){
-				_this._statSwiMode[_this._statSwiCnt] = CLIP_STAT_SWIMODE_PROCESSED;
+		if( _this._statSwiMode[_this._statSwiCnt] == _statSwiModeEnable ){
+			if( _this._statIfMode[_this._statIfCnt] == _statIfModeEnable ){
+				_this._statSwiMode[_this._statSwiCnt] = _statSwiModeProcessed;
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statContinue( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_CONTINUE;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatContinue;
+		case _statModeProcessing:
 			_this._stat!.doContinue();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statBreak( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == CLIP_PROC_END_TYPE_SWITCH) ){
+		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == _endTypeSwitch) ){
 			return _statBreakSwi( _this, param, code, token );
 		}
 
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_STAT_BREAK;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrStatBreak;
+		case _statModeProcessing:
 			_this._doStatBreak();
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statContinue2( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_SE_CONTINUE;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrSeContinue;
+		case _statModeProcessing:
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( tmpValue.mat().notEqual( 0.0 ) ){
@@ -7052,22 +7042,22 @@ class ClipProc {
 
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statBreak2( ClipProc _this, ClipParam param, int code, dynamic token ){
 		switch( _this._statMode ){
-		case CLIP_STAT_MODE_NOT_START:
-			return CLIP_PROC_ERR_SE_BREAK;
-		case CLIP_STAT_MODE_PROCESSING:
+		case _statModeNotStart:
+			return ClipGlobal.procErrSeBreak;
+		case _statModeProcessing:
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+			if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( tmpValue.mat().notEqual( 0.0 ) ){
@@ -7076,7 +7066,7 @@ class ClipProc {
 
 			break;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statAssert( ClipProc _this, ClipParam param, int code, dynamic token ){
 		// 診断メッセージONの場合のみ処理を行う
@@ -7084,10 +7074,10 @@ class ClipProc {
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) == CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) == ClipGlobal.noErr ){
 				if( tmpValue.mat().equal( 0.0 ) ){
 					if( _this._assertProc( _this._curLine.num(), param ) ){
-						return CLIP_ERR_ASSERT;
+						return ClipGlobal.errAssert;
 					}
 				}
 			} else {
@@ -7095,14 +7085,14 @@ class ClipProc {
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statReturn( ClipProc _this, ClipParam param, int code, dynamic token ){
 		if( _this._curLine.token()!.getTokenLock() ){
 			int ret;
 			ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-			if( (ret = _this._const( param, code, token, tmpValue )) == CLIP_NO_ERR ){
+			if( (ret = _this._const( param, code, token, tmpValue )) == ClipGlobal.noErr ){
 				if( param.ansFlag() ){
 					if( param.mpFlag() ){
 						param.array().move( 0 );
@@ -7111,7 +7101,7 @@ class ClipProc {
 						param.array().setMatrix( 0, tmpValue.mat(), true );
 					}
 				} else {
-					_this._errorProc( CLIP_PROC_WARN_RETURN, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+					_this._errorProc( ClipGlobal.procWarnReturn, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 				}
 			} else {
 				return ret;
@@ -7121,18 +7111,18 @@ class ClipProc {
 		// 終了要求
 		_this._quitFlag = true;
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statReturn2( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
-			return CLIP_PROC_ERR_SE_OPERAND;
+		if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
+			return ClipGlobal.procErrSeOperand;
 		}
 
 		if( _this._curLine.token()!.get() != null ){
-			return CLIP_PROC_ERR_SE_OPERAND;
+			return ClipGlobal.procErrSeOperand;
 		}
 
 		if( tmpValue.mat().notEqual( 0.0 ) ){
@@ -7140,33 +7130,33 @@ class ClipProc {
 			_this._quitFlag = true;
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _statReturn3( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int ret;
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( (ret = _this._const( param, code, token, tmpValue )) != CLIP_NO_ERR ){
-			return CLIP_PROC_ERR_SE_OPERAND;
+		if( (ret = _this._const( param, code, token, tmpValue )) != ClipGlobal.noErr ){
+			return ClipGlobal.procErrSeOperand;
 		}
 
 		bool tmp;
 		if( param.mpFlag() ){
-			if( param.mode() == CLIP_MODE_F_MULTIPREC ){
-				tmp = (_proc_mp.fcmp( tmpValue.mp(), _proc_mp.F( "0.0" ) ) != 0);
+			if( param.mode() == ClipGlobal.modeFMultiPrec ){
+				tmp = (_procMp.fcmp( tmpValue.mp(), _procMp.F( "0.0" ) ) != 0);
 			} else {
-				tmp = (_proc_mp.cmp( tmpValue.mp(), _proc_mp.I( "0" ) ) != 0);
+				tmp = (_procMp.cmp( tmpValue.mp(), _procMp.I( "0" ) ) != 0);
 			}
 		} else {
 			tmp = tmpValue.mat().notEqual( 0.0 );
 		}
 		if( tmp ){
-			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != CLIP_NO_ERR ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+			if( (ret = _this._getSeOperand( param, code, token, tmpValue )) != ClipGlobal.noErr ){
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( param.ansFlag() ){
@@ -7177,320 +7167,320 @@ class ClipProc {
 					param.array().setMatrix( 0, tmpValue.mat(), true );
 				}
 			} else {
-				_this._errorProc( CLIP_PROC_WARN_SE_RETURN, _this._curLine.num(), param, CLIP_CODE_NULL, null );
+				_this._errorProc( ClipGlobal.procWarnSeReturn, _this._curLine.num(), param, ClipGlobal.codeNull, null );
 			}
 
 			// 終了要求
 			_this._quitFlag = true;
 		} else {
-			if( (ret = _this._skipSeOperand( code, token )) != CLIP_NO_ERR ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+			if( (ret = _this._skipSeOperand( code, token )) != ClipGlobal.noErr ){
+				return ClipGlobal.procErrSeOperand;
 			}
 
 			if( _this._curLine.token()!.get() != null ){
-				return CLIP_PROC_ERR_SE_OPERAND;
+				return ClipGlobal.procErrSeOperand;
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 
 	static int _commandNull( ClipProc _this, ClipParam param, int code, dynamic token ){
-		return CLIP_PROC_ERR_COMMAND_NULL;
+		return ClipGlobal.procErrCommandNull;
 	}
 	static int _commandEFloat( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_E_FLOAT );
+		param.setMode( ClipGlobal.modeEFloat );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_E_FLOAT );
+			globalParam().setMode( ClipGlobal.modeEFloat );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandFFloat( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_F_FLOAT );
+		param.setMode( ClipGlobal.modeFFloat );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_F_FLOAT );
+			globalParam().setMode( ClipGlobal.modeFFloat );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGFloat( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_G_FLOAT );
+		param.setMode( ClipGlobal.modeGFloat );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_G_FLOAT );
+			globalParam().setMode( ClipGlobal.modeGFloat );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandEComplex( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_E_COMPLEX );
+		param.setMode( ClipGlobal.modeEComplex );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_E_COMPLEX );
+			globalParam().setMode( ClipGlobal.modeEComplex );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandFComplex( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_F_COMPLEX );
+		param.setMode( ClipGlobal.modeFComplex );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_F_COMPLEX );
+			globalParam().setMode( ClipGlobal.modeFComplex );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGComplex( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_G_COMPLEX );
+		param.setMode( ClipGlobal.modeGComplex );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_G_COMPLEX );
+			globalParam().setMode( ClipGlobal.modeGComplex );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandPrec( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setPrec( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setPrec( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandIFract( ClipProc _this, ClipParam param, int code, dynamic token ){
-		param.setMode( CLIP_MODE_I_FRACT );
+		param.setMode( ClipGlobal.modeIFract );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_I_FRACT );
+			globalParam().setMode( ClipGlobal.modeIFract );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandMFract( ClipProc _this, ClipParam param, int code, dynamic token ){
-		param.setMode( CLIP_MODE_M_FRACT );
+		param.setMode( ClipGlobal.modeMFract );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_M_FRACT );
+			globalParam().setMode( ClipGlobal.modeMFract );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandHTime( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_H_TIME );
+		param.setMode( ClipGlobal.modeHTime );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_H_TIME );
+			globalParam().setMode( ClipGlobal.modeHTime );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			double fps = value.mat().mat(0).toFloat();
 			param.setFps( fps );
 			if( globalParam() != param ){
 				globalParam().setFps( fps );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandMTime( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_M_TIME );
+		param.setMode( ClipGlobal.modeMTime );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_M_TIME );
+			globalParam().setMode( ClipGlobal.modeMTime );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			double fps = value.mat().mat(0).toFloat();
 			param.setFps( fps );
 			if( globalParam() != param ){
 				globalParam().setFps( fps );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandSTime( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_S_TIME );
+		param.setMode( ClipGlobal.modeSTime );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_S_TIME );
+			globalParam().setMode( ClipGlobal.modeSTime );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			double fps = value.mat().mat(0).toFloat();
 			param.setFps( fps );
 			if( globalParam() != param ){
 				globalParam().setFps( fps );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandFTime( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_F_TIME );
+		param.setMode( ClipGlobal.modeFTime );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_F_TIME );
+			globalParam().setMode( ClipGlobal.modeFTime );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			double fps = value.mat().mat(0).toFloat();
 			param.setFps( fps );
 			if( globalParam() != param ){
 				globalParam().setFps( fps );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandFps( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			double fps = value.mat().mat(0).toFloat();
 			param.setFps( fps );
 			if( globalParam() != param ){
 				globalParam().setFps( fps );
 			}
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandSChar( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_S_CHAR );
+		param.setMode( ClipGlobal.modeSChar );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_S_CHAR );
+			globalParam().setMode( ClipGlobal.modeSChar );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUChar( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_U_CHAR );
+		param.setMode( ClipGlobal.modeUChar );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_U_CHAR );
+			globalParam().setMode( ClipGlobal.modeUChar );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandSShort( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_S_SHORT );
+		param.setMode( ClipGlobal.modeSShort );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_S_SHORT );
+			globalParam().setMode( ClipGlobal.modeSShort );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUShort( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_U_SHORT );
+		param.setMode( ClipGlobal.modeUShort );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_U_SHORT );
+			globalParam().setMode( ClipGlobal.modeUShort );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandSLong( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_S_LONG );
+		param.setMode( ClipGlobal.modeSLong );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_S_LONG );
+			globalParam().setMode( ClipGlobal.modeSLong );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandULong( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_U_LONG );
+		param.setMode( ClipGlobal.modeULong );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_U_LONG );
+			globalParam().setMode( ClipGlobal.modeULong );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandSInt( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_S_LONG );
+		param.setMode( ClipGlobal.modeSLong );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_S_LONG );
+			globalParam().setMode( ClipGlobal.modeSLong );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUInt( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_U_LONG );
+		param.setMode( ClipGlobal.modeULong );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_U_LONG );
+			globalParam().setMode( ClipGlobal.modeULong );
 		}
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandRadix( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( param.mode() == CLIP_MODE_I_MULTIPREC ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_RADIX, code, token );
+		if( param.mode() == ClipGlobal.modeIMultiPrec ){
+			return _this._retError( ClipGlobal.procErrCommandRadix, code, token );
 		}
 
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setRadix( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setRadix( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandFMultiPrec( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		param.setMode( CLIP_MODE_F_MULTIPREC );
+		param.setMode( ClipGlobal.modeFMultiPrec );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_F_MULTIPREC );
+			globalParam().setMode( ClipGlobal.modeFMultiPrec );
 		}
 
 		lock = _this._curLine.token()!.lock();
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			int prec = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			int prec = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 			param.mpSetPrec( prec );
 			if( globalParam() != param ){
 				globalParam().mpSetPrec( prec );
@@ -7500,21 +7490,21 @@ class ClipProc {
 		}
 
 		if( _this._curLine.token()!.getToken() ){
-			if( getCode() == CLIP_CODE_LABEL ){
-				if( !(param.mpSetRoundStr( getToken() )) ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			if( ClipToken.curCode() == ClipGlobal.codeLabel ){
+				if( !(param.mpSetRoundStr( ClipToken.curToken() )) ){
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandIMultiPrec( ClipProc _this, ClipParam param, int code, dynamic token ){
-		param.setMode( CLIP_MODE_I_MULTIPREC );
+		param.setMode( ClipGlobal.modeIMultiPrec );
 		if( globalParam() != param ){
-			globalParam().setMode( CLIP_MODE_I_MULTIPREC );
+			globalParam().setMode( ClipGlobal.modeIMultiPrec );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandPType( ClipProc _this, ClipParam param, int code, dynamic token ){
 		param.setMode( _this._parentMode );
@@ -7525,66 +7515,66 @@ class ClipProc {
 			globalParam().mpSetPrec( _this._parentMpPrec );
 			globalParam().mpSetRound( _this._parentMpRound );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandRad( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) != CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) != ClipGlobal.noErr ){
 			value.matAss( 0.0 );
 		}
-		_this.setAngType( MATH_ANG_TYPE_RAD, value.mat().notEqual( 0.0 ) );
-		return CLIP_PROC_SUB_END;
+		_this.setAngType( ClipMath.angTypeRad, value.mat().notEqual( 0.0 ) );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandDeg( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) != CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) != ClipGlobal.noErr ){
 			value.matAss( 0.0 );
 		}
-		_this.setAngType( MATH_ANG_TYPE_DEG, value.mat().notEqual( 0.0 ) );
-		return CLIP_PROC_SUB_END;
+		_this.setAngType( ClipMath.angTypeDeg, value.mat().notEqual( 0.0 ) );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGrad( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) != CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) != ClipGlobal.noErr ){
 			value.matAss( 0.0 );
 		}
-		_this.setAngType( MATH_ANG_TYPE_GRAD, value.mat().notEqual( 0.0 ) );
-		return CLIP_PROC_SUB_END;
+		_this.setAngType( ClipMath.angTypeGrad, value.mat().notEqual( 0.0 ) );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandAngle( ClipProc _this, ClipParam param, int code, dynamic token ){
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			int tmp = MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), MATH_UMAX_8 ).toInt();
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			int tmp = ClipMath.unsigned( value[0].mat().mat(0).toFloat(), ClipMath.umax8 ).toInt();
 			if( tmp < 10 ){
-				value[1].matAss( param.variable().val( MATH_UNSIGNED( (MATH_CHAR_CODE_0 + tmp).toDouble(), MATH_UMAX_8 ).toInt() ) );
+				value[1].matAss( param.variable().val( ClipMath.unsigned( (ClipMath.charCode0 + tmp).toDouble(), ClipMath.umax8 ).toInt() ) );
 				value[1].mat().mat(0).angToAng( _this._parentAngType, _this._angType );
-				param.variable().set( MATH_UNSIGNED( (MATH_CHAR_CODE_0 + tmp).toDouble(), MATH_UMAX_8 ).toInt(), value[1].mat().mat(0), true );
-				return CLIP_PROC_SUB_END;
+				param.variable().set( ClipMath.unsigned( (ClipMath.charCode0 + tmp).toDouble(), ClipMath.umax8 ).toInt(), value[1].mat().mat(0), true );
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandAns( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			param.setAnsFlag( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			param.setAnsFlag( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandAssert( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			_this.setAssertFlag( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			_this.setAssertFlag( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWarn( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -7594,9 +7584,9 @@ class ClipProc {
 
 		lock = _this._curLine.token()!.lock();
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_STRING ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeString ){
 				if( _this._printWarn ){
 					_this._formatError(
 						newToken,
@@ -7605,10 +7595,10 @@ class ClipProc {
 						);
 					printWarn( error.str(), param.parentNum(), param.parentFunc() );
 				}
-				return CLIP_PROC_SUB_END;
-			} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
+				return ClipGlobal.procSubEnd;
+			} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
 				if( _this._printWarn ){
-					if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+					if( newCode == ClipGlobal.codeGlobalArray ){
 						param = globalParam();
 					}
 					_this._formatError(
@@ -7618,32 +7608,32 @@ class ClipProc {
 						);
 					printWarn( error.str(), param.parentNum(), param.parentFunc() );
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			} else {
 				ClipProcVal value = ClipProcVal( _this, param );
 
 				_this._curLine.token()!.unlock( lock );
-				if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-					_this.setWarnFlag( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-					return CLIP_PROC_SUB_END;
+				if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+					_this.setWarnFlag( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandParam( ClipProc _this, ClipParam param, int code, dynamic token ){
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-				int tmp = MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), MATH_UMAX_8 ).toInt();
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+				int tmp = ClipMath.unsigned( value[0].mat().mat(0).toFloat(), ClipMath.umax8 ).toInt();
 				if( tmp < 10 ){
-					param.setUpdateParam( tmp, MATH_INT( value[1].mat().mat(0).toFloat() ) != 0 );
-					return CLIP_PROC_SUB_END;
+					param.setUpdateParam( tmp, ClipMath.toInt( value[1].mat().mat(0).toFloat() ) != 0 );
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandParams( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
@@ -7654,94 +7644,94 @@ class ClipProc {
 
 		lock = _this._curLine.token()!.lock();
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			// &かどうかをチェックする
-			if( (newCode == CLIP_CODE_PARAM_ANS) || ((newCode == CLIP_CODE_OPERATOR) && (newToken >= CLIP_OP_AND)) ){
+			if( (newCode == ClipGlobal.codeParamAns) || ((newCode == ClipGlobal.codeOperator) && (newToken >= ClipGlobal.opAnd)) ){
 				if( !(_this._curLine.token()!.getTokenParam( param )) ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
-				newCode  = getCode();
-				newToken = getToken();
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
 				param.setUpdateParam( 0, true );
 			} else {
 				param.setUpdateParam( 0, false );
 			}
 
-			if( (newCode == CLIP_CODE_LABEL) || (newCode == CLIP_CODE_GLOBAL_VAR) || (newCode == CLIP_CODE_GLOBAL_ARRAY) ){
+			if( (newCode == ClipGlobal.codeLabel) || (newCode == ClipGlobal.codeGlobalVar) || (newCode == ClipGlobal.codeGlobalArray) ){
 				label = newToken;
 
 				// ラベルを設定する
 				lock = _this._curLine.token()!.lock();
 				if( _this._curLine.token()!.getToken() ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( newCode == CLIP_CODE_PARAM_ARRAY ){
-						param.array().label().setLabel( MATH_CHAR_CODE_0, label, true );
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( newCode == ClipGlobal.codeParamArray ){
+						param.array().label().setLabel( ClipMath.charCode0, label, true );
 					} else {
 						_this._curLine.token()!.unlock( lock );
-						param.variable().label().setLabel( MATH_CHAR_CODE_0, label, true );
+						param.variable().label().setLabel( ClipMath.charCode0, label, true );
 					}
 				} else {
 					_this._curLine.token()!.unlock( lock );
-					param.variable().label().setLabel( MATH_CHAR_CODE_0, label, true );
+					param.variable().label().setLabel( ClipMath.charCode0, label, true );
 				}
 
 				i = 1;
 				while( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
 
 					if( i > 9 ){
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAMS, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParams, code, token );
 					}
 
 					// &かどうかをチェックする
-					if( (newCode == CLIP_CODE_PARAM_ANS) || ((newCode == CLIP_CODE_OPERATOR) && (newToken >= CLIP_OP_AND)) ){
+					if( (newCode == ClipGlobal.codeParamAns) || ((newCode == ClipGlobal.codeOperator) && (newToken >= ClipGlobal.opAnd)) ){
 						if( !(_this._curLine.token()!.getTokenParam( param )) ){
-							return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+							return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 						}
-						newCode  = getCode();
-						newToken = getToken();
+						newCode  = ClipToken.curCode();
+						newToken = ClipToken.curToken();
 						param.setUpdateParam( i, true );
 					} else {
 						param.setUpdateParam( i, false );
 					}
 
 					switch( newCode ){
-					case CLIP_CODE_AUTO_VAR:
-					case CLIP_CODE_AUTO_ARRAY:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-					case CLIP_CODE_LABEL:
-					case CLIP_CODE_GLOBAL_VAR:
-					case CLIP_CODE_GLOBAL_ARRAY:
+					case ClipGlobal.codeAutoVar:
+					case ClipGlobal.codeAutoArray:
+						return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+					case ClipGlobal.codeLabel:
+					case ClipGlobal.codeGlobalVar:
+					case ClipGlobal.codeGlobalArray:
 						label = newToken;
 
 						// ラベルを設定する
 						lock = _this._curLine.token()!.lock();
 						if( _this._curLine.token()!.getToken() ){
-							newCode  = getCode();
-							newToken = getToken();
-							if( newCode == CLIP_CODE_PARAM_ARRAY ){
-								param.array().label().setLabel( MATH_CHAR_CODE_0 + i, label, true );
+							newCode  = ClipToken.curCode();
+							newToken = ClipToken.curToken();
+							if( newCode == ClipGlobal.codeParamArray ){
+								param.array().label().setLabel( ClipMath.charCode0 + i, label, true );
 							} else {
 								_this._curLine.token()!.unlock( lock );
-								param.variable().label().setLabel( MATH_CHAR_CODE_0 + i, label, true );
+								param.variable().label().setLabel( ClipMath.charCode0 + i, label, true );
 							}
 						} else {
 							_this._curLine.token()!.unlock( lock );
-							param.variable().label().setLabel( MATH_CHAR_CODE_0 + i, label, true );
+							param.variable().label().setLabel( ClipMath.charCode0 + i, label, true );
 						}
 
 						i++;
 
 						break;
 					default:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
 
@@ -7749,39 +7739,39 @@ class ClipProc {
 
 		_this._curLine.token()!.unlock( lock );
 		i = 0;
-		while( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		while( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			if( i > 9 ){
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAMS, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParams, code, token );
 			}
-			param.setUpdateParam( i, MATH_INT( value.mat().mat(0).toFloat() ) != 0 );
+			param.setUpdateParam( i, ClipMath.toInt( value.mat().mat(0).toFloat() ) != 0 );
 			i++;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandDefine( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				ClipProcVal value = ClipProcVal( _this, param );
-				if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+				if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 					param.variable().define( newToken, value.mat().mat(0), true );
 				} else {
 					param.variable().define( newToken, 1.0, true );
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandEnum( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
@@ -7793,107 +7783,107 @@ class ClipProc {
 
 		value.matAss( 0.0 );
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				lock = _this._curLine.token()!.lock();
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					tmpCode  = getCode();
-					tmpToken = getToken();
-					if( (tmpCode == CLIP_CODE_LABEL) || (tmpCode == CLIP_CODE_GLOBAL_VAR) || (tmpCode == CLIP_CODE_GLOBAL_ARRAY) ){
+					tmpCode  = ClipToken.curCode();
+					tmpToken = ClipToken.curToken();
+					if( (tmpCode == ClipGlobal.codeLabel) || (tmpCode == ClipGlobal.codeGlobalVar) || (tmpCode == ClipGlobal.codeGlobalArray) ){
 						_this._curLine.token()!.unlock( lock );
 					} else {
 						_this._curLine.token()!.unlock( lock );
-						if( _this._const( param, tmpCode, tmpToken, value ) != CLIP_NO_ERR ){
-							return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						if( _this._const( param, tmpCode, tmpToken, value ) != ClipGlobal.noErr ){
+							return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 						}
 					}
 				} else {
 					_this._curLine.token()!.unlock( lock );
 				}
-				param.variable().define( newToken, MATH_INT( value.mat().mat(0).toFloat() ), true );
+				param.variable().define( newToken, ClipMath.toInt( value.mat().mat(0).toFloat() ), true );
 				value.mat().addAndAss( 1.0 );
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUnDef( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_LABEL ){
-				return _this._retError( CLIP_PROC_ERR_COMMAND_UNDEF, newCode, newToken );
-			} else if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeLabel ){
+				return _this._retError( ClipGlobal.procErrCommandUndef, newCode, newToken );
+			} else if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalVar ){
 					param = globalParam();
 				}
 				param.variable().undef( param.variable().label().label(_this.varIndexIndirect( param, newCode, newToken )) );
-				return CLIP_PROC_SUB_END;
-			} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+				return ClipGlobal.procSubEnd;
+			} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 				param.array().undef( param.array().label().label(_this.arrayIndexIndirect( param, newCode, newToken )) );
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandVar( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				param.variable().define( newToken, 0.0, false );
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandArray( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				param.array().define( newToken );
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandLocal( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -7902,22 +7892,22 @@ class ClipProc {
 		String label;
 
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				label = newToken;
 
 				lock = _this._curLine.token()!.lock();
 				if( _this._curLine.token()!.getToken() ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( newCode == CLIP_CODE_PARAM_ARRAY ){
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( newCode == ClipGlobal.codeParamArray ){
 						param.array().define( label );
 					} else {
 						_this._curLine.token()!.unlock( lock );
@@ -7930,10 +7920,10 @@ class ClipProc {
 
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGlobal( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -7942,16 +7932,16 @@ class ClipProc {
 		String label;
 
 		while( _this._curLine.token()!.getTokenParam( globalParam() ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_LABEL ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeLabel ){
 				label = newToken;
 
 				lock = _this._curLine.token()!.lock();
 				if( _this._curLine.token()!.getToken() ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( newCode == CLIP_CODE_PARAM_ARRAY ){
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( newCode == ClipGlobal.codeParamArray ){
 						globalParam().array().define( label );
 					} else {
 						_this._curLine.token()!.unlock( lock );
@@ -7964,22 +7954,22 @@ class ClipProc {
 			} else {
 				lock = _this._curLine.token()!.lock();
 				if( _this._curLine.token()!.getToken() ){
-					if( getCode() == CLIP_CODE_PARAM_ARRAY ){
-						if( (newCode & CLIP_CODE_ARRAY_MASK) == 0 ){
-							return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
+					if( ClipToken.curCode() == ClipGlobal.codeParamArray ){
+						if( (newCode & ClipGlobal.codeArrayMask) == 0 ){
+							return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
 						}
 					} else {
 						_this._curLine.token()!.unlock( lock );
 					}
 				} else {
 					_this._curLine.token()!.unlock( lock );
-					if( (newCode & CLIP_CODE_VAR_MASK) == 0 ){
-						return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
+					if( (newCode & ClipGlobal.codeVarMask) == 0 ){
+						return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
 					}
 				}
 			}
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandLabel( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
@@ -7987,31 +7977,31 @@ class ClipProc {
 		String label;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 			switch( newCode ){
-			case CLIP_CODE_AUTO_VAR:
-			case CLIP_CODE_AUTO_ARRAY:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_GLOBAL_VAR:
-			case CLIP_CODE_GLOBAL_ARRAY:
+			case ClipGlobal.codeAutoVar:
+			case ClipGlobal.codeAutoArray:
+				return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeGlobalVar:
+			case ClipGlobal.codeGlobalArray:
 				label = newToken;
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( newCode == CLIP_CODE_VARIABLE ){
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( newCode == ClipGlobal.codeVariable ){
 						param.variable().label().setLabel( _this.varIndexParam( param, newToken ), label, true );
-						return CLIP_PROC_SUB_END;
-					} else if( newCode == CLIP_CODE_ARRAY ){
+						return ClipGlobal.procSubEnd;
+					} else if( newCode == ClipGlobal.codeArray ){
 						param.array().label().setLabel( _this.arrayIndexParam( param, newToken ), label, true );
-						return CLIP_PROC_SUB_END;
+						return ClipGlobal.procSubEnd;
 					}
 				}
 				break;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandParent( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
@@ -8019,9 +8009,9 @@ class ClipProc {
 		int index;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_VARIABLE ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeVariable ){
 				index = _this.varIndexParam( param, newToken );
 
 				if( param.parent() != null ){
@@ -8037,24 +8027,24 @@ class ClipProc {
 				}
 
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
 					switch( newCode ){
-					case CLIP_CODE_AUTO_VAR:
-					case CLIP_CODE_AUTO_ARRAY:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-					case CLIP_CODE_LABEL:
-					case CLIP_CODE_GLOBAL_VAR:
-					case CLIP_CODE_GLOBAL_ARRAY:
+					case ClipGlobal.codeAutoVar:
+					case ClipGlobal.codeAutoArray:
+						return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+					case ClipGlobal.codeLabel:
+					case ClipGlobal.codeGlobalVar:
+					case ClipGlobal.codeGlobalArray:
 						param.variable().label().setLabel( index, newToken, true );
 						break;
 					default:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 				}
 
-				return CLIP_PROC_SUB_END;
-			} else if( newCode == CLIP_CODE_ARRAY ){
+				return ClipGlobal.procSubEnd;
+			} else if( newCode == ClipGlobal.codeArray ){
 				index = _this.arrayIndexParam( param, newToken );
 
 				if( param.parent() != null ){
@@ -8065,184 +8055,184 @@ class ClipProc {
 				}
 
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
 					switch( newCode ){
-					case CLIP_CODE_AUTO_VAR:
-					case CLIP_CODE_AUTO_ARRAY:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_DEFINE, newCode, newToken );
-					case CLIP_CODE_LABEL:
-					case CLIP_CODE_GLOBAL_VAR:
-					case CLIP_CODE_GLOBAL_ARRAY:
+					case ClipGlobal.codeAutoVar:
+					case ClipGlobal.codeAutoArray:
+						return _this._retError( ClipGlobal.procErrCommandDefine, newCode, newToken );
+					case ClipGlobal.codeLabel:
+					case ClipGlobal.codeGlobalVar:
+					case ClipGlobal.codeGlobalArray:
 						param.array().label().setLabel( index, newToken, true );
 						break;
 					default:
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 				}
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandReal( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			ClipProcVal value = ClipProcVal( _this, param );
 
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalVar ){
 						param = globalParam();
 					}
 					ParamBoolean moveFlag = ParamBoolean();
 					int index = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
 					if( !(param.setReal( index, value.mat().mat(0).toFloat(), moveFlag.val() )) ){
-						return _this._retError( CLIP_PROC_ERR_ASS, newCode, newToken );
+						return _this._retError( ClipGlobal.procErrAss, newCode, newToken );
 					}
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandImag( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			ClipProcVal value = ClipProcVal( _this, param );
 
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalVar ){
 						param = globalParam();
 					}
 					ParamBoolean moveFlag = ParamBoolean();
 					int index = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
 					if( !(param.setImag( index, value.mat().mat(0).toFloat(), moveFlag.val() )) ){
-						return _this._retError( CLIP_PROC_ERR_ASS, newCode, newToken );
+						return _this._retError( ClipGlobal.procErrAss, newCode, newToken );
 					}
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandNum( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			ClipProcVal value = ClipProcVal( _this, param );
 
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalVar ){
 						param = globalParam();
 					}
 					ParamBoolean moveFlag = ParamBoolean();
 					int index = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
-					if( !(param.setNum( index, MATH_UNSIGNED( value.mat().mat(0).toFloat(), MATH_UMAX_32 ), moveFlag.val() )) ){
-						return _this._retError( CLIP_PROC_ERR_ASS, newCode, newToken );
+					if( !(param.setNum( index, ClipMath.unsigned( value.mat().mat(0).toFloat(), ClipMath.umax32 ), moveFlag.val() )) ){
+						return _this._retError( ClipGlobal.procErrAss, newCode, newToken );
 					}
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandDenom( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			ClipProcVal value = ClipProcVal( _this, param );
 
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalVar ){
 						param = globalParam();
 					}
 					ParamBoolean moveFlag = ParamBoolean();
 					int index = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
-					if( !(param.setDenom( index, MATH_UNSIGNED( value.mat().mat(0).toFloat(), MATH_UMAX_32 ), moveFlag.val() )) ){
-						return _this._retError( CLIP_PROC_ERR_ASS, newCode, newToken );
+					if( !(param.setDenom( index, ClipMath.unsigned( value.mat().mat(0).toFloat(), ClipMath.umax32 ), moveFlag.val() )) ){
+						return _this._retError( ClipGlobal.procErrAss, newCode, newToken );
 					}
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandMat( ClipProc _this, ClipParam param, int code, dynamic token ){
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 		int newCode;
 		dynamic newToken;
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-						if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+						if( newCode == ClipGlobal.codeGlobalArray ){
 							param = globalParam();
 						}
 						int index = _this.arrayIndexIndirect( param, newCode, newToken );
-						param.array().matrix(index).resize( MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt() );
-						return CLIP_PROC_SUB_END;
-					} else if( (newCode == CLIP_CODE_LABEL) || (newCode == CLIP_CODE_GLOBAL_VAR) ){
+						param.array().matrix(index).resize( ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt() );
+						return ClipGlobal.procSubEnd;
+					} else if( (newCode == ClipGlobal.codeLabel) || (newCode == ClipGlobal.codeGlobalVar) ){
 						int index = param.array().define( newToken );
-						param.array().matrix(index).resize( MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt() );
-						return CLIP_PROC_SUB_END;
+						param.array().matrix(index).resize( ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt() );
+						return ClipGlobal.procSubEnd;
 					}
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandTrans( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 				int index = _this.arrayIndexIndirect( param, newCode, newToken );
 				param.array().setMatrix( index, param.array().matrix(index).trans(), false );
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandSRand( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			MATH_SRAND( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			ClipMath.srand( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandLocalTime( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
@@ -8254,33 +8244,33 @@ class ClipProc {
 		int curIndex = 0;
 		ParamBoolean moveFlag = ParamBoolean();
 
-		if( _this._const( param, code, token, value ) != CLIP_NO_ERR ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		if( _this._const( param, code, token, value ) != ClipGlobal.noErr ){
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		// 書式制御文字列の取得
 		_this._getString( param, format );
 		if( format.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
-		int t = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+		int t = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 		Tm tm = Tm();
 		tm.localtime( t );
 
 		errFlag = false;
 		for( i = 0; i < format.str().length; i++ ){
-			if( charAt( format.str(), i ) == '%' ){
+			if( ClipMath.charAt( format.str(), i ) == '%' ){
 				i++;
 				if( i >= format.str().length ){
 					errFlag = true;
 					break;
 				}
 				if( _this._curLine.token()!.getTokenParam( param ) ){
-					newCode  = getCode();
-					newToken = getToken();
-					if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-						if( newCode == CLIP_CODE_GLOBAL_VAR ){
+					newCode  = ClipToken.curCode();
+					newToken = ClipToken.curToken();
+					if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+						if( newCode == ClipGlobal.codeGlobalVar ){
 							curIndex = _this.varIndexIndirectMove( globalParam(), newCode, newToken, moveFlag );
 						} else {
 							curIndex = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
@@ -8290,7 +8280,7 @@ class ClipProc {
 						break;
 					}
 				}
-				switch( charAt( format.str(), i ) ){
+				switch( ClipMath.charAt( format.str(), i ) ){
 				case 's': param.variable().set( curIndex, tm.sec , moveFlag.val() ); break;
 				case 'm': param.variable().set( curIndex, tm.min , moveFlag.val() ); break;
 				case 'h': param.variable().set( curIndex, tm.hour, moveFlag.val() ); break;
@@ -8313,10 +8303,10 @@ class ClipProc {
 //		format = null;
 
 		if( errFlag ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandArrayCopy( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
@@ -8332,54 +8322,54 @@ class ClipProc {
 		List<int> dstIndex = [];
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
 				srcCode  = newCode;
 				srcToken = newToken;
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		} else {
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		i = 0;
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			srcIndex[i] = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			srcIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 			i++;
 		} else {
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		while( true ){
 			lock = _this._curLine.token()!.lock();
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
 					dstCode  = newCode;
 					dstToken = newToken;
 					break;
 				}
 			}
 			_this._curLine.token()!.unlock( lock );
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				srcIndex[i] = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				srcIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 				i++;
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
 
 		i = 0;
 		while( true ){
-			if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-				dstIndex[i] = MATH_INT( value.mat().mat(0).toFloat() ).toInt();
+			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				dstIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 				i++;
 			} else {
 				if( i == 0 ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 				break;
 			}
@@ -8390,12 +8380,12 @@ class ClipProc {
 		if( len > 0 ){
 			int srcIndexSize = srcIndex.length;
 			ClipParam srcParam;
-			List<MathValue> srcValue = newValueArray( len );
+			List<MathValue> srcValue = MathValue.newArray( len );
 
 			for( i = 0; i < srcIndexSize; i++ ){
 				srcIndex[i] -= param.base();
 				if( srcIndex[i] < 0 ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
 			srcIndex[srcIndexSize] = -1;
@@ -8403,7 +8393,7 @@ class ClipProc {
 			for( i = 0; i < dstIndexSize; i++ ){
 				dstIndex[i] -= param.base();
 				if( dstIndex[i] < 0 ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
 			dstIndex[dstIndexSize] = -1;
@@ -8411,28 +8401,28 @@ class ClipProc {
 			srcIndex[srcIndexSize - 1] += len;
 			for( i = 0; i < len; i++ ){
 				srcIndex[srcIndexSize - 1]--;
-				srcParam = (srcCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
-				copyValue( srcValue[i], srcParam.array().val( _this.arrayIndexIndirect( srcParam, srcCode, srcToken ), srcIndex, srcIndexSize ) );
+				srcParam = (srcCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
+				MathValue.copy( srcValue[i], srcParam.array().val( _this.arrayIndexIndirect( srcParam, srcCode, srcToken ), srcIndex, srcIndexSize ) );
 			}
 
 			dstIndex[dstIndexSize - 1] += len;
 			for( i = 0; i < len; i++ ){
 				dstIndex[dstIndexSize - 1]--;
 				switch( dstCode ){
-				case CLIP_CODE_ARRAY:
+				case ClipGlobal.codeArray:
 					param.array().set( _this._index( param, dstCode, dstToken ), dstIndex, dstIndexSize, srcValue[i], true );
 					break;
-				case CLIP_CODE_AUTO_ARRAY:
+				case ClipGlobal.codeAutoArray:
 					param.array().set( _this.autoArrayIndex( param, dstToken ), dstIndex, dstIndexSize, srcValue[i], false );
 					break;
-				case CLIP_CODE_GLOBAL_ARRAY:
+				case ClipGlobal.codeGlobalArray:
 					globalParam().array().set( _this.autoArrayIndex( globalParam(), dstToken ), dstIndex, dstIndexSize, srcValue[i], false );
 					break;
 				}
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandArrayFill( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
@@ -8444,31 +8434,31 @@ class ClipProc {
 		dynamic dstToken;
 		List<int> dstIndex = [];
 
-		if( _this._const( param, code, token, srcValue ) != CLIP_NO_ERR ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		if( _this._const( param, code, token, srcValue ) != ClipGlobal.noErr ){
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
 				dstCode  = newCode;
 				dstToken = newToken;
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		} else {
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		i = 0;
 		while( true ){
-			if( _this._const( param, code, token, tmpValue ) == CLIP_NO_ERR ){
-				dstIndex[i] = MATH_INT( tmpValue.mat().mat(0).toFloat() ).toInt();
+			if( _this._const( param, code, token, tmpValue ) == ClipGlobal.noErr ){
+				dstIndex[i] = ClipMath.toInt( tmpValue.mat().mat(0).toFloat() ).toInt();
 				i++;
 			} else {
 				if( i == 0 ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 				break;
 			}
@@ -8480,7 +8470,7 @@ class ClipProc {
 			for( i = 0; i < dstIndexSize; i++ ){
 				dstIndex[i] -= param.base();
 				if( dstIndex[i] < 0 ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
 			dstIndex[dstIndexSize] = -1;
@@ -8489,84 +8479,84 @@ class ClipProc {
 			for( i = 0; i < len; i++ ){
 				dstIndex[dstIndexSize - 1]--;
 				switch( dstCode ){
-				case CLIP_CODE_ARRAY:
+				case ClipGlobal.codeArray:
 					param.array().set( _this._index( param, dstCode, dstToken ), dstIndex, dstIndexSize, srcValue.mat().mat(0), true );
 					break;
-				case CLIP_CODE_AUTO_ARRAY:
+				case ClipGlobal.codeAutoArray:
 					param.array().set( _this.autoArrayIndex( param, dstToken ), dstIndex, dstIndexSize, srcValue.mat().mat(0), false );
 					break;
-				case CLIP_CODE_GLOBAL_ARRAY:
+				case ClipGlobal.codeGlobalArray:
 					globalParam().array().set( _this.autoArrayIndex( globalParam(), dstToken ), dstIndex, dstIndexSize, srcValue.mat().mat(0), false );
 					break;
 				}
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandStrCpy( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				ClipParam tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				ClipParam tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 				int _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 
 				ParamString string = ParamString();
 				_this._getString( param, string );
 
 				switch( token ){
-				case CLIP_COMMAND_STRCPY:
+				case ClipGlobal.commandStrCpy:
 					_this.strSet( tmpParam.array(), _arrayIndex, string.str() );
 					break;
-				case CLIP_COMMAND_STRCAT:
+				case ClipGlobal.commandStrCat:
 					_this.strCat( tmpParam.array(), _arrayIndex, string.str() );
 					break;
 				}
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandStrLwr( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				ClipParam tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				ClipParam tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 				int _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 
 				_this.strLwr( tmpParam.array(), _arrayIndex );
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandStrUpr( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				ClipParam tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				ClipParam tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 				int _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 
 				_this.strUpr( tmpParam.array(), _arrayIndex );
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandPrint( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
@@ -8582,34 +8572,34 @@ class ClipProc {
 		ParamString imag = ParamString();
 
 		switch( token ){
-		case CLIP_COMMAND_SPRINT:
+		case ClipGlobal.commandSprint:
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalArray ){
 						_arrayIndex[0] = _this.arrayIndexIndirect( globalParam(), newCode, newToken );
 					} else {
 						_arrayIndex[0] = _this.arrayIndexIndirect( param, newCode, newToken );
 					}
 				} else {
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 			break;
-		case CLIP_COMMAND_PRINT:
-		case CLIP_COMMAND_PRINTLN:
+		case ClipGlobal.commandPrint:
+		case ClipGlobal.commandPrintLn:
 			break;
-		case CLIP_COMMAND_LOG:
+		case ClipGlobal.commandLog:
 			if( skipCommandLog() ){
 				while( true ){
 					if( !(_this._curLine.token()!.getTokenParam( param )) ){
 						break;
 					}
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 			break;
 		}
@@ -8621,8 +8611,8 @@ class ClipProc {
 			if( !(_this._curLine.token()!.getTokenParam( param )) ){
 				break;
 			}
-			newCode  = getCode();
-			newToken = getToken();
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
 
 			if( topPrint == null ){
 				topPrint = ClipProcPrint();
@@ -8634,11 +8624,11 @@ class ClipProc {
 			}
 			curPrint._string = null;
 
-			if( newCode == CLIP_CODE_STRING ){
+			if( newCode == ClipGlobal.codeString ){
 				curPrint._string = "";
 				curPrint._string = newToken;
-			} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				ClipParam tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+			} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				ClipParam tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 				_arrayIndex[1] = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 				curPrint._string = _this.strGet( tmpParam.array(), _arrayIndex[1] );
 				if( (curPrint._string!.isEmpty) && param.mpFlag() ){
@@ -8646,11 +8636,11 @@ class ClipProc {
 				}
 			} else {
 				_this._curLine.token()!.unlock( lock );
-				if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+				if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 					if( param.mpFlag() ){
 						curPrint._string = _this.mpNum2Str( param, value.mp() );
 					} else {
-						_proc_token.valueToString( param, value.mat().mat(0), real, imag );
+						_procToken.valueToString( param, value.mat().mat(0), real, imag );
 						curPrint._string = "";
 						curPrint._string = real.str() + imag.str();
 					}
@@ -8663,7 +8653,7 @@ class ClipProc {
 
 		if( !errFlag ){
 			switch( token ){
-			case CLIP_COMMAND_SPRINT:
+			case ClipGlobal.commandSprint:
 				_this.strSet( param.array(), _arrayIndex[0], "" );
 				curPrint = topPrint;
 				while( curPrint != null ){
@@ -8673,13 +8663,13 @@ class ClipProc {
 					curPrint = curPrint._next;
 				}
 				break;
-			case CLIP_COMMAND_PRINT:
+			case ClipGlobal.commandPrint:
 				doCommandPrint( topPrint, false/*改行なし*/ );
 				break;
-			case CLIP_COMMAND_PRINTLN:
+			case ClipGlobal.commandPrintLn:
 				doCommandPrint( topPrint, true/*改行付き*/ );
 				break;
-			case CLIP_COMMAND_LOG:
+			case ClipGlobal.commandLog:
 				doCommandLog( topPrint );
 				break;
 			}
@@ -8696,15 +8686,15 @@ class ClipProc {
 		}
 
 		if( errFlag ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandScan( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
 		dynamic newToken;
-		int ret = CLIP_NO_ERR;
+		int ret = ClipGlobal.noErr;
 
 		ClipProcScan topScan;
 		ClipProcScan? curScan;
@@ -8714,40 +8704,40 @@ class ClipProc {
 		curScan = topScan;
 
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_STRING ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeString ){
 				curScan!._title = "";
 				curScan._title = newToken;
-			} else if( ((newCode & CLIP_CODE_VAR_MASK) != 0) || ((newCode & CLIP_CODE_ARRAY_MASK) != 0) ){
+			} else if( ((newCode & ClipGlobal.codeVarMask) != 0) || ((newCode & ClipGlobal.codeArrayMask) != 0) ){
 				switch( newCode ){
-				case CLIP_CODE_VARIABLE:
+				case ClipGlobal.codeVariable:
 					if( param.variable().isLocked( _this.varIndexParam( param, newToken ) ) ){
-						ret = _this._retError( CLIP_PROC_ERR_ASS, code, token );
+						ret = _this._retError( ClipGlobal.procErrAss, code, token );
 					}
 					break;
-				case CLIP_CODE_AUTO_VAR:
+				case ClipGlobal.codeAutoVar:
 					if( param.variable().isLocked( _this.autoVarIndex( param, newToken ) ) ){
-						ret = _this._retError( CLIP_PROC_ERR_ASS, code, token );
+						ret = _this._retError( ClipGlobal.procErrAss, code, token );
 					}
 					break;
-				case CLIP_CODE_GLOBAL_VAR:
+				case ClipGlobal.codeGlobalVar:
 					if( globalParam().variable().isLocked( _this.autoVarIndex( globalParam(), newToken ) ) ){
-						ret = _this._retError( CLIP_PROC_ERR_ASS, code, token );
+						ret = _this._retError( ClipGlobal.procErrAss, code, token );
 					}
 					break;
 				}
-				_proc_token.delToken( curScan!._code, curScan._token );
+				_procToken.delToken( curScan!._code, curScan._token );
 				curScan._code = newCode;
 				switch( newCode ){
-				case CLIP_CODE_VARIABLE:
+				case ClipGlobal.codeVariable:
 					curScan._token = _this.varIndexParam( param, newToken );
 					break;
-				case CLIP_CODE_ARRAY:
+				case ClipGlobal.codeArray:
 					curScan._token = _this.arrayIndexParam( param, newToken );
 					break;
 				default:
-					curScan._token = _proc_token.newToken( newCode, newToken );
+					curScan._token = _procToken.newToken( newCode, newToken );
 					break;
 				}
 
@@ -8765,7 +8755,7 @@ class ClipProc {
 		if( curScan._before != null ){
 			curScan._before!._next = null;
 
-			if( ret == CLIP_NO_ERR ){
+			if( ret == ClipGlobal.noErr ){
 				doCommandScan( topScan, _this, param );
 			}
 
@@ -8780,10 +8770,10 @@ class ClipProc {
 			}
 		}
 
-		if( ret != CLIP_NO_ERR ){
+		if( ret != ClipGlobal.noErr ){
 			return ret;
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 /*
 	_commandChar2Esc( ClipProc _this, ClipParam param, int code, dynamic token ){
@@ -8791,10 +8781,10 @@ class ClipProc {
 		var newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -8804,20 +8794,20 @@ class ClipProc {
 				string.set( _this.strGet( param._array, _arrayIndex ) );
 				_this.strSet( param._array, _arrayIndex, string.escape().str() );
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	_commandEsc2Char( ClipProc _this, ClipParam param, int code, dynamic token ){
 		var newCode;
 		var newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -8827,15 +8817,15 @@ class ClipProc {
 				string.set( _this.strGet( param._array, _arrayIndex ) );
 				_this.strSet( param._array, _arrayIndex, string.unescape().str() );
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 */
 	static int _commandClear( ClipProc _this, ClipParam param, int code, dynamic token ){
 		doCommandClear();
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandError( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
@@ -8843,18 +8833,18 @@ class ClipProc {
 		ParamString error = ParamString();
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( newCode == CLIP_CODE_STRING ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( newCode == ClipGlobal.codeString ){
 				_this._formatError(
 					newToken,
 					param.fileFlag() ? param.funcName() : null,
 					error
 					);
 				printError( error.str(), param.parentNum(), param.parentFunc() );
-				return CLIP_PROC_SUB_END;
-			} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+				return ClipGlobal.procSubEnd;
+			} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 				_this._formatError(
@@ -8863,326 +8853,326 @@ class ClipProc {
 					error
 					);
 				printError( error.str(), param.parentNum(), param.parentFunc() );
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGWorld( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
 		for( int i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
-			int width  = MATH_INT( value[0].mat().mat(0).toFloat() ).toInt();
-			int height = MATH_INT( value[1].mat().mat(0).toFloat() ).toInt();
-			if( token == CLIP_COMMAND_GWORLD ){
+		if( ret == ClipGlobal.noErr ){
+			int width  = ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt();
+			int height = ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt();
+			if( token == ClipGlobal.commandGWorld ){
 				doCommandGWorld( width, height );
 				procGWorld().create( width, height, true, false );
 			} else {
 				doCommandGWorld24( width, height );
 				procGWorld().create( width, height, true, true );
 			}
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWindow( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 4, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 4, _this, param );
 
 		for( int i = 0; i < 4; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			double left   = value[0].mat().mat(0).toFloat();
 			double bottom = value[1].mat().mat(0).toFloat();
 			double right  = value[2].mat().mat(0).toFloat();
 			double top    = value[3].mat().mat(0).toFloat();
 			doCommandWindow( left, bottom, right, top );
 			procGWorld().setWindowIndirect( left, bottom, right, top );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGClear( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			procGWorld().clear( MATH_UNSIGNED( value.mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			procGWorld().clear( ClipMath.unsigned( value.mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 		} else {
 			procGWorld().clear( 0 );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGColor( ClipProc _this, ClipParam param, int code, dynamic token ){
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			int color = MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt();
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			int color = ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt();
 			if( procGWorld().rgbFlag() ){
-				if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			} else {
-				if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-					doCommandGColor( color, MATH_UNSIGNED( value[1].mat().mat(0).toFloat(), MATH_UMAX_24 ).toInt() );
+				if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+					doCommandGColor( color, ClipMath.unsigned( value[1].mat().mat(0).toFloat(), ClipMath.umax24 ).toInt() );
 				}
 			}
 			procGWorld().setColor( color );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGFill( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int  ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 5, _this, param );
+		int  ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 5, _this, param );
 
 		for( int i = 0; i < 4; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[4] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( ret == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[4] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().fill(
-				MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt(),
-				MATH_INT( value[2].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[3].mat().mat(0).toFloat() ).toInt()
+				ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt(),
+				ClipMath.toInt( value[2].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[3].mat().mat(0).toFloat() ).toInt()
 				);
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWFill( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 5, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 5, _this, param );
 
 		for( int i = 0; i < 4; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[4] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( ret == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[4] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndFill(
 				value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat(),
 				value[2].mat().mat(0).toFloat(), value[3].mat().mat(0).toFloat()
 				);
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGMove( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
 		for( int i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
-			procGWorld().moveTo( MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt() );
-			return CLIP_PROC_SUB_END;
+		if( ret == ClipGlobal.noErr ){
+			procGWorld().moveTo( ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt() );
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWMove( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
 		for( int i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			procGWorld().wndMoveTo( value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat() );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGText( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ParamString text = ParamString();
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 3, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 		_this._getString( param, text );
 		if( text.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		ret = _this._const( param, code, token, value[0] );
-		if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
-			procGWorld().drawText( text.str(), MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt(), false );
+			procGWorld().drawText( text.str(), ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt(), false );
 		} else {
-			if( ret == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( ret == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().drawTextTo( text.str(), false );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGTextR( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ParamString text = ParamString();
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 3, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 		_this._getString( param, text );
 		if( text.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		ret = _this._const( param, code, token, value[0] );
-		if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
-			procGWorld().drawText( text.str(), MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt(), true );
+			procGWorld().drawText( text.str(), ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt(), true );
 		} else {
-			if( ret == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( ret == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().drawTextTo( text.str(), true );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandWText( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ParamString text = ParamString();
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 3, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 		_this._getString( param, text );
 		if( text.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		ret = _this._const( param, code, token, value[0] );
-		if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndDrawText( text.str(), value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat(), false );
 		} else {
-			if( ret == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( ret == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndDrawTextTo( text.str(), false );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandWTextR( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ParamString text = ParamString();
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 3, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 		_this._getString( param, text );
 		if( text.isNull() ){
-			return _this._retError( CLIP_PROC_ERR_STRING, code, token );
+			return _this._retError( ClipGlobal.procErrString, code, token );
 		}
 
 		ret = _this._const( param, code, token, value[0] );
-		if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndDrawText( text.str(), value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat(), true );
 		} else {
-			if( ret == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( ret == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndDrawTextTo( text.str(), true );
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandGTextL( ClipProc _this, ClipParam param, int code, dynamic token ){
 		procGWorld().selectCharSet( 1 );
-		int ret = ClipProc._commandGText( _this, param, code, token );
+		int ret = _commandGText( _this, param, code, token );
 		procGWorld().selectCharSet( 0 );
 		return ret;
 	}
 	static int _commandGTextRL( ClipProc _this, ClipParam param, int code, dynamic token ){
 		procGWorld().selectCharSet( 1 );
-		int ret = ClipProc._commandGTextR( _this, param, code, token );
+		int ret = _commandGTextR( _this, param, code, token );
 		procGWorld().selectCharSet( 0 );
 		return ret;
 	}
 	static int _commandWTextL( ClipProc _this, ClipParam param, int code, dynamic token ){
 		procGWorld().selectCharSet( 1 );
-		int ret = ClipProc._commandWText( _this, param, code, token );
+		int ret = _commandWText( _this, param, code, token );
 		procGWorld().selectCharSet( 0 );
 		return ret;
 	}
 	static int _commandWTextRL( ClipProc _this, ClipParam param, int code, dynamic token ){
 		procGWorld().selectCharSet( 1 );
-		int ret = ClipProc._commandWTextR( _this, param, code, token );
+		int ret = _commandWTextR( _this, param, code, token );
 		procGWorld().selectCharSet( 0 );
 		return ret;
 	}
 	static int _commandGLine( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 5, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 5, _this, param );
 
 		for( int i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			ret = _this._const( param, code, token, value[2] );
-			if( _this._const( param, code, token, value[3] ) == CLIP_NO_ERR ){
-				if( _this._const( param, code, token, value[4] ) == CLIP_NO_ERR ){
-					procGWorld().setColor( MATH_UNSIGNED( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( _this._const( param, code, token, value[3] ) == ClipGlobal.noErr ){
+				if( _this._const( param, code, token, value[4] ) == ClipGlobal.noErr ){
+					procGWorld().setColor( ClipMath.unsigned( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 				}
 				procGWorld().line(
-					MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt(),
-					MATH_INT( value[2].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[3].mat().mat(0).toFloat() ).toInt()
+					ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt(),
+					ClipMath.toInt( value[2].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[3].mat().mat(0).toFloat() ).toInt()
 					);
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			} else {
-				if( ret == CLIP_NO_ERR ){
-					procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+				if( ret == ClipGlobal.noErr ){
+					procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 				}
 				procGWorld().lineTo(
-					MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt()
+					ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt()
 					);
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWLine( ClipProc _this, ClipParam param, int code, dynamic token ){
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 5, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 5, _this, param );
 
 		for( int i = 0; i < 2; i++ ){
 			ret = _this._const(param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			ret = _this._const( param, code, token, value[2] );
-			if( _this._const( param, code, token, value[3] ) == CLIP_NO_ERR ){
-				if( _this._const( param, code, token, value[4] ) == CLIP_NO_ERR ){
-					procGWorld().setColor( MATH_UNSIGNED( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+			if( _this._const( param, code, token, value[3] ) == ClipGlobal.noErr ){
+				if( _this._const( param, code, token, value[4] ) == ClipGlobal.noErr ){
+					procGWorld().setColor( ClipMath.unsigned( value[4].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 				}
 				procGWorld().wndLine(
 					value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat(),
 					value[2].mat().mat(0).toFloat(), value[3].mat().mat(0).toFloat()
 					);
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			} else {
-				if( ret == CLIP_NO_ERR ){
-					procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+				if( ret == ClipGlobal.noErr ){
+					procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 				}
 				procGWorld().wndLineTo(
 					value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat()
 					);
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGPut( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -9191,10 +9181,10 @@ class ClipProc {
 
 		lock = _this._curLine.token()!.lock();
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -9212,44 +9202,44 @@ class ClipProc {
 						arrayList[1] = x;
 						procGWorld().putColor(
 							x, y,
-							MATH_UNSIGNED( param.array().val( _arrayIndex, arrayList, 2 ).toFloat(), procGWorld().umax().toDouble() ).toInt()
+							ClipMath.unsigned( param.array().val( _arrayIndex, arrayList, 2 ).toFloat(), procGWorld().umax().toDouble() ).toInt()
 							);
 					}
 				}
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			} else {
-				int ret = CLIP_NO_ERR;
-				List<ClipProcVal> value = newProcValArray( 3, _this, param );
+				int ret = ClipGlobal.noErr;
+				List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 				_this._curLine.token()!.unlock( lock );
 				for( int i = 0; i < 2; i++ ){
 					ret = _this._const( param, code, token, value[i] );
 				}
-				if( ret == CLIP_NO_ERR ){
-					if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-						procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+				if( ret == ClipGlobal.noErr ){
+					if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+						procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 					}
-					procGWorld().put( MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt() );
-					return CLIP_PROC_SUB_END;
+					procGWorld().put( ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt() );
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGPut24( ClipProc _this, ClipParam param, int code, dynamic token ){
 		if( procGWorld().rgbFlag() ){
-			return ClipProc._commandGPut( _this, param, code, token );
+			return _commandGPut( _this, param, code, token );
 		}
 
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -9268,33 +9258,33 @@ class ClipProc {
 						arrayList[1] = x;
 						doCommandGPut24(
 							x, y,
-							MATH_UNSIGNED( param.array().val( _arrayIndex, arrayList, 2 ).toFloat(), MATH_UMAX_24 ).toInt()
+							ClipMath.unsigned( param.array().val( _arrayIndex, arrayList, 2 ).toFloat(), ClipMath.umax24 ).toInt()
 							);
 					}
 				}
 				doCommandGPut24End();
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWPut( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 3, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 3, _this, param );
 
 		for( i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-				procGWorld().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+		if( ret == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+				procGWorld().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 			}
 			procGWorld().wndPut( value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat() );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGGet( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
@@ -9303,10 +9293,10 @@ class ClipProc {
 
 		lock = _this._curLine.token()!.lock();
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -9320,7 +9310,7 @@ class ClipProc {
 				resizeList[1] = width  - 1;
 				resizeList[2] = -1;
 				arrayList [2] = -1;
-				bool moveFlag = (newCode == CLIP_CODE_ARRAY);
+				bool moveFlag = (newCode == ClipGlobal.codeArray);
 
 				int x, y;
 				for( y = 0; y < height; y++ ){
@@ -9334,53 +9324,53 @@ class ClipProc {
 					}
 				}
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			} else {
-				int ret = CLIP_NO_ERR;
-				List<ClipProcVal> value = newProcValArray( 2, _this, param );
+				int ret = ClipGlobal.noErr;
+				List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
 				_this._curLine.token()!.unlock( lock );
 				for( int i = 0; i < 2; i++ ){
 					ret = _this._const( param, code, token, value[i] );
 				}
-				if( ret == CLIP_NO_ERR ){
+				if( ret == ClipGlobal.noErr ){
 					if( _this._curLine.token()!.getTokenParam( param ) ){
-						newCode  = getCode();
-						newToken = getToken();
-						if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-							if( newCode == CLIP_CODE_GLOBAL_VAR ){
+						newCode  = ClipToken.curCode();
+						newToken = ClipToken.curToken();
+						if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+							if( newCode == ClipGlobal.codeGlobalVar ){
 								param = globalParam();
 							}
 							ParamBoolean moveFlag = ParamBoolean();
 							int index = _this.varIndexIndirectMove( param, newCode, newToken, moveFlag );
 							if( !(param.setVal(
 								index,
-								procGWorld().get( MATH_INT( value[0].mat().mat(0).toFloat() ).toInt(), MATH_INT( value[1].mat().mat(0).toFloat() ).toInt() ),
+								procGWorld().get( ClipMath.toInt( value[0].mat().mat(0).toFloat() ).toInt(), ClipMath.toInt( value[1].mat().mat(0).toFloat() ).toInt() ),
 								moveFlag.val()
 							)) ){
-								return _this._retError( CLIP_PROC_ERR_ASS, code, token );
+								return _this._retError( ClipGlobal.procErrAss, code, token );
 							}
-							return CLIP_PROC_SUB_END;
+							return ClipGlobal.procSubEnd;
 						}
 					}
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGGet24( ClipProc _this, ClipParam param, int code, dynamic token ){
 		if( procGWorld().rgbFlag() ){
-			return ClipProc._commandGGet( _this, param, code, token );
+			return _commandGGet( _this, param, code, token );
 		}
 
 		int newCode;
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					param = globalParam();
 				}
 
@@ -9398,7 +9388,7 @@ class ClipProc {
 					resizeList[1] = width  - 1;
 					resizeList[2] = -1;
 					arrayList [2] = -1;
-					bool moveFlag = (newCode == CLIP_CODE_ARRAY);
+					bool moveFlag = (newCode == ClipGlobal.codeArray);
 
 					int x, y, r, g, b;
 					int i = 0;
@@ -9420,28 +9410,28 @@ class ClipProc {
 					doCommandGGet24End();
 				}
 
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandWGet( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
-		int ret = CLIP_NO_ERR;
-		List<ClipProcVal> value = newProcValArray( 2, _this, param );
+		int ret = ClipGlobal.noErr;
+		List<ClipProcVal> value = ClipProcVal.newArray( 2, _this, param );
 
 		for( i = 0; i < 2; i++ ){
 			ret = _this._const( param, code, token, value[i] );
 		}
-		if( ret == CLIP_NO_ERR ){
+		if( ret == ClipGlobal.noErr ){
 			int newCode;
 			dynamic newToken;
 
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-					if( newCode == CLIP_CODE_GLOBAL_VAR ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+					if( newCode == ClipGlobal.codeGlobalVar ){
 						param = globalParam();
 					}
 					ParamBoolean moveFlag = ParamBoolean();
@@ -9451,50 +9441,50 @@ class ClipProc {
 						procGWorld().wndGet( value[0].mat().mat(0).toFloat(), value[1].mat().mat(0).toFloat() ),
 						moveFlag.val()
 					)) ){
-						return _this._retError( CLIP_PROC_ERR_ASS, code, token );
+						return _this._retError( ClipGlobal.procErrAss, code, token );
 					}
-					return CLIP_PROC_SUB_END;
+					return ClipGlobal.procSubEnd;
 				}
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandGUpdate( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
-			_this.setGUpdateFlag( MATH_INT( value.mat().mat(0).toFloat() ).toInt() );
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			_this.setGUpdateFlag( ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt() );
 		} else {
 			_this.setGUpdateFlag( 1 );
 		}
 		if( _this._gUpdateFlag ){
 			doCommandGUpdate( procGWorld() );
 		}
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandRectangular( ClipProc _this, ClipParam param, int code, dynamic token ){
-		procGraph().setMode( CLIP_GRAPH_MODE_RECT );
-		return CLIP_PROC_SUB_END;
+		procGraph().setMode( ClipGlobal.graphModeRect );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandParametric( ClipProc _this, ClipParam param, int code, dynamic token ){
-		procGraph().setMode( CLIP_GRAPH_MODE_PARAM );
-		return CLIP_PROC_SUB_END;
+		procGraph().setMode( ClipGlobal.graphModeParam );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandPolar( ClipProc _this, ClipParam param, int code, dynamic token ){
-		procGraph().setMode( CLIP_GRAPH_MODE_POLAR );
-		return CLIP_PROC_SUB_END;
+		procGraph().setMode( ClipGlobal.graphModePolar );
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandLogScale( ClipProc _this, ClipParam param, int code, dynamic token ){
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getToken() ){
-			newToken = getToken();
-			if( getCode() == CLIP_CODE_LABEL ){
+			newToken = ClipToken.curToken();
+			if( ClipToken.curCode() == ClipGlobal.codeLabel ){
 				ClipProcVal value = ClipProcVal( _this, param );
 
-				if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+				if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 					if( value.mat().mat(0).toFloat() <= 1.0 ){
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 				} else {
 					value.matAss( 10.0 );
@@ -9507,19 +9497,19 @@ class ClipProc {
 					procGraph().setLogScaleX( value.mat().mat(0).toFloat() );
 					procGraph().setLogScaleY( value.mat().mat(0).toFloat() );
 				} else {
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandNoLogScale( ClipProc _this, ClipParam param, int code, dynamic token ){
 		dynamic newToken;
 
 		if( _this._curLine.token()!.getToken() ){
-			newToken = getToken();
-			if( getCode() == CLIP_CODE_LABEL ){
+			newToken = ClipToken.curToken();
+			if( ClipToken.curCode() == ClipGlobal.codeLabel ){
 				if( newToken == "x" ){
 					procGraph().setLogScaleX( 0.0 );
 				} else if( newToken == "y" ){
@@ -9528,31 +9518,31 @@ class ClipProc {
 					procGraph().setLogScaleX( 0.0 );
 					procGraph().setLogScaleY( 0.0 );
 				} else {
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandPlot( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipTokenData? lock;
 		int newCode;
 		dynamic newToken;
-		List<ClipProcVal> value = newProcValArray( 4, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 4, _this, param );
 
 		// 計算式の取り込み
 		switch( procGraph().mode() ){
-		case CLIP_GRAPH_MODE_RECT:
-		case CLIP_GRAPH_MODE_POLAR:
+		case ClipGlobal.graphModeRect:
+		case ClipGlobal.graphModePolar:
 			lock = _this._curLine.token()!.lock();
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( newCode == CLIP_CODE_STRING ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( newCode == ClipGlobal.codeString ){
 					procGraph().setExpr( newToken );
-				} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-					var tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+				} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+					var tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 					var _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 					procGraph().setExpr( _this.strGet( tmpParam.array(), _arrayIndex ) );
 				} else {
@@ -9561,15 +9551,15 @@ class ClipProc {
 				}
 			}
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
+		case ClipGlobal.graphModeParam:
 			lock = _this._curLine.token()!.lock();
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( newCode == CLIP_CODE_STRING ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( newCode == ClipGlobal.codeString ){
 					procGraph().setExpr1( newToken );
-				} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-					var tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+				} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+					var tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 					var _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 					procGraph().setExpr1( _this.strGet( tmpParam.array(), _arrayIndex ) );
 				} else {
@@ -9579,80 +9569,80 @@ class ClipProc {
 			}
 			lock = _this._curLine.token()!.lock();
 			if( _this._curLine.token()!.getTokenParam( param ) ){
-				newCode  = getCode();
-				newToken = getToken();
-				if( newCode == CLIP_CODE_STRING ){
+				newCode  = ClipToken.curCode();
+				newToken = ClipToken.curToken();
+				if( newCode == ClipGlobal.codeString ){
 					procGraph().setExpr2( newToken );
-				} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-					ClipParam tmpParam = (newCode == CLIP_CODE_GLOBAL_ARRAY) ? globalParam() : param;
+				} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+					ClipParam tmpParam = (newCode == ClipGlobal.codeGlobalArray) ? globalParam() : param;
 					int _arrayIndex = _this.arrayIndexIndirect( tmpParam, newCode, newToken );
 					procGraph().setExpr2( _this.strGet( tmpParam.array(), _arrayIndex ) );
 				} else {
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 			break;
 		}
 
 		procGraph().setColor( procGWorld().color() );
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
 				switch( procGraph().mode() ){
-				case CLIP_GRAPH_MODE_RECT:
-					if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
+				case ClipGlobal.graphModeRect:
+					if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
 						// パラメータが3個指定されている...
-						procGraph().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+						procGraph().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 					} else {
 						// パラメータが2個指定されている...
 					}
 					break;
-				case CLIP_GRAPH_MODE_PARAM:
-				case CLIP_GRAPH_MODE_POLAR:
-					if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-						if( _this._const( param, code, token, value[3] ) == CLIP_NO_ERR ){
+				case ClipGlobal.graphModeParam:
+				case ClipGlobal.graphModePolar:
+					if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+						if( _this._const( param, code, token, value[3] ) == ClipGlobal.noErr ){
 							// パラメータが4個指定されている...
-							procGraph().setColor( MATH_UNSIGNED( value[3].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+							procGraph().setColor( ClipMath.unsigned( value[3].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 						} else {
 							// パラメータが3個指定されている...
 						}
 					} else {
 						// パラメータが2個しか指定されていない...
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 					break;
 				}
 			} else {
 				// パラメータが1個指定されている...
-				procGraph().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+				procGraph().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 
 				switch( procGraph().mode() ){
-				case CLIP_GRAPH_MODE_RECT:
+				case ClipGlobal.graphModeRect:
 					value[0].matAss( procGWorld().wndPosX( 0 ) );
 					value[1].matAss( procGWorld().wndPosX( procGWorld().width() - 1 ) );
 					break;
-				case CLIP_GRAPH_MODE_PARAM:
-				case CLIP_GRAPH_MODE_POLAR:
-					value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-					value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-					value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
+				case ClipGlobal.graphModeParam:
+				case ClipGlobal.graphModePolar:
+					value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+					value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+					value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
 					break;
 				}
 			}
 		} else {
 			// パラメータが指定されていない...
 			switch( procGraph().mode() ){
-			case CLIP_GRAPH_MODE_RECT:
+			case ClipGlobal.graphModeRect:
 				value[0].matAss( procGWorld().wndPosX( 0 ) );
 				value[1].matAss( procGWorld().wndPosX( procGWorld().width() - 1 ) );
 				break;
-			case CLIP_GRAPH_MODE_PARAM:
-			case CLIP_GRAPH_MODE_POLAR:
-				value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-				value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-				value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
+			case ClipGlobal.graphModeParam:
+			case ClipGlobal.graphModePolar:
+				value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+				value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+				value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
 				break;
 			}
 		}
@@ -9665,68 +9655,68 @@ class ClipProc {
 		childProc.end();
 		childParam.end();
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandRePlot( ClipProc _this, ClipParam param, int code, dynamic token ){
-		List<ClipProcVal> value = newProcValArray( 4, _this, param );
+		List<ClipProcVal> value = ClipProcVal.newArray( 4, _this, param );
 
 		procGraph().setColor( procGWorld().color() );
 
-		if( _this._const( param, code, token, value[0] ) == CLIP_NO_ERR ){
-			if( _this._const( param, code, token, value[1] ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value[0] ) == ClipGlobal.noErr ){
+			if( _this._const( param, code, token, value[1] ) == ClipGlobal.noErr ){
 				switch( procGraph().mode() ){
-				case CLIP_GRAPH_MODE_RECT:
-					if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
+				case ClipGlobal.graphModeRect:
+					if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
 						// パラメータが3個指定されている...
-						procGraph().setColor( MATH_UNSIGNED( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+						procGraph().setColor( ClipMath.unsigned( value[2].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 					} else {
 						// パラメータが2個指定されている...
 					}
 					break;
-				case CLIP_GRAPH_MODE_PARAM:
-				case CLIP_GRAPH_MODE_POLAR:
-					if( _this._const( param, code, token, value[2] ) == CLIP_NO_ERR ){
-						if( _this._const( param, code, token, value[3] ) == CLIP_NO_ERR ){
+				case ClipGlobal.graphModeParam:
+				case ClipGlobal.graphModePolar:
+					if( _this._const( param, code, token, value[2] ) == ClipGlobal.noErr ){
+						if( _this._const( param, code, token, value[3] ) == ClipGlobal.noErr ){
 							// パラメータが4個指定されている...
-							procGraph().setColor( MATH_UNSIGNED( value[3].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+							procGraph().setColor( ClipMath.unsigned( value[3].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 						} else {
 							// パラメータが3個指定されている...
 						}
 					} else {
 						// パラメータが2個しか指定されていない...
-						return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+						return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 					}
 					break;
 				}
 			} else {
 				// パラメータが1個指定されている...
-				procGraph().setColor( MATH_UNSIGNED( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
+				procGraph().setColor( ClipMath.unsigned( value[0].mat().mat(0).toFloat(), procGWorld().umax().toDouble() ).toInt() );
 
 				switch( procGraph().mode() ){
-				case CLIP_GRAPH_MODE_RECT:
+				case ClipGlobal.graphModeRect:
 					value[0].matAss( procGWorld().wndPosX( 0 ) );
 					value[1].matAss( procGWorld().wndPosX( procGWorld().width() - 1 ) );
 					break;
-				case CLIP_GRAPH_MODE_PARAM:
-				case CLIP_GRAPH_MODE_POLAR:
-					value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-					value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-					value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
+				case ClipGlobal.graphModeParam:
+				case ClipGlobal.graphModePolar:
+					value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+					value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+					value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
 					break;
 				}
 			}
 		} else {
 			// パラメータが指定されていない...
 			switch( procGraph().mode() ){
-			case CLIP_GRAPH_MODE_RECT:
+			case ClipGlobal.graphModeRect:
 				value[0].matAss( procGWorld().wndPosX( 0 ) );
 				value[1].matAss( procGWorld().wndPosX( procGWorld().width() - 1 ) );
 				break;
-			case CLIP_GRAPH_MODE_PARAM:
-			case CLIP_GRAPH_MODE_POLAR:
-				value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-				value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
-				value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( MATH_ANG_TYPE_DEG, complexAngType() );
+			case ClipGlobal.graphModeParam:
+			case ClipGlobal.graphModePolar:
+				value[0].matAss(   0.0 ); value[0].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+				value[1].matAss( 360.0 ); value[1].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
+				value[2].matAss(   1.0 ); value[2].mat().mat(0).angToAng( ClipMath.angTypeDeg, ClipMath.complexAngType() );
 				break;
 			}
 		}
@@ -9739,16 +9729,16 @@ class ClipProc {
 		childProc.end();
 		childParam.end();
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandCalculator( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			param.setCalculator( value.mat().notEqual( 0.0 ) );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandInclude( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int ret;
@@ -9761,32 +9751,32 @@ class ClipProc {
 
 		dynamic newToken;
 		if( _this._curLine.token()!.getToken() ){
-			newToken = getToken();
-			if( getCode() == CLIP_CODE_EXTFUNC ){
+			newToken = ClipToken.curToken();
+			if( ClipToken.curCode() == ClipGlobal.codeExtFunc ){
 				String name = newToken + ".inc";
 				ClipFuncData? func;
 				if( (func = procFunc().search( name, true, null )) != null ){
-					if( _this.mainLoop( func, param, null, null ) == CLIP_PROC_END ){
-						ret = CLIP_NO_ERR;
+					if( _this.mainLoop( func, param, null, null ) == ClipGlobal.procEnd ){
+						ret = ClipGlobal.noErr;
 					} else {
-						ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, CLIP_CODE_EXTFUNC, name );
+						ret = _this._retError( ClipGlobal.procErrExtFunc, ClipGlobal.codeExtFunc, name );
 					}
 				} else if( (func = _this.newFuncCache( name, param, null )) != null ){
-					if( _this.mainLoop( func, param, null, null ) == CLIP_PROC_END ){
-						ret = CLIP_NO_ERR;
+					if( _this.mainLoop( func, param, null, null ) == ClipGlobal.procEnd ){
+						ret = ClipGlobal.noErr;
 					} else {
-						ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, CLIP_CODE_EXTFUNC, name );
+						ret = _this._retError( ClipGlobal.procErrExtFunc, ClipGlobal.codeExtFunc, name );
 					}
-				} else if( _this.mainLoop( name, param, null, null ) == CLIP_PROC_END ){
-					ret = CLIP_NO_ERR;
+				} else if( _this.mainLoop( name, param, null, null ) == ClipGlobal.procEnd ){
+					ret = ClipGlobal.noErr;
 				} else {
-					ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, CLIP_CODE_EXTFUNC, name );
+					ret = _this._retError( ClipGlobal.procErrExtFunc, ClipGlobal.codeExtFunc, name );
 				}
 			} else {
-				ret = _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				ret = _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		} else {
-			ret = _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			ret = _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 
 		_this._curLine  = saveCurLine;
@@ -9795,28 +9785,28 @@ class ClipProc {
 		param.setDefNameSpace( saveDefNameSpace );
 		param.setNameSpace( saveNameSpace );
 
-		return (ret == CLIP_NO_ERR) ? CLIP_PROC_SUB_END : ret;
+		return (ret == ClipGlobal.noErr) ? ClipGlobal.procSubEnd : ret;
 	}
 	static int _commandBase( ClipProc _this, ClipParam param, int code, dynamic token ){
 		ClipProcVal value = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, value ) == CLIP_NO_ERR ){
+		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
 			param.setBase( value.mat().notEqual( 0.0 ) ? 1 : 0 );
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
-		return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 	}
 	static int _commandNameSpace( ClipProc _this, ClipParam param, int code, dynamic token ){
 		if( _this._curLine.token()!.getToken() ){
-			String nameSpace = _proc_token.tokenString( param, getCode(), getToken() );
+			String nameSpace = _procToken.tokenString( param, ClipToken.curCode(), ClipToken.curToken() );
 			if( nameSpace.isNotEmpty ){
 				param.setNameSpace( nameSpace );
-				return CLIP_PROC_SUB_END;
+				return ClipGlobal.procSubEnd;
 			}
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 		param.resetNameSpace();
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUse( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int descCode;
@@ -9824,53 +9814,53 @@ class ClipProc {
 		int realCode;
 		dynamic realToken;
 		if( _this._curLine.token()!.getToken() ){
-			descCode  = getCode();
-			descToken = getToken();
+			descCode  = ClipToken.curCode();
+			descToken = ClipToken.curToken();
 			switch( descCode ){
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_FUNCTION:
-			case CLIP_CODE_EXTFUNC:
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeFunction:
+			case ClipGlobal.codeExtFunc:
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 			if( _this._curLine.token()!.getToken() ){
-				realCode  = getCode();
-				realToken = getToken();
+				realCode  = ClipToken.curCode();
+				realToken = ClipToken.curToken();
 				switch( realCode ){
-				case CLIP_CODE_LABEL:
-				case CLIP_CODE_FUNCTION:
-				case CLIP_CODE_EXTFUNC:
+				case ClipGlobal.codeLabel:
+				case ClipGlobal.codeFunction:
+				case ClipGlobal.codeExtFunc:
 					break;
 				default:
-					return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		} else {
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		}
 		param.setReplace( descCode, descToken, realCode, realToken );
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandUnuse( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int descCode = 0;
 		dynamic descToken;
 		if( _this._curLine.token()!.getToken() ){
-			descCode  = getCode();
-			descToken = getToken();
+			descCode  = ClipToken.curCode();
+			descToken = ClipToken.curToken();
 			switch( descCode ){
-			case CLIP_CODE_LABEL:
-			case CLIP_CODE_FUNCTION:
-			case CLIP_CODE_EXTFUNC:
+			case ClipGlobal.codeLabel:
+			case ClipGlobal.codeFunction:
+			case ClipGlobal.codeExtFunc:
 				break;
 			default:
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
 		param.delReplace( descCode, descToken );
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 	static int _commandDump( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int newCode;
@@ -9882,30 +9872,30 @@ class ClipProc {
 					break;
 				}
 			}
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
 
 		while( _this._curLine.token()!.getTokenParam( param ) ){
-			newCode  = getCode();
-			newToken = getToken();
-			if( (newCode & CLIP_CODE_VAR_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_VAR ){
+			newCode  = ClipToken.curCode();
+			newToken = ClipToken.curToken();
+			if( (newCode & ClipGlobal.codeVarMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalVar ){
 					doCommandDumpVar( globalParam(), _this.varIndexIndirect( globalParam(), newCode, newToken ) );
 				} else {
 					doCommandDumpVar( param, _this.varIndexIndirect( param, newCode, newToken ) );
 				}
-			} else if( (newCode & CLIP_CODE_ARRAY_MASK) != 0 ){
-				if( newCode == CLIP_CODE_GLOBAL_ARRAY ){
+			} else if( (newCode & ClipGlobal.codeArrayMask) != 0 ){
+				if( newCode == ClipGlobal.codeGlobalArray ){
 					doCommandDumpArray( globalParam(), _this.arrayIndexIndirect( globalParam(), newCode, newToken ) );
 				} else {
 					doCommandDumpArray( param, _this.arrayIndexIndirect( param, newCode, newToken ) );
 				}
 			} else {
-				return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+				return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 			}
 		}
 
-		return CLIP_PROC_SUB_END;
+		return ClipGlobal.procSubEnd;
 	}
 
 	static int _procTop( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
@@ -9924,28 +9914,28 @@ class ClipProc {
 		_curInfo._assToken = varIndexParam( param, token );
 		value.matAss( param.val( _curInfo._assToken ) );
 		_updateMatrix( param, value.mat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procVariable( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( param.val( _this.varIndexParam( param, token ) ) );
 		_this._updateMatrix( param, value.mat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procAutoVar( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( param.val( _this.autoVarIndex( param, token ) ) );
 		_this._updateMatrix( param, value.mat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procGlobalVar( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( globalParam().val( _this.autoVarIndex( globalParam(), token ) ) );
 		_this._updateMatrix( param, value.mat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _procArrayFirst( ClipParam param, dynamic token, ClipProcVal value ){
 		_curInfo._assToken = arrayIndexParam( param, token );
 
 		if( _curLine.token()!.getTokenLock() ){
-			if( getCode() == CLIP_CODE_ARRAY_TOP ){
+			if( ClipToken.curCode() == ClipGlobal.codeArrayTop ){
 				_initArrayFlag  = true;
 				_initArrayCnt   = 0;
 				_initArrayMax   = 0;
@@ -9955,7 +9945,7 @@ class ClipProc {
 			}
 		}
 
-		_getArrayInfo( param, CLIP_CODE_ARRAY, token );
+		_getArrayInfo( param, ClipGlobal.codeArray, token );
 
 		if( _curInfo._curArraySize == 0 ){
 			if( param.mpFlag() ){
@@ -9969,13 +9959,13 @@ class ClipProc {
 			value.matAss( param.array().val( _curInfo._assToken, _curInfo._curArray, _curInfo._curArraySize ) );
 			_updateMatrix( param, value.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procArray( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int index = _this.arrayIndexParam( param, token );
 
 		if( _this._curLine.token()!.getTokenLock() ){
-			if( getCode() == CLIP_CODE_ARRAY_TOP ){
+			if( ClipToken.curCode() == ClipGlobal.codeArrayTop ){
 				_this._initArrayFlag  = true;
 				_this._initArrayCnt   = 0;
 				_this._initArrayMax   = 0;
@@ -9999,16 +9989,16 @@ class ClipProc {
 			value.matAss( param.array().val( index, _this._curInfo._curArray, _this._curInfo._curArraySize ) );
 			_this._updateMatrix( param, value.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procAutoArray( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		ClipParam curParam = param;
-		if( code == CLIP_CODE_GLOBAL_ARRAY ){
+		if( code == ClipGlobal.codeGlobalArray ){
 			param = globalParam();
 		}
 
 		if( _this._curLine.token()!.getTokenLock() ){
-			if( getCode() == CLIP_CODE_ARRAY_TOP ){
+			if( ClipToken.curCode() == ClipGlobal.codeArrayTop ){
 				_this._initArrayFlag  = true;
 				_this._initArrayCnt   = 0;
 				_this._initArrayMax   = 0;
@@ -10032,16 +10022,16 @@ class ClipProc {
 			value.matAss( param.array().val( _this.autoArrayIndex( param, token ), _this._curInfo._curArray, _this._curInfo._curArraySize ) );
 			_this._updateMatrix( curParam, value.mat() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procConst( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		value.matAss( token );
 		_this._updateMatrix( param, value.mat() );
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procMultiPrec( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
-		_proc_mp.fset( value.mp(), token );
-		return CLIP_NO_ERR;
+		_procMp.fset( value.mp(), token );
+		return ClipGlobal.noErr;
 	}
 	static int _procLabel( ClipProc _this, ClipParam parentParam, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		ClipToken funcParam = ClipToken();
@@ -10049,7 +10039,7 @@ class ClipProc {
 
 		// 関数のパラメータを取得する
 		if( !(_this._getParams( parentParam, code, token, funcParam, seFlag )) ){
-			return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+			return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 		}
 
 		if( (func = parentParam.func().search( token, false, null )) != null ){
@@ -10059,65 +10049,65 @@ class ClipProc {
 			ClipProc childProc = ClipProc( parentParam.mode(), parentParam.mpPrec(), parentParam.mpRound(), false, _this._printAssert, _this._printWarn, _this._gUpdateFlag );
 			ClipParam childParam = ClipParam( _this._curLine.num(), parentParam, false );
 			_this.initInternalProc( childProc, func!, childParam, parentParam );
-			if( mainProc( _this, parentParam, func, funcParam, childProc, childParam ) == CLIP_PROC_END ){
+			if( mainProc( _this, parentParam, func, funcParam, childProc, childParam ) == ClipGlobal.procEnd ){
 				childProc.end();
 				_this.getAns( childParam, value, parentParam );
-				ret = CLIP_NO_ERR;
+				ret = ClipGlobal.noErr;
 			} else {
 				childProc.end();
-				ret = _this._retError( CLIP_PROC_ERR_USERFUNC, code, token );
+				ret = _this._retError( ClipGlobal.procErrUserFunc, code, token );
 			}
 			childParam.end();
 
 			return ret;
 		} else {
-			return _this._retError( CLIP_PROC_ERR_CONSTANT, code, token );
+			return _this._retError( ClipGlobal.procErrConstant, code, token );
 		}
 	}
 	static int _procCommand( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		if( (ret = _procSubCommand[token]( _this, param, code, token )) != CLIP_PROC_SUB_END ){
+		if( (ret = _procSubCommand[token]( _this, param, code, token )) != ClipGlobal.procSubEnd ){
 			return ret;
 		}
 
 		ClipProcVal tmpValue = ClipProcVal( _this, param );
 
-		if( _this._const( param, code, token, tmpValue ) == CLIP_NO_ERR ){
-			return _this._retError( CLIP_PROC_ERR_COMMAND_PARAM, code, token );
+		if( _this._const( param, code, token, tmpValue ) == ClipGlobal.noErr ){
+			return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 		} else {
-			return CLIP_PROC_SUB_END;
+			return ClipGlobal.procSubEnd;
 		}
 	}
 	static int _procStat( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		return _procSubStat[token]( _this, param, code, token );
 	}
 	static int _procUnary( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
-		if( token < CLIP_OP_UNARY_END ){
+		if( token < ClipGlobal.opUnaryEnd ){
 			return _procSubOp[token]( _this, param, code, token, value );
 		} else {
-			return _this._retError( CLIP_PROC_ERR_UNARY, code, token );
+			return _this._retError( ClipGlobal.procErrUnary, code, token );
 		}
 	}
 	static int _procFunc( ClipProc _this, ClipParam param, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
 
-		clearValueError();
-		clearMatrixError();
+		ClipMath.clearValueError();
+		ClipMath.clearMatrixError();
 
-		if( (ret = _procSubFunc[token]( _this, param, code, token, value, seFlag )) != CLIP_NO_ERR ){
+		if( (ret = _procSubFunc[token]( _this, param, code, token, value, seFlag )) != ClipGlobal.noErr ){
 			return ret;
 		}
 		if( !(param.mpFlag()) ){
 			_this._updateMatrix( param, value.mat() );
 
-			if( valueError() ){
-				_this._errorProc( CLIP_PROC_WARN_FUNCTION, _this._curLine.num(), param, code, token );
-				clearValueError();
+			if( ClipMath.valueError() ){
+				_this._errorProc( ClipGlobal.procWarnFunction, _this._curLine.num(), param, code, token );
+				ClipMath.clearValueError();
 			}
 		}
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	static int _procExtFunc( ClipProc _this, ClipParam parentParam, int code, dynamic token, ClipProcVal value, bool seFlag ){
 		int ret;
@@ -10127,7 +10117,7 @@ class ClipProc {
 
 		// 関数のパラメータを取得する
 		if( !(_this._getParams( parentParam, code, token, funcParam, seFlag )) ){
-			return _this._retError( CLIP_PROC_ERR_SE_OPERAND, code, token );
+			return _this._retError( ClipGlobal.procErrSeOperand, code, token );
 		}
 
 		// 親プロセスの環境を受け継いで、子プロセスを実行する
@@ -10135,30 +10125,30 @@ class ClipProc {
 		ClipParam childParam = ClipParam( _this._curLine.num(), parentParam, false );
 
 		if( (func = procFunc().search( token, true, parentParam.nameSpace() )) != null ){
-			if( mainProc( _this, parentParam, func!, funcParam, childProc, childParam ) == CLIP_PROC_END ){
+			if( mainProc( _this, parentParam, func!, funcParam, childProc, childParam ) == ClipGlobal.procEnd ){
 				childProc.end();
 				_this.getAns( childParam, value, parentParam );
-				ret = CLIP_NO_ERR;
+				ret = ClipGlobal.noErr;
 			} else {
 				childProc.end();
-				ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, code, token );
+				ret = _this._retError( ClipGlobal.procErrExtFunc, code, token );
 			}
 		} else if( (func = _this.newFuncCache( token, childParam, parentParam.nameSpace() )) != null ){
-			if( mainProc( _this, parentParam, func!, funcParam, childProc, childParam ) == CLIP_PROC_END ){
+			if( mainProc( _this, parentParam, func!, funcParam, childProc, childParam ) == ClipGlobal.procEnd ){
 				childProc.end();
 				_this.getAns( childParam, value, parentParam );
-				ret = CLIP_NO_ERR;
+				ret = ClipGlobal.noErr;
 			} else {
 				childProc.end();
-				ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, code, token );
+				ret = _this._retError( ClipGlobal.procErrExtFunc, code, token );
 			}
-		} else if( mainProc( _this, parentParam, token, funcParam, childProc, childParam ) == CLIP_PROC_END ){
+		} else if( mainProc( _this, parentParam, token, funcParam, childProc, childParam ) == ClipGlobal.procEnd ){
 			childProc.end();
 			_this.getAns( childParam, value, parentParam );
-			ret = CLIP_NO_ERR;
+			ret = ClipGlobal.noErr;
 		} else {
 			childProc.end();
-			ret = _this._retError( CLIP_PROC_ERR_EXTFUNC, code, token );
+			ret = _this._retError( ClipGlobal.procErrExtFunc, code, token );
 		}
 
 		childParam.end();
@@ -10168,7 +10158,7 @@ class ClipProc {
 
 	static bool _procMain1( ClipProc _this, String func, ClipParam childParam, ParamInteger step, ParamInteger err, ParamInteger ret ){
 		if( childParam.fileDataGet() >= childParam.fileDataArray()!.length ){
-			ret.set( CLIP_PROC_END );
+			ret.set( ClipGlobal.procEnd );
 			return false;
 		}
 		step.set( _this.beginProcess( childParam.fileData( childParam.fileDataGet() ), childParam, err ) ? 1 : 2 );
@@ -10182,7 +10172,7 @@ class ClipProc {
 		return true;
 	}
 	static bool _procMain3( ClipProc _this, String func, ClipParam childParam, ParamInteger step, ParamInteger err, ParamInteger ret ){
-		if( ret.set( _this.termProcess( childParam, err ) ).val() != CLIP_LOOP_CONT ){
+		if( ret.set( _this.termProcess( childParam, err ) ).val() != ClipGlobal.loopCont ){
 			return false;
 		}
 		step.set( 0 );
@@ -10202,18 +10192,18 @@ class ClipProc {
 		return true;
 	}
 	static bool _procMain3Cache( ClipProc _this, ClipFuncData func, ClipParam childParam, ParamInteger step, ParamInteger err, ParamInteger ret ){
-		if( ret.set( _this.termProcess( childParam, err ) ).val() != CLIP_LOOP_CONT ){
+		if( ret.set( _this.termProcess( childParam, err ) ).val() != ClipGlobal.loopCont ){
 			return false;
 		}
 		step.set( 0 );
 
-		ret.set( CLIP_PROC_END );
+		ret.set( ClipGlobal.procEnd );
 		return false;
 	}
 
 	static bool _procTest1( ClipProc _this, String func, ClipParam childParam, ParamInteger step, ParamInteger err, ParamInteger ret ){
 		if( childParam.fileDataGet() >= childParam.fileDataArray()!.length ){
-			ret.set( CLIP_PROC_END );
+			ret.set( ClipGlobal.procEnd );
 			return false;
 		}
 		step.set( _this.beginTestProcess( childParam.fileData( childParam.fileDataGet() ), childParam, err ) ? 1 : 2 );
@@ -10227,7 +10217,7 @@ class ClipProc {
 		return true;
 	}
 	static bool _procTest3( ClipProc _this, String func, ClipParam childParam, ParamInteger step, ParamInteger err, ParamInteger ret ){
-		if( ret.set( _this.termTestProcess( childParam, err ) ).val() != CLIP_LOOP_CONT ){
+		if( ret.set( _this.termTestProcess( childParam, err ) ).val() != ClipGlobal.loopCont ){
 			return false;
 		}
 		step.set( 0 );
@@ -10748,75 +10738,75 @@ class ClipProc {
 		_procTest2,
 		_procTest3
 	];
-}
 
-List<String>? Function( String ) getExtFuncDataDirect = ( func ){ return null; };
-List<String>? Function( String ) getExtFuncDataNameSpace = ( func ){ return null; };
+	static List<String>? Function( String ) getExtFuncDataDirect = ( func ){ return null; };
+	static List<String>? Function( String ) getExtFuncDataNameSpace = ( func ){ return null; };
 
-int Function( ClipProc, ClipParam, ClipFuncData, ClipToken, ClipProc, ClipParam ) mainProc = ( parentProc, parentParam, func, funcParam, childProc, childParam ){ return CLIP_PROC_END; };
-bool Function( int, String? ) assertProc = ( num, func ){ return false; };
-void Function( int, int, String, String ) errorProc = ( err, num, func, token ){};
+	static int Function( ClipProc, ClipParam, ClipFuncData, ClipToken, ClipProc, ClipParam ) mainProc = ( parentProc, parentParam, func, funcParam, childProc, childParam ){ return ClipGlobal.procEnd; };
+	static bool Function( int, String? ) assertProc = ( num, func ){ return false; };
+	static void Function( int, int, String, String ) errorProc = ( err, num, func, token ){};
 
-void Function( ClipParam, ClipToken, int, String?, bool ) printTrace = ( param, line, num, comment, skipFlag ){};
-void Function( ClipParam, ClipToken, int, String? ) printTest = ( param, line, num, comment ){};
-void Function( String, String ) printAnsComplex = ( real, imag ){};
-void Function( String ) printAnsMultiPrec = ( str ){};
-void Function( ClipParam, ClipToken ) printAnsMatrix = ( param, array ){};
-void Function( String, int, String ) printWarn = ( warn, num, func ){};
-void Function( String, int, String ) printError = ( error, num, func ){};
+	static void Function( ClipParam, ClipToken, int, String?, bool ) printTrace = ( param, line, num, comment, skipFlag ){};
+	static void Function( ClipParam, ClipToken, int, String? ) printTest = ( param, line, num, comment ){};
+	static void Function( String, String ) printAnsComplex = ( real, imag ){};
+	static void Function( String ) printAnsMultiPrec = ( str ){};
+	static void Function( ClipParam, ClipToken ) printAnsMatrix = ( param, array ){};
+	static void Function( String, int, String ) printWarn = ( warn, num, func ){};
+	static void Function( String, int, String ) printError = ( error, num, func ){};
 
-int Function( int ) doFuncGColor = ( rgb ){ return 0; };
-int Function( int ) doFuncGColor24 = ( index ){ return 0x000000; };
-int Function( ClipProc, ClipProc, ClipParam, String, ClipProcVal ) doFuncEval = ( parentProc, childProc, childParam, string, value ){ return CLIP_NO_ERR; };
+	static int Function( int ) doFuncGColor = ( rgb ){ return 0; };
+	static int Function( int ) doFuncGColor24 = ( index ){ return 0x000000; };
+	static int Function( ClipProc, ClipProc, ClipParam, String, ClipProcVal ) doFuncEval = ( parentProc, childProc, childParam, string, value ){ return ClipGlobal.noErr; };
 
-void Function() doCommandClear = (){};
-void Function( ClipProcPrint?, bool ) doCommandPrint = ( topPrint, flag ){};
-void Function( ClipProcScan, ClipProc, ClipParam ) doCommandScan = ( topScan, proc, param ){};
-void Function( int, int ) doCommandGWorld = ( width, height ){};
-void Function( int, int ) doCommandGWorld24 = ( width, height ){};
-void Function( double, double, double, double ) doCommandWindow = ( left, bottom, right, top ){};
-void Function( int, int ) doCommandGColor = ( index, rgb ){};
-void Function() doCommandGPut24Begin = (){};
-void Function( int, int, int ) doCommandGPut24 = ( x, y, rgb ){};
-void Function() doCommandGPut24End = (){};
-List<int>? Function( ParamInteger, ParamInteger ) doCommandGGet24Begin = ( width, height ){ return null; };
-void Function() doCommandGGet24End = (){};
-void Function( ClipGWorld ) doCommandGUpdate = ( gWorld ){};
-void Function( ClipProc, ClipProc, ClipParam, ClipGraph, double, double, double ) doCommandPlot = ( parentProc, childProc, childParam, graph, start, end, step ){};
-void Function( ClipProc, ClipProc, ClipParam, ClipGraph, double, double, double ) doCommandRePlot = ( parentProc, childProc, childParam, graph, start, end, step ){};
-void Function( ClipProcUsage? ) doCommandUsage = ( topUsage ){};
+	static void Function() doCommandClear = (){};
+	static void Function( ClipProcPrint?, bool ) doCommandPrint = ( topPrint, flag ){};
+	static void Function( ClipProcScan, ClipProc, ClipParam ) doCommandScan = ( topScan, proc, param ){};
+	static void Function( int, int ) doCommandGWorld = ( width, height ){};
+	static void Function( int, int ) doCommandGWorld24 = ( width, height ){};
+	static void Function( double, double, double, double ) doCommandWindow = ( left, bottom, right, top ){};
+	static void Function( int, int ) doCommandGColor = ( index, rgb ){};
+	static void Function() doCommandGPut24Begin = (){};
+	static void Function( int, int, int ) doCommandGPut24 = ( x, y, rgb ){};
+	static void Function() doCommandGPut24End = (){};
+	static List<int>? Function( ParamInteger, ParamInteger ) doCommandGGet24Begin = ( width, height ){ return null; };
+	static void Function() doCommandGGet24End = (){};
+	static void Function( ClipGWorld ) doCommandGUpdate = ( gWorld ){};
+	static void Function( ClipProc, ClipProc, ClipParam, ClipGraph, double, double, double ) doCommandPlot = ( parentProc, childProc, childParam, graph, start, end, step ){};
+	static void Function( ClipProc, ClipProc, ClipParam, ClipGraph, double, double, double ) doCommandRePlot = ( parentProc, childProc, childParam, graph, start, end, step ){};
+	static void Function( ClipProcUsage? ) doCommandUsage = ( topUsage ){};
 
-bool Function() skipCommandLog = (){ return true; };
-void Function( ClipProcPrint? ) doCommandLog = ( topPrint ){};
-void Function( ClipParam, int ) doCommandDumpVar = ( param, index ){};
-void Function( ClipParam, int ) doCommandDumpArray = ( param, index ){};
+	static bool Function() skipCommandLog = (){ return true; };
+	static void Function( ClipProcPrint? ) doCommandLog = ( topPrint ){};
+	static void Function( ClipParam, int ) doCommandDumpVar = ( param, index ){};
+	static void Function( ClipParam, int ) doCommandDumpArray = ( param, index ){};
 
-void Function() onStartPlot = (){};
-void Function() onEndPlot = (){};
-void Function() onStartRePlot = (){};
-void Function() onEndRePlot = (){};
+	static void Function() onStartPlot = (){};
+	static void Function() onEndPlot = (){};
+	static void Function() onStartRePlot = (){};
+	static void Function() onEndRePlot = (){};
 
-int doFuncGColorBGR( int rgb, List<int> bgrColorArray ){
-	int i, j;
-	int r = (rgb & 0xFF0000) >> 16;
-	int g = (rgb & 0x00FF00) >> 8;
-	int b =  rgb & 0x0000FF;
-	int rr, gg, bb, tmp;
-	int d = 766/*255*3+1*/;
-	j = 0;
-	for( i = 0; i < 256; i++ ){
-		rr =  bgrColorArray[i] & 0x0000FF;
-		gg = (bgrColorArray[i] & 0x00FF00) >> 8;
-		bb = (bgrColorArray[i] & 0xFF0000) >> 16;
-		tmp = (MATH_ABS( (rr - r).toDouble() ) + MATH_ABS( (gg - g).toDouble() ) + MATH_ABS( (bb - b).toDouble() )).toInt();
-		if( tmp < d ){
-			j = i;
-			d = tmp;
+	static int doFuncGColorBGR( int rgb, List<int> bgrColorArray ){
+		int i, j;
+		int r = (rgb & 0xFF0000) >> 16;
+		int g = (rgb & 0x00FF00) >> 8;
+		int b =  rgb & 0x0000FF;
+		int rr, gg, bb, tmp;
+		int d = 766/*255*3+1*/;
+		j = 0;
+		for( i = 0; i < 256; i++ ){
+			rr =  bgrColorArray[i] & 0x0000FF;
+			gg = (bgrColorArray[i] & 0x00FF00) >> 8;
+			bb = (bgrColorArray[i] & 0xFF0000) >> 16;
+			tmp = (ClipMath.abs( (rr - r).toDouble() ) + ClipMath.abs( (gg - g).toDouble() ) + ClipMath.abs( (bb - b).toDouble() )).toInt();
+			if( tmp < d ){
+				j = i;
+				d = tmp;
+			}
 		}
+		return j;
 	}
-	return j;
-}
 
-int CLIP_RGB2BGR( int data ){
-	return ((data & 0x0000FF) << 16) + (data & 0x00FF00) + ((data & 0xFF0000) >> 16);
+	static int rgb2bgr( int data ){
+		return ((data & 0x0000FF) << 16) + (data & 0x00FF00) + ((data & 0xFF0000) >> 16);
+	}
 }

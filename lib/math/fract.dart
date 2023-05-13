@@ -7,10 +7,10 @@ import '../param/boolean.dart';
 import '../param/float.dart';
 import 'math.dart';
 
-const double _FRACT_MAX = 4294967295;
-
 // 分数
 class MathFract {
+	static const double _fractMax = 4294967295;
+
 	late bool _mi;
 	late double _nu;
 	late double _de;
@@ -23,10 +23,10 @@ class MathFract {
 
 	// 約分する
 	void reduce(){
-		double g = MATH_GCD( _nu, _de );
+		double g = ClipMath.gcd( _nu, _de );
 		if( g != 0 ){
-			_nu = MATH_DIV( _nu, g );
-			_de = MATH_DIV( _de, g );
+			_nu = ClipMath.div( _nu, g );
+			_de = ClipMath.div( _de, g );
 		}
 	}
 
@@ -42,14 +42,14 @@ class MathFract {
 			x *= 10;
 		} while( x < 1 );
 
-		String strX = floatToFixed( x, 20 );
+		String strX = ClipMath.floatToFixed( x, 20 );
 		List arrayY = List.filled( keta, 0 );
 		int i, j = 0;
 		for( i = 0; i <= keta; i++ ){
 			if( i >= strX.length ){
 				break;
-			} else if( charAt( strX, i ) != '.' ){
-				arrayY[j++] = charCodeAt( strX, i ) - MATH_CHAR_CODE_0;
+			} else if( ClipMath.charAt( strX, i ) != '.' ){
+				arrayY[j++] = ClipMath.charCodeAt( strX, i ) - ClipMath.charCode0;
 			}
 		}
 		if( j < keta ){
@@ -82,7 +82,7 @@ class MathFract {
 			for( i = 0; i < p; i++ ){
 				_nu = _nu * 10 + arrayY[i];
 			}
-			_de = (MATH_POW( 10.0, p.toDouble() ) - 1) * MATH_POW( 10.0, k.toDouble() );
+			_de = (ClipMath.pow( 10.0, p.toDouble() ) - 1) * ClipMath.pow( 10.0, k.toDouble() );
 			return 1;
 		}
 		return 0;
@@ -93,8 +93,8 @@ class MathFract {
 		double k = 1;
 		int i;
 		for( i = 0; ; i++ ){
-			if( xx / MATH_POW( 10.0, i.toDouble() ) < 10 ){
-				k = MATH_POW( 10.0, i.toDouble() );
+			if( xx / ClipMath.pow( 10.0, i.toDouble() ) < 10 ){
+				k = ClipMath.pow( 10.0, i.toDouble() );
 				xx /= k;
 				break;
 			}
@@ -103,14 +103,14 @@ class MathFract {
 		double ii;
 		double ret;
 		for( i = 0; ; i++ ){
-			ii = MATH_INT( xx );
+			ii = ClipMath.toInt( xx );
 			if( (ret = _pure( xx - ii, 14 )) < 0 ){
 				break;
 			}
 			if( ret > 0 ){
 				_nu = (ii * _de + _nu) * k;
-				_de *= MATH_POW( 10.0, i.toDouble() );
-				if( !MATH_APPROX( x, _nu / _de ) ){
+				_de *= ClipMath.pow( 10.0, i.toDouble() );
+				if( !ClipMath.approx( x, _nu / _de ) ){
 					return false;
 				}
 				reduce();
@@ -123,27 +123,27 @@ class MathFract {
 
 	void _set( double n, double d ){
 		if( n > d ){
-			if( n > _FRACT_MAX ){
-				_nu = _FRACT_MAX;
-				_de = MATH_INT( _FRACT_MAX * d / n );
+			if( n > _fractMax ){
+				_nu = _fractMax;
+				_de = ClipMath.toInt( _fractMax * d / n );
 			} else {
-				_nu = MATH_INT( n );
-				_de = MATH_INT( d );
+				_nu = ClipMath.toInt( n );
+				_de = ClipMath.toInt( d );
 			}
 		} else {
-			if( d > _FRACT_MAX ){
-				_nu = MATH_INT( _FRACT_MAX * n / d );
-				_de = _FRACT_MAX;
+			if( d > _fractMax ){
+				_nu = ClipMath.toInt( _fractMax * n / d );
+				_de = _fractMax;
 			} else {
-				_nu = MATH_INT( n );
-				_de = MATH_INT( d );
+				_nu = ClipMath.toInt( n );
+				_de = ClipMath.toInt( d );
 			}
 		}
 		reduce();
 	}
 	void _setFloat( double x ){
 		if( !_recurring( x ) ){
-			double de = MATH_POW( 10.0, MATH_FPREC( x ) );
+			double de = ClipMath.pow( 10.0, ClipMath.fprec( x ) );
 			_set( x * de, de );
 		}
 	}
@@ -185,14 +185,14 @@ class MathFract {
 			_nu = r._nu;
 			_de = r._de;
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			if( rr < 0.0 ){
 				_mi = true;
 				rr = -rr;
 			} else {
 				_mi = false;
 			}
-			if( rr == MATH_INT( rr ) ){
+			if( rr == ClipMath.toInt( rr ) ){
 				_nu = rr;
 				_de = 1;
 			} else {
@@ -220,20 +220,20 @@ class MathFract {
 			if( r._de == 0 ){
 				return r;
 			}
-			double de = MATH_LCM( _de, r._de );
+			double de = ClipMath.lcm( _de, r._de );
 			return MathFract(
 				_mi,
 				_nu * de / _de + r._nu * de / r._de,
 				de
 				);
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		if( _mi != (rr < 0.0) ){
 			// this - -r
 			return sub( -rr );
 		}
 		double t = (rr < 0.0) ? -rr : rr;
-		if( t == MATH_INT( t ) ){
+		if( t == ClipMath.toInt( t ) ){
 			return MathFract(
 				_mi,
 				_nu + t * _de,
@@ -251,17 +251,17 @@ class MathFract {
 			} else if( r._de == 0 ){
 				ass( r );
 			} else {
-				double de = MATH_LCM( _de, r._de );
+				double de = ClipMath.lcm( _de, r._de );
 				_set( _nu * de / _de + r._nu * de / r._de, de );
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			if( _mi != (rr < 0.0) ){
 				// this -= -rr
 				subAndAss( -rr );
 			} else {
 				double t = (rr < 0.0) ? -rr : rr;
-				if( t == MATH_INT( t ) ){
+				if( t == ClipMath.toInt( t ) ){
 					_set( _nu + t * _de, _de );
 				} else {
 					addAndAss( floatToFract( rr ) );
@@ -284,20 +284,20 @@ class MathFract {
 			if( r._de == 0 ){
 				return r;
 			}
-			double de = MATH_LCM( _de, r._de );
+			double de = ClipMath.lcm( _de, r._de );
 			double nu = _nu * de / _de - r._nu * de / r._de;
 			if( nu < 0.0 ){
 				return MathFract( _mi ? false : true, -nu, de );
 			}
 			return MathFract( _mi, nu, de );
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		if( _mi != (rr < 0.0) ){
 			// this + -rr
 			return add( -rr );
 		}
 		double t = (rr < 0.0) ? -rr : rr;
-		if( t == MATH_INT( t ) ){
+		if( t == ClipMath.toInt( t ) ){
 			double nu = _nu - t * _de;
 			if( nu < 0.0 ){
 				return MathFract( _mi ? false : true, -nu, _de );
@@ -315,7 +315,7 @@ class MathFract {
 			} else if( r._de == 0 ){
 				ass( r );
 			} else {
-				double de = MATH_LCM( _de, r._de );
+				double de = ClipMath.lcm( _de, r._de );
 				double nu = _nu * de / _de - r._nu * de / r._de;
 				if( nu < 0.0 ){
 					_mi = _mi ? false : true;
@@ -325,13 +325,13 @@ class MathFract {
 				}
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			if( _mi != (rr < 0.0) ){
 				// this += -rr
 				addAndAss( -rr );
 			} else {
 				double t = (rr < 0.0) ? -rr : rr;
-				if( t == MATH_INT( t ) ){
+				if( t == ClipMath.toInt( t ) ){
 					double nu = _nu - t * _de;
 					if( nu < 0.0 ){
 						_mi = _mi ? false : true;
@@ -356,9 +356,9 @@ class MathFract {
 				_de * r._de
 				);
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		double t = (rr < 0.0) ? -rr : rr;
-		if( t == MATH_INT( t ) ){
+		if( t == ClipMath.toInt( t ) ){
 			return MathFract(
 				(_mi != (rr < 0.0)),
 				_nu * t,
@@ -372,9 +372,9 @@ class MathFract {
 			_mi = (_mi != r._mi);
 			_set( _nu * r._nu, _de * r._de );
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			double t = (rr < 0.0) ? -rr : rr;
-			if( t == MATH_INT( t ) ){
+			if( t == ClipMath.toInt( t ) ){
 				_mi = (_mi != (rr < 0.0));
 				_set( _nu * t, _de );
 			} else {
@@ -393,9 +393,9 @@ class MathFract {
 				_de * r._nu
 				);
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		double t = (rr < 0.0) ? -rr : rr;
-		if( t == MATH_INT( t ) ){
+		if( t == ClipMath.toInt( t ) ){
 			return MathFract(
 				(_mi != (rr < 0.0)),
 				_nu,
@@ -409,9 +409,9 @@ class MathFract {
 			_mi = (_mi != r._mi);
 			_set( _nu * r._de, _de * r._nu );
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			double t = (rr < 0.0) ? -rr : rr;
-			if( t == MATH_INT( t ) ){
+			if( t == ClipMath.toInt( t ) ){
 				_mi = (_mi != (rr < 0.0));
 				_set( _nu, _de * t );
 			} else {
@@ -430,20 +430,20 @@ class MathFract {
 			if( r._de == 0 ){
 				return MathFract( _mi, r._nu, r._de );
 			}
-			double de = MATH_LCM( _de, r._de );
+			double de = ClipMath.lcm( _de, r._de );
 			double d = r._nu * de / r._de;
 			if( d == 0.0 ){
 				return MathFract( _mi, _nu, 0 );
 			}
 			return MathFract(
 				_mi,
-				MATH_FMOD( _nu * de / _de, d ),
+				ClipMath.fmod( _nu * de / _de, d ),
 				de
 				);
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		double t = (rr < 0.0) ? -rr : rr;
-		if( t == MATH_INT( t ) ){
+		if( t == ClipMath.toInt( t ) ){
 			if( _de == 0 ){
 				return this;
 			}
@@ -452,7 +452,7 @@ class MathFract {
 			}
 			return MathFract(
 				_mi,
-				MATH_FMOD( _nu, t * _de ),
+				ClipMath.fmod( _nu, t * _de ),
 				_de
 				);
 		}
@@ -465,24 +465,24 @@ class MathFract {
 				_nu = r._nu;
 				_de = r._de;
 			} else {
-				double de = MATH_LCM( _de, r._de );
+				double de = ClipMath.lcm( _de, r._de );
 				double d = r._nu * de / r._de;
 				if( d == 0.0 ){
 					_de = 0;
 				} else {
-					_set( MATH_FMOD( _nu * de / _de, d ), de );
+					_set( ClipMath.fmod( _nu * de / _de, d ), de );
 				}
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			double t = (rr < 0.0) ? -rr : rr;
-			if( t == MATH_INT( t ) ){
+			if( t == ClipMath.toInt( t ) ){
 				if( _de == 0 ){
 				} else if( t == 0.0 ){
 					_nu = 0;
 					_de = 0;
 				} else {
-					_set( MATH_FMOD( _nu, t * _de ), _de );
+					_set( ClipMath.fmod( _nu, t * _de ), _de );
 				}
 			} else {
 				modAndAss( floatToFract( rr ) );
@@ -496,13 +496,13 @@ class MathFract {
 		if( r is MathFract ){
 			return (getMinus() == r.getMinus()) && ((_nu * r._de) == (_de * r._nu));
 		}
-		return toFloat() == MATH_DOUBLE(r);
+		return toFloat() == ClipMath.toDouble(r);
 	}
 	bool notEqual( dynamic r ){
 		if( r is MathFract ){
 			return (getMinus() != r.getMinus()) || ((_nu * r._de) != (_de * r._nu));
 		}
-		return toFloat() != MATH_DOUBLE(r);
+		return toFloat() != ClipMath.toDouble(r);
 	}
 
 	// 絶対値
@@ -512,8 +512,8 @@ class MathFract {
 
 	// べき乗
 	MathFract _powInt( double y ){
-		double nu = MATH_POW( _nu, y );
-		double de = MATH_POW( _de, y );
+		double nu = ClipMath.pow( _nu, y );
+		double de = ClipMath.pow( _de, y );
 		return MathFract(
 			((nu < 0.0) != (de < 0.0)),
 			(nu < 0.0) ? -nu : nu,
@@ -522,16 +522,16 @@ class MathFract {
 	}
 	MathFract pow( dynamic y ){
 		if( y is MathFract ){
-			if( y.toFloat() == MATH_INT( y.toFloat() ) ){
+			if( y.toFloat() == ClipMath.toInt( y.toFloat() ) ){
 				return _powInt( y.toFloat() );
 			}
-			return floatToFract( MATH_POW( toFloat(), y.toFloat() ) );
+			return floatToFract( ClipMath.pow( toFloat(), y.toFloat() ) );
 		}
 		double yy = y;
-		if( yy == MATH_INT( yy ) ){
+		if( yy == ClipMath.toInt( yy ) ){
 			return _powInt( yy );
 		}
-		return floatToFract( MATH_POW( toFloat(), yy ) );
+		return floatToFract( ClipMath.pow( toFloat(), yy ) );
 	}
 
 	// 自乗
@@ -542,24 +542,24 @@ class MathFract {
 			_de * _de
 			);
 	}
-}
 
-void getFract( MathFract f, ParamBoolean mi, ParamFloat nu, ParamFloat de ){
-	mi.set( f._mi );
-	nu.set( f._nu );
-	de.set( f._de );
-}
-MathFract setFract( MathFract f, bool mi, double nu, double de ){
-	f._mi = mi;
-	f._nu = nu;
-	f._de = de;
-	return f;
-}
+	static void getFract( MathFract f, ParamBoolean mi, ParamFloat nu, ParamFloat de ){
+		mi.set( f._mi );
+		nu.set( f._nu );
+		de.set( f._de );
+	}
+	static MathFract setFract( MathFract f, bool mi, double nu, double de ){
+		f._mi = mi;
+		f._nu = nu;
+		f._de = de;
+		return f;
+	}
 
-MathFract dupFract( MathFract x ){
-	return setFract( MathFract(), x._mi, x._nu, x._de );
-}
+	static MathFract dupFract( MathFract x ){
+		return setFract( MathFract(), x._mi, x._nu, x._de );
+	}
 
-MathFract floatToFract( double x ){
-	return MathFract().ass( x );
+	static MathFract floatToFract( double x ){
+		return MathFract().ass( x );
+	}
 }

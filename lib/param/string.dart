@@ -84,12 +84,12 @@ class ParamString {
 		replace( "&amp;" , "&"  );	// 重要：一番最後に行うこと！
 		return this;
 	}
-}
 
-List newStringArray( int len ){
-	List<ParamString> a = List.filled( len, ParamString() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ParamString();
+	static List newArray( int len ){
+		List<ParamString> a = List.filled( len, ParamString() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ParamString();
+		}
+		return a;
 	}
-	return a;
 }

@@ -18,12 +18,12 @@ class ParamBoolean {
 	bool val(){
 		return _val;
 	}
-}
 
-List newBooleanArray( int len ){
-	List<ParamBoolean> a = List.filled( len, ParamBoolean() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ParamBoolean();
+	static List newArray( int len ){
+		List<ParamBoolean> a = List.filled( len, ParamBoolean() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ParamBoolean();
+		}
+		return a;
 	}
-	return a;
 }

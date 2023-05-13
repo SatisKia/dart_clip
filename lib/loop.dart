@@ -21,22 +21,22 @@ class _ClipLoop {
 	}
 }
 
-// 制御構造管理クラスの種類
-const int CLIP_LOOP_TYPE_BASE = 0;
-const int CLIP_LOOP_TYPE_SE = 1;
-const int CLIP_LOOP_TYPE_DO = 2;
-const int CLIP_LOOP_TYPE_WHILE = 3;
-const int CLIP_LOOP_TYPE_FOR = 4;
-const int CLIP_LOOP_TYPE_FUNC = 5;
-
-const int CLIP_LOOP_END_TYPE_WHILE = 0;
-const int CLIP_LOOP_END_TYPE_FOR = 1;
-const int CLIP_LOOP_END_TYPE_FUNC = 2;
-const int CLIP_LOOP_END_TYPE_IF = 3;
-const int CLIP_LOOP_END_TYPE_SWITCH = 4;
-
 // ループ制御構造管理クラス
 class ClipLoop {
+	// 制御構造管理クラスの種類
+	static const int typeBase = 0;
+	static const int typeSe = 1;
+	static const int typeDo = 2;
+	static const int typeWhile = 3;
+	static const int typeFor = 4;
+	static const int typeFunc = 5;
+
+	static const int endTypeWhile = 0;
+	static const int endTypeFor = 1;
+	static const int endTypeFunc = 2;
+	static const int endTypeIf = 3;
+	static const int endTypeSwitch = 4;
+
 	late ClipLoop? _beforeLoop;
 	late ClipLoop _curLoop;
 	late int _loopType;
@@ -57,7 +57,7 @@ class ClipLoop {
 	ClipLoop(){
 		_beforeLoop = null;
 		_curLoop    = this;
-		_loopType   = CLIP_LOOP_TYPE_BASE;
+		_loopType   = typeBase;
 
 		_top = null;
 		_end = null;
@@ -124,115 +124,115 @@ class ClipLoop {
 	}
 
 	int _loopStart( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType != CLIP_LOOP_TYPE_FUNC ){
+		if( _this._curLoop._loopType != typeFunc ){
 			_ClipLoop _obj = line.obj() as _ClipLoop;
 			_obj._subFlag = true;
 			_obj._line = ClipLoop();
-			_obj._line._loopType   = CLIP_LOOP_TYPE_SE;
+			_obj._line._loopType   = typeSe;
 			_obj._line._beforeLoop = _this._curLoop;
 			_this._curLoop = _obj._line;
 
 			line.set( _this._curLoop._newLine() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopDo( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType != CLIP_LOOP_TYPE_FUNC ){
+		if( _this._curLoop._loopType != typeFunc ){
 			_ClipLoop _obj = line.obj() as _ClipLoop;
 			_obj._subFlag = true;
 			_obj._line = ClipLoop();
-			_obj._line._loopType   = CLIP_LOOP_TYPE_DO;
+			_obj._line._loopType   = typeDo;
 			_obj._line._beforeLoop = _this._curLoop;
 			_this._curLoop = _obj._line;
 
 			line.set( _this._curLoop._newLine() );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopWhile( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType != CLIP_LOOP_TYPE_FUNC ){
+		if( _this._curLoop._loopType != typeFunc ){
 			_ClipLoop _obj = line.obj() as _ClipLoop;
 			_obj._subFlag = true;
 			_obj._line = ClipLoop();
-			_obj._line._loopType   = CLIP_LOOP_TYPE_WHILE;
+			_obj._line._loopType   = typeWhile;
 			_obj._line._beforeLoop = _this._curLoop;
 			_this._curLoop = _obj._line;
 
-			_this._curLoop._endType[_this._curLoop._endCnt] = CLIP_LOOP_END_TYPE_WHILE;
+			_this._curLoop._endType[_this._curLoop._endCnt] = endTypeWhile;
 			_this._curLoop._endCnt++;
 
 			line.set( _this._curLoop._newLine() );
 		} else {
-			_this._curLoop._endType[_this._curLoop._endCnt] = CLIP_LOOP_END_TYPE_WHILE;
+			_this._curLoop._endType[_this._curLoop._endCnt] = endTypeWhile;
 			_this._curLoop._endCnt++;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopFor( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType != CLIP_LOOP_TYPE_FUNC ){
+		if( _this._curLoop._loopType != typeFunc ){
 			_ClipLoop _obj = line.obj() as _ClipLoop;
 			_obj._subFlag = true;
 			_obj._line = ClipLoop();
-			_obj._line._loopType   = CLIP_LOOP_TYPE_FOR;
+			_obj._line._loopType   = typeFor;
 			_obj._line._beforeLoop = _this._curLoop;
 			_this._curLoop = _obj._line;
 
-			_this._curLoop._endType[_this._curLoop._endCnt] = CLIP_LOOP_END_TYPE_FOR;
+			_this._curLoop._endType[_this._curLoop._endCnt] = endTypeFor;
 			_this._curLoop._endCnt++;
 
 			line.set( _this._curLoop._newLine() );
 		} else {
-			_this._curLoop._endType[_this._curLoop._endCnt] = CLIP_LOOP_END_TYPE_FOR;
+			_this._curLoop._endType[_this._curLoop._endCnt] = endTypeFor;
 			_this._curLoop._endCnt++;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopFunc( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_FUNC ){
-			return CLIP_PROC_ERR_STAT_FUNC_NEST;
+		if( _this._curLoop._loopType == typeFunc ){
+			return ClipGlobal.procErrStatFuncNest;
 		}
 
 		_ClipLoop _obj = line.obj() as _ClipLoop;
 		_obj._subFlag = true;
 		_obj._line = ClipLoop();
-		_obj._line._loopType   = CLIP_LOOP_TYPE_FUNC;
+		_obj._line._loopType   = typeFunc;
 		_obj._line._beforeLoop = _this._curLoop;
 		_this._curLoop = _obj._line;
 
-		_this._curLoop._endType[_this._curLoop._endCnt] = CLIP_LOOP_END_TYPE_FUNC;
+		_this._curLoop._endType[_this._curLoop._endCnt] = endTypeFunc;
 		_this._curLoop._endCnt++;
 
 		line.set( _this._curLoop._newLine() );
 
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopEnd( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_SE ){
+		if( _this._curLoop._loopType == typeSe ){
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopCont( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_SE ){
+		if( _this._curLoop._loopType == typeSe ){
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopUntil( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_DO ){
+		if( _this._curLoop._loopType == typeDo ){
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopEndWhile( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
 		if( _this._curLoop._endCnt > 0 ){
 			_this._curLoop._endCnt--;
 		}
 
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_WHILE ){
+		if( _this._curLoop._loopType == typeWhile ){
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopNext( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
 		if( _this._curLoop._endCnt > 0 ){
@@ -242,7 +242,7 @@ class ClipLoop {
 		ClipToken tmp;
 		int ret;
 
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_FOR ){
+		if( _this._curLoop._loopType == typeFor ){
 			// for(<初期設定文>)を<初期設定文>に加工する
 			tmp = _this._curLoop._top!._line.token();
 			tmp.del(  0 );	// "for"
@@ -251,57 +251,57 @@ class ClipLoop {
 
 			// <条件部>をfor(<条件部>)に加工する
 			if( _this._curLoop._top!._next == _this._curLoop._end ){
-				return CLIP_PROC_ERR_STAT_FOR_CON;
+				return ClipGlobal.procErrStatForCon;
 			} else if( _this._curLoop._top!._next!._subFlag ){
-				return CLIP_PROC_ERR_STAT_FOR_CON;
+				return ClipGlobal.procErrStatForCon;
 			}
 			tmp = _this._curLoop._top!._next!._line.token();
 			if( tmp.count() > 0 ){
-				tmp.insCode( 0, CLIP_CODE_STATEMENT, CLIP_STAT_FOR );	// "for"
-				tmp.insCode( 1, CLIP_CODE_TOP,       null          );	// "("
-				tmp.addCode(    CLIP_CODE_END,       null          );	// ")"
+				tmp.insCode( 0, ClipGlobal.codeStatement, ClipGlobal.statFor );	// "for"
+				tmp.insCode( 1, ClipGlobal.codeTop,       null               );	// "("
+				tmp.addCode(    ClipGlobal.codeEnd,       null               );	// ")"
 			} else {
-				tmp.insCode( 0, CLIP_CODE_STATEMENT, CLIP_STAT_FOR2 );
+				tmp.insCode( 0, ClipGlobal.codeStatement, ClipGlobal.statFor2 );
 			}
 
 			// <更新式>行を最後尾に移す
 			if( _this._curLoop._top!._next!._next == _this._curLoop._end ){
-				return CLIP_PROC_ERR_STAT_FOR_EXP;
+				return ClipGlobal.procErrStatForExp;
 			} else if( _this._curLoop._top!._next!._next!._subFlag ){
-				return CLIP_PROC_ERR_STAT_FOR_EXP;
+				return ClipGlobal.procErrStatForExp;
 			}
-			if( (ret = _this._curLoop.regLine( _this._curLoop._top!._next!._next!._line! )) != CLIP_LOOP_CONT ){
+			if( (ret = _this._curLoop.regLine( _this._curLoop._top!._next!._next!._line! )) != ClipGlobal.loopCont ){
 				return ret;
 			}
 			_this._curLoop._top!._next!._next = _this._curLoop._del( _this._curLoop._top!._next!._next, _this._curLoop._top!._next );
 
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopEndFunc( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
 		if( _this._curLoop._endCnt > 0 ){
 			_this._curLoop._endCnt--;
 		}
 
-		if( _this._curLoop._loopType == CLIP_LOOP_TYPE_FUNC ){
+		if( _this._curLoop._loopType == typeFunc ){
 			beforeFlag.set( true );
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 	int _loopMultiEnd( ClipLoop _this, ParamVoid line, ParamBoolean beforeFlag ){
 		if( _this._curLoop._endCnt > 0 ){
 			switch( _this._curLoop._endType[_this._curLoop._endCnt - 1] ){
-			case CLIP_LOOP_END_TYPE_WHILE:
+			case endTypeWhile:
 				return _this._loopEndWhile( _this, line, beforeFlag );
-			case CLIP_LOOP_END_TYPE_FOR:
+			case endTypeFor:
 				return _this._loopNext( _this, line, beforeFlag );
-			case CLIP_LOOP_END_TYPE_FUNC:
+			case endTypeFunc:
 				return _this._loopEndFunc( _this, line, beforeFlag );
 			}
 			_this._curLoop._endCnt--;
 		}
-		return CLIP_NO_ERR;
+		return ClipGlobal.noErr;
 	}
 
 	int regLine( ClipLineData line ){
@@ -314,25 +314,25 @@ class ClipLoop {
 
 		line.token()!.beginGetToken();
 		if( line.token()!.getToken() ){
-			code  = getCode();
-			token = getToken();
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
 
-			if( code == CLIP_CODE_STATEMENT ){
+			if( code == ClipGlobal.codeStatement ){
 				switch( token ){
-				case CLIP_STAT_IF:
-					_curLoop._endType[_curLoop._endCnt] = CLIP_LOOP_END_TYPE_IF;
+				case ClipGlobal.statIf:
+					_curLoop._endType[_curLoop._endCnt] = endTypeIf;
 					_curLoop._endCnt++;
 					break;
-				case CLIP_STAT_ENDIF:
+				case ClipGlobal.statEndIf:
 					if( _curLoop._endCnt > 0 ){
 						_curLoop._endCnt--;
 					}
 					break;
-				case CLIP_STAT_SWITCH:
-					_curLoop._endType[_curLoop._endCnt] = CLIP_LOOP_END_TYPE_SWITCH;
+				case ClipGlobal.statSwitch:
+					_curLoop._endType[_curLoop._endCnt] = endTypeSwitch;
 					_curLoop._endCnt++;
 					break;
-				case CLIP_STAT_ENDSWI:
+				case ClipGlobal.statEndSwi:
 					if( _curLoop._endCnt > 0 ){
 						_curLoop._endCnt--;
 					}
@@ -340,8 +340,8 @@ class ClipLoop {
 				}
 			}
 
-			if( (code == CLIP_CODE_STATEMENT) && (token < CLIP_STAT_LOOP_END) ){
-				if( (ret = _loopSub[token]( this, tmp, beforeFlag )) != CLIP_NO_ERR ){
+			if( (code == ClipGlobal.codeStatement) && (token < ClipGlobal.statLoopEnd) ){
+				if( (ret = _loopSub[token]( this, tmp, beforeFlag )) != ClipGlobal.noErr ){
 					return ret;
 				}
 			}
@@ -361,30 +361,30 @@ class ClipLoop {
 		if( beforeFlag.val() ){
 			_curLoop._getFlag = false;
 			_curLoop = _curLoop._beforeLoop!;
-			if( _curLoop._loopType == CLIP_LOOP_TYPE_BASE ){
-				return CLIP_PROC_END;
+			if( _curLoop._loopType == typeBase ){
+				return ClipGlobal.procEnd;
 			}
 		}
 
-		return CLIP_LOOP_CONT;
+		return ClipGlobal.loopCont;
 	}
 
 	bool _getNextLine(){
-		if( _curLoop._loopType == CLIP_LOOP_TYPE_SE ){
+		if( _curLoop._loopType == typeSe ){
 			_curLoop._cur = _curLoop._cur!._next;
 			return true;
-		} else if( _curLoop._loopType == CLIP_LOOP_TYPE_DO ){
+		} else if( _curLoop._loopType == typeDo ){
 			_curLoop._cur = _curLoop._cur!._next;
 			return true;
-		} else if( _curLoop._loopType == CLIP_LOOP_TYPE_WHILE ){
+		} else if( _curLoop._loopType == typeWhile ){
 			_curLoop._cur = _curLoop._cur!._next;
 			return true;
-		} else if( _curLoop._loopType == CLIP_LOOP_TYPE_FOR ){
+		} else if( _curLoop._loopType == typeFor ){
 			_curLoop._cur = (_curLoop._cur == _curLoop._end) ?
 				_curLoop._top!._next/*初期設定行を飛ばして次の行に行く*/ :
 				_curLoop._cur!._next;
 			return true;
-		} else if( _curLoop._loopType == CLIP_LOOP_TYPE_FUNC ){
+		} else if( _curLoop._loopType == typeFunc ){
 			if( _curLoop._cur == _curLoop._end ){
 				return false;
 			} else {

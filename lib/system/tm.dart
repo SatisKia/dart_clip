@@ -17,7 +17,7 @@ class Tm {
 	Tm(){
 		localtime( time() );
 	}
-	int time(){
+	static int time(){
 		return DateTime.now().millisecondsSinceEpoch ~/ 1000;
 	}
 	int mktime(){
@@ -42,7 +42,7 @@ class Tm {
 		mday = date.day;
 		mon  = date.month - 1;
 		year = date.year - 1900;
-		wday = MATH_IMOD( date.weekday, 7 );
+		wday = ClipMath.imod( date.weekday, 7 );
 		yday = (date.millisecondsSinceEpoch - startDate.millisecondsSinceEpoch) ~/ 86400000;
 
 		return this;

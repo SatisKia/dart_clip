@@ -17,7 +17,7 @@ class ClipVariable {
 	ClipVariable(){
 		_label = ClipLabel( this );
 
-		_var  = newValueArray( 256 );
+		_var  = MathValue.newArray( 256 );
 		_lock = List.filled( 256, false );
 	}
 
@@ -48,14 +48,14 @@ class ClipVariable {
 	}
 
 	void move( int index ){
-		if( _label.flag(index) == CLIP_LABEL_MOVABLE ){
+		if( _label.flag(index) == ClipGlobal.labelMovable ){
 			// 動的変数の実体を移す
 			define( _label.label( index )!, val( index ), isLocked( index ) );
 			unlock( index );
 
 			_label.setLabel( index, null, false );
 		}
-		_label.setFlag( index, CLIP_LABEL_USED );
+		_label.setFlag( index, ClipGlobal.labelUsed );
 	}
 
 	// 値を代入する

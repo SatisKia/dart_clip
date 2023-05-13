@@ -18,12 +18,12 @@ class ParamVoid {
 	Object obj(){
 		return _obj!;
 	}
-}
 
-List newVoidArray( int len ){
-	List<ParamVoid> a = List.filled( len, ParamVoid() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ParamVoid();
+	static List newArray( int len ){
+		List<ParamVoid> a = List.filled( len, ParamVoid() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ParamVoid();
+		}
+		return a;
 	}
-	return a;
 }

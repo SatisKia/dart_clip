@@ -27,14 +27,14 @@ class ClipGraphAns {
 		_y1 = src._y1;
 		_y2 = src._y2;
 	}
-}
 
-List<ClipGraphAns> newGraphAnsArray( int len ){
-	List<ClipGraphAns> a = List.filled( len, ClipGraphAns() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ClipGraphAns();
+	static List<ClipGraphAns> newArray( int len ){
+		List<ClipGraphAns> a = List.filled( len, ClipGraphAns() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ClipGraphAns();
+		}
+		return a;
 	}
-	return a;
 }
 
 // グラフ情報
@@ -70,7 +70,7 @@ class _ClipGraphInfo {
 
 		_color = 0;
 
-		_mode = CLIP_GRAPH_MODE_RECT;
+		_mode = ClipGlobal.graphModeRect;
 
 		_expr1 = "";
 		_expr2 = "";
@@ -133,7 +133,7 @@ class ClipGraph {
 
 		_info[_curIndex]._draw = true;
 
-		_info[_curIndex]._mode = CLIP_GRAPH_MODE_RECT;
+		_info[_curIndex]._mode = ClipGlobal.graphModeRect;
 
 		_info[_curIndex]._expr1 = "";
 		_info[_curIndex]._expr2 = "";
@@ -239,7 +239,7 @@ class ClipGraph {
 		int pos = expr.toLowerCase().indexOf( func.toLowerCase() );
 		if( pos >= 0 ){
 			if( expr.length > pos + func.length ){
-				String chr = charAt( expr.toLowerCase(), pos + func.length );
+				String chr = ClipMath.charAt( expr.toLowerCase(), pos + func.length );
 				String chrs = "0123456789_abcdefghijklmnopqrstuvwxyz";
 				if( !chrs.contains( chr ) ){
 					return true;
@@ -298,7 +298,7 @@ class ClipGraph {
 		} else {
 			_info[_curIndex]._isLogScaleX = true;
 			_info[_curIndex]._baseX       = base;
-			_info[_curIndex]._logBaseX    = 1.0 / MATH_LOG( base );
+			_info[_curIndex]._logBaseX    = 1.0 / ClipMath.log( base );
 		}
 	}
 	void setLogScaleY( double base ){
@@ -307,7 +307,7 @@ class ClipGraph {
 		} else {
 			_info[_curIndex]._isLogScaleY = true;
 			_info[_curIndex]._baseY       = base;
-			_info[_curIndex]._logBaseY    = 1.0 / MATH_LOG( base );
+			_info[_curIndex]._logBaseY    = 1.0 / ClipMath.log( base );
 		}
 	}
 
@@ -328,16 +328,16 @@ class ClipGraph {
 	}
 
 	double logX( double x ){
-		return _info[_curIndex]._isLogScaleX ? MATH_LOG( x ) * _info[_curIndex]._logBaseX : x;
+		return _info[_curIndex]._isLogScaleX ? ClipMath.log( x ) * _info[_curIndex]._logBaseX : x;
 	}
 	double logY( double y ){
-		return _info[_curIndex]._isLogScaleY ? MATH_LOG( y ) * _info[_curIndex]._logBaseY : y;
+		return _info[_curIndex]._isLogScaleY ? ClipMath.log( y ) * _info[_curIndex]._logBaseY : y;
 	}
 	double expX( double x ){
-		return _info[_curIndex]._isLogScaleX ? MATH_EXP( x / _info[_curIndex]._logBaseX ) : x;
+		return _info[_curIndex]._isLogScaleX ? ClipMath.exp( x / _info[_curIndex]._logBaseX ) : x;
 	}
 	double expY( double y ){
-		return _info[_curIndex]._isLogScaleY ? MATH_EXP( y / _info[_curIndex]._logBaseY ) : y;
+		return _info[_curIndex]._isLogScaleY ? ClipMath.exp( y / _info[_curIndex]._logBaseY ) : y;
 	}
 
 	// 計算結果を消去する
@@ -368,7 +368,7 @@ class ClipGraph {
 	// グラフイメージをクリアする
 	void _drawHLine( double y ){
 		int yy = _gWorld.imgPosY( y );
-		gWorldLine( _gWorld, 0, yy, _gWorld.width() - 1, yy );
+		ClipGWorld.gWorldLine( _gWorld, 0, yy, _gWorld.width() - 1, yy );
 		_gWorld.setGWorldLine( true );
 		for( int i = 0; i < _gWorld.width(); i++ ){
 			_gWorld.put( i, yy );
@@ -377,7 +377,7 @@ class ClipGraph {
 	}
 	void _drawVLine( double x ){
 		int xx = _gWorld.imgPosX( x );
-		gWorldLine( _gWorld, xx, 0, xx, _gWorld.height() - 1 );
+		ClipGWorld.gWorldLine( _gWorld, xx, 0, xx, _gWorld.height() - 1 );
 		_gWorld.setGWorldLine( true );
 		for( int i = 0; i < _gWorld.height(); i++ ){
 			_gWorld.put( xx, i );
@@ -387,7 +387,7 @@ class ClipGraph {
 	void _drawXText( double x, double y ){
 		int yy;
 
-		String text = floatToString( x, 15 );
+		String text = ClipMath.floatToString( x, 15 );
 		ClipTextInfo tmp = ClipTextInfo();
 		_gWorld.getTextInfo( text, tmp );
 		int width   = tmp.width();
@@ -409,7 +409,7 @@ class ClipGraph {
 			);
 	}
 	void _drawYText( double x, double y ){
-		String text = floatToString( y, 15 );
+		String text = ClipMath.floatToString( y, 15 );
 		ClipTextInfo tmp = ClipTextInfo();
 		_gWorld.getTextInfo( text, tmp );
 		int width   = tmp.width();
@@ -566,7 +566,7 @@ class ClipGraph {
 		// Y座標を計算する
 		bool saveAnsFlag = proc.ansFlag();
 		proc.setAnsFlag( false );
-		if( proc.processLoop( expr, param ) == CLIP_PROC_END ){
+		if( proc.processLoop( expr, param ) == ClipGlobal.procEnd ){
 			// Y座標をセット
 			if( param.val( 0 ).imag() == 0.0 ){
 				y.set( param.val( 0 ).toFloat() );
@@ -624,7 +624,7 @@ class ClipGraph {
 				if( _process( proc, param, _info[_curIndex]._expr1, ans[i]._x, yy ) ){
 					ans[i]._y1 = yy.val();
 					double tmp = logY( ans[i]._y1 );
-					if( MATH_ISINF( tmp ) || MATH_ISNAN( tmp ) ){
+					if( ClipMath.isInf( tmp ) || ClipMath.isNan( tmp ) ){
 						drawFlag = false;
 					} else {
 						// 計算結果をプロット
@@ -690,7 +690,7 @@ class ClipGraph {
 			_gWorld.setColor( _info[_curIndex]._color );
 
 			switch( _info[_curIndex]._mode ){
-			case CLIP_GRAPH_MODE_PARAM:
+			case ClipGlobal.graphModeParam:
 				if( startIndex > 0 ){
 					drawFlag = true;
 					posX = _gWorld.imgPosX( startAns![startIndex]._y1 );
@@ -733,31 +733,31 @@ class ClipGraph {
 					}
 				}
 				break;
-			case CLIP_GRAPH_MODE_POLAR:
+			case ClipGlobal.graphModePolar:
 				if( startIndex > 0 ){
 					drawFlag = true;
-					posX = _gWorld.imgPosX( startAns![startIndex]._y1 * fcos( startAns[startIndex]._x ) );
-					posY = _gWorld.imgPosY( startAns[startIndex]._y1 * fsin( startAns[startIndex]._x ) );
+					posX = _gWorld.imgPosX( startAns![startIndex]._y1 * MathComplex.fcos( startAns[startIndex]._x ) );
+					posY = _gWorld.imgPosY( startAns[startIndex]._y1 * MathComplex.fsin( startAns[startIndex]._x ) );
 				}
 				for( i = 0; i < ansNum.val(); i++ ){
 					ans[i]._x = start + step * i;
 					if( _process( proc, param, _info[_curIndex]._expr1, ans[i]._x, yy ) ){
 						ans[i]._y1 = yy.val();
 						double tmp = ans[i]._y1;
-						if( MATH_ISINF( tmp ) || MATH_ISNAN( tmp ) ){
+						if( ClipMath.isInf( tmp ) || ClipMath.isNan( tmp ) ){
 							drawFlag = false;
 						} else {
 							// 計算結果をプロット
 							if( drawFlag ){
 								oldX = posX;
 								oldY = posY;
-								posX = _gWorld.imgPosX( ans[i]._y1 * fcos( ans[i]._x ) );
-								posY = _gWorld.imgPosY( ans[i]._y1 * fsin( ans[i]._x ) );
+								posX = _gWorld.imgPosX( ans[i]._y1 * MathComplex.fcos( ans[i]._x ) );
+								posY = _gWorld.imgPosY( ans[i]._y1 * MathComplex.fsin( ans[i]._x ) );
 								_drawLine( oldX, oldY, posX, posY );
 							} else {
 								drawFlag = true;
-								posX = _gWorld.imgPosX( ans[i]._y1 * fcos( ans[i]._x ) );
-								posY = _gWorld.imgPosY( ans[i]._y1 * fsin( ans[i]._x ) );
+								posX = _gWorld.imgPosX( ans[i]._y1 * MathComplex.fcos( ans[i]._x ) );
+								posY = _gWorld.imgPosY( ans[i]._y1 * MathComplex.fsin( ans[i]._x ) );
 							}
 						}
 					} else {
@@ -769,8 +769,8 @@ class ClipGraph {
 					if( drawFlag ){
 						oldX = posX;
 						oldY = posY;
-						posX = _gWorld.imgPosX( startAns![startIndex]._y1 * fcos( startAns[startIndex]._x ) );
-						posY = _gWorld.imgPosY( startAns[startIndex]._y1 * fsin( startAns[startIndex]._x ) );
+						posX = _gWorld.imgPosX( startAns![startIndex]._y1 * MathComplex.fcos( startAns[startIndex]._x ) );
+						posY = _gWorld.imgPosY( startAns[startIndex]._y1 * MathComplex.fsin( startAns[startIndex]._x ) );
 						_drawLine( oldX, oldY, posX, posY );
 					}
 				}
@@ -785,7 +785,7 @@ class ClipGraph {
 		delAns();
 
 		switch( _info[_curIndex]._mode ){
-		case CLIP_GRAPH_MODE_RECT:
+		case ClipGlobal.graphModeRect:
 			_plot(
 				proc, param,
 				_gWorld.imgPosX( _info[_curIndex]._start ),
@@ -794,8 +794,8 @@ class ClipGraph {
 				null, -1
 				);
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
-		case CLIP_GRAPH_MODE_POLAR:
+		case ClipGlobal.graphModeParam:
+		case ClipGlobal.graphModePolar:
 			_plotStep(
 				proc, param,
 				_info[_curIndex]._start,
@@ -820,7 +820,7 @@ class ClipGraph {
 		}
 
 		switch( _info[_curIndex]._mode ){
-		case CLIP_GRAPH_MODE_RECT:
+		case ClipGlobal.graphModeRect:
 			int start, end, step;
 
 			// 既存データの前・後どちらに追加するのかを調べる
@@ -858,8 +858,8 @@ class ClipGraph {
 				);
 
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
-		case CLIP_GRAPH_MODE_POLAR:
+		case ClipGlobal.graphModeParam:
+		case ClipGlobal.graphModePolar:
 			double start, end, step;
 
 			step = _info[_curIndex]._step;
@@ -909,7 +909,7 @@ class ClipGraph {
 		}
 
 		int newAnsNum = _info[_curIndex]._ansNum.val() + tmpAnsNum.val();
-		List<ClipGraphAns> newAns = newGraphAnsArray( newAnsNum );
+		List<ClipGraphAns> newAns = ClipGraphAns.newArray( newAnsNum );
 		if( beforeFlag ){
 			// 既存データの前に追加
 			for( i = 0; i < tmpAnsNum.val(); i++ ){
@@ -943,10 +943,10 @@ class ClipGraph {
 
 		if( _info[_curIndex]._ansNum.val() > 0 ){
 			switch( _info[_curIndex]._mode ){
-			case CLIP_GRAPH_MODE_RECT:
+			case ClipGlobal.graphModeRect:
 				for( i = 0; i < _info[_curIndex]._ansNum.val(); i++ ){
 					double tmp = logY( _info[_curIndex]._ans[i]._y1 );
-					if( MATH_ISINF( tmp ) || MATH_ISNAN( tmp ) ){
+					if( ClipMath.isInf( tmp ) || ClipMath.isNan( tmp ) ){
 						drawFlag = false;
 					} else {
 						// 計算結果をプロット
@@ -964,7 +964,7 @@ class ClipGraph {
 					}
 				}
 				break;
-			case CLIP_GRAPH_MODE_PARAM:
+			case ClipGlobal.graphModeParam:
 				for( i = 0; i < _info[_curIndex]._ansNum.val(); i++ ){
 					// 計算結果をプロット
 					if( drawFlag ){
@@ -980,23 +980,23 @@ class ClipGraph {
 					}
 				}
 				break;
-			case CLIP_GRAPH_MODE_POLAR:
+			case ClipGlobal.graphModePolar:
 				for( i = 0; i < _info[_curIndex]._ansNum.val(); i++ ){
 					double tmp = _info[_curIndex]._ans[i]._y1;
-					if( MATH_ISINF( tmp ) || MATH_ISNAN( tmp ) ){
+					if( ClipMath.isInf( tmp ) || ClipMath.isNan( tmp ) ){
 						drawFlag = false;
 					} else {
 						// 計算結果をプロット
 						if( drawFlag ){
 							oldX = posX;
 							oldY = posY;
-							posX = _gWorld.imgPosX( _info[_curIndex]._ans[i]._y1 * fcos( _info[_curIndex]._ans[i]._x ) );
-							posY = _gWorld.imgPosY( _info[_curIndex]._ans[i]._y1 * fsin( _info[_curIndex]._ans[i]._x ) );
+							posX = _gWorld.imgPosX( _info[_curIndex]._ans[i]._y1 * MathComplex.fcos( _info[_curIndex]._ans[i]._x ) );
+							posY = _gWorld.imgPosY( _info[_curIndex]._ans[i]._y1 * MathComplex.fsin( _info[_curIndex]._ans[i]._x ) );
 							_drawLine( oldX, oldY, posX, posY );
 						} else {
 							drawFlag = true;
-							posX = _gWorld.imgPosX( _info[_curIndex]._ans[i]._y1 * fcos( _info[_curIndex]._ans[i]._x ) );
-							posY = _gWorld.imgPosY( _info[_curIndex]._ans[i]._y1 * fsin( _info[_curIndex]._ans[i]._x ) );
+							posX = _gWorld.imgPosX( _info[_curIndex]._ans[i]._y1 * MathComplex.fcos( _info[_curIndex]._ans[i]._x ) );
+							posY = _gWorld.imgPosY( _info[_curIndex]._ans[i]._y1 * MathComplex.fsin( _info[_curIndex]._ans[i]._x ) );
 						}
 					}
 				}
@@ -1015,7 +1015,7 @@ class ClipGraph {
 			List<bool> ret = List.filled( 3, false );
 			ret[0] = _rePlot();
 			ret[1] = _plotPos( proc, param!, _info[_curIndex]._start );
-			ret[2] = _plotPos( proc, param, _info[_curIndex]._end   );
+			ret[2] = _plotPos( proc, param , _info[_curIndex]._end   );
 			return ret[0] || ret[1] || ret[2];
 		}
 	}
@@ -1026,7 +1026,7 @@ class ClipGraph {
 		int posX, posY;
 
 		switch( _info[_curIndex]._mode ){
-		case CLIP_GRAPH_MODE_RECT:
+		case ClipGlobal.graphModeRect:
 			// 垂直方向の線の描画
 			posX = _gWorld.imgPosX( logX( x ) );
 			for( i = 0; i < _gWorld.height(); i++ ){
@@ -1040,7 +1040,7 @@ class ClipGraph {
 			}
 
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
+		case ClipGlobal.graphModeParam:
 			// 垂直方向の線の描画
 			posX = _gWorld.imgPosX( y1 );
 			for( i = 0; i < _gWorld.height(); i++ ){
@@ -1054,15 +1054,15 @@ class ClipGraph {
 			}
 
 			break;
-		case CLIP_GRAPH_MODE_POLAR:
+		case ClipGlobal.graphModePolar:
 			// 垂直方向の線の描画
-			posX = _gWorld.imgPosX( y1 * fcos( x ) );
+			posX = _gWorld.imgPosX( y1 * MathComplex.fcos( x ) );
 			for( i = 0; i < _gWorld.height(); i++ ){
 				_gWorld.putXOR( posX, i );
 			}
 
 			// 水平方向の線の描画
-			posY = _gWorld.imgPosY( y1 * fsin( x ) );
+			posY = _gWorld.imgPosY( y1 * MathComplex.fsin( x ) );
 			for( i = 0; i < _gWorld.width(); i++ ){
 				_gWorld.putXOR( i, posY );
 			}
@@ -1136,7 +1136,7 @@ class ClipGraph {
 		return -2;
 	}
 	double _dist( double x1, double y1, double x2, double y2 ){
-		if( MATH_ISINF( x2 ) || MATH_ISNAN( x2 ) || MATH_ISINF( y2 ) || MATH_ISNAN( y2 ) ){
+		if( ClipMath.isInf( x2 ) || ClipMath.isNan( x2 ) || ClipMath.isInf( y2 ) || ClipMath.isNan( y2 ) ){
 			return -1.0;
 		}
 		return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
@@ -1169,14 +1169,14 @@ class ClipGraph {
 			int num  = 0;
 			double dist = _dist(
 				x, y,
-				_info[_curIndex]._ans[0]._y1 * fcos( _info[_curIndex]._ans[0]._x ),
-				_info[_curIndex]._ans[0]._y1 * fsin( _info[_curIndex]._ans[0]._x )
+				_info[_curIndex]._ans[0]._y1 * MathComplex.fcos( _info[_curIndex]._ans[0]._x ),
+				_info[_curIndex]._ans[0]._y1 * MathComplex.fsin( _info[_curIndex]._ans[0]._x )
 				);
 			for( int i = 1; i < _info[_curIndex]._ansNum.val(); i++ ){
 				tmp = _dist(
 					x, y,
-					_info[_curIndex]._ans[i]._y1 * fcos( _info[_curIndex]._ans[i]._x ),
-					_info[_curIndex]._ans[i]._y1 * fsin( _info[_curIndex]._ans[i]._x )
+					_info[_curIndex]._ans[i]._y1 * MathComplex.fcos( _info[_curIndex]._ans[i]._x ),
+					_info[_curIndex]._ans[i]._y1 * MathComplex.fsin( _info[_curIndex]._ans[i]._x )
 					);
 				if( (tmp >= 0.0) && ((dist < 0.0) || (tmp < dist)) ){
 					num  = i;
@@ -1201,7 +1201,7 @@ class ClipGraph {
 		ParamFloat ratio = ParamFloat();
 
 		switch( _info[_curIndex]._mode ){
-		case CLIP_GRAPH_MODE_RECT:
+		case ClipGlobal.graphModeRect:
 			ans._x = expX( _gWorld.wndPosX( x ) );
 			if( (num = _search( ans._x, ratio )) < -1 ){
 				return false;
@@ -1218,7 +1218,7 @@ class ClipGraph {
 				ans._y2 = _info[_curIndex]._ans[num]._y2 + (_info[_curIndex]._ans[num + 1]._y2 - _info[_curIndex]._ans[num]._y2) * ratio.val();
 			}
 			break;
-		case CLIP_GRAPH_MODE_PARAM:
+		case ClipGlobal.graphModeParam:
 			if( (num = _searchParam( _gWorld.wndPosX( x ), _gWorld.wndPosY( y ) )) < -1 ){
 				return false;
 			}
@@ -1232,7 +1232,7 @@ class ClipGraph {
 				ans._y2 = _info[_curIndex]._ans[num]._y2;
 			}
 			break;
-		case CLIP_GRAPH_MODE_POLAR:
+		case ClipGlobal.graphModePolar:
 			if( (num = _searchPolar( _gWorld.wndPosX( x ), _gWorld.wndPosY( y ), ratio )) < -1 ){
 				return false;
 			}
@@ -1265,14 +1265,14 @@ class ClipGraph {
 			if( !_process( proc, param, _info[_curIndex]._expr1, x, y1 ) ){
 				return false;
 			}
-			if( _info[_curIndex]._mode == CLIP_GRAPH_MODE_PARAM ){
+			if( _info[_curIndex]._mode == ClipGlobal.graphModeParam ){
 				if( !_process( proc, param, _info[_curIndex]._expr2, x, y2 ) ){
 					return false;
 				}
 			}
 
 			// 既存のデータをコピー
-			tmp = newGraphAnsArray( _info[_curIndex]._ansNum.val() + 1 );
+			tmp = ClipGraphAns.newArray( _info[_curIndex]._ansNum.val() + 1 );
 			for( i = 0; i < _info[_curIndex]._ansNum.val(); i++ ){
 //				tmp[i + 1].set( _info[_curIndex]._ans[i] );
 				tmp[i + 1] = _info[_curIndex]._ans[i];
@@ -1283,14 +1283,14 @@ class ClipGraph {
 			if( !_process( proc, param, _info[_curIndex]._expr1, x, y1 ) ){
 				return false;
 			}
-			if( _info[_curIndex]._mode == CLIP_GRAPH_MODE_PARAM ){
+			if( _info[_curIndex]._mode == ClipGlobal.graphModeParam ){
 				if( !_process( proc, param, _info[_curIndex]._expr2, x, y2 ) ){
 					return false;
 				}
 			}
 
 			// 既存のデータをコピー
-			tmp = newGraphAnsArray( _info[_curIndex]._ansNum.val() + 1 );
+			tmp = ClipGraphAns.newArray( _info[_curIndex]._ansNum.val() + 1 );
 			for( i = 0; i < _info[_curIndex]._ansNum.val(); i++ ){
 //				tmp[i].set( _info[_curIndex]._ans[i] );
 				tmp[i] = _info[_curIndex]._ans[i];
@@ -1305,14 +1305,14 @@ class ClipGraph {
 			if( !_process( proc, param, _info[_curIndex]._expr1, x, y1 ) ){
 				return false;
 			}
-			if( _info[_curIndex]._mode == CLIP_GRAPH_MODE_PARAM ){
+			if( _info[_curIndex]._mode == ClipGlobal.graphModeParam ){
 				if( !_process( proc, param, _info[_curIndex]._expr2, x, y2 ) ){
 					return false;
 				}
 			}
 
 			// 既存のデータをコピー
-			tmp = newGraphAnsArray( _info[_curIndex]._ansNum.val() + 1 );
+			tmp = ClipGraphAns.newArray( _info[_curIndex]._ansNum.val() + 1 );
 			for( i = 0; i <= num; i++ ){
 //				tmp[i].set( _info[_curIndex]._ans[i] );
 				tmp[i] = _info[_curIndex]._ans[i];

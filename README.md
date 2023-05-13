@@ -11,7 +11,7 @@ For the CLIP language, see "http://www5d.biglobe.ne.jp/~satis/clip/language_e.ht
 pubspec.yaml
 ```yml
 dependencies:
-  dart_clip: ^1.0.1
+  dart_clip: ^1.0.2
 ```
 
 ----------
@@ -21,79 +21,79 @@ dependencies:
 It provides the ability to easily run the CLIP engine from Dart.
 
 ```dart
-import 'package:dart_clip/extras/easyclip.dart';
+import 'package:dart_clip/clip.dart';
 ```
 
 ### Overwriting functions
 
 ```dart
-assertProc = ( int num, String? func ){
+ClipProc.assertProc = (int num, String? func) {
   // Returns true if processing is stopped when assertion fails
   return false;
 };
-errorProc = ( int err, int num, String func, String token ){
+ClipProc.errorProc = (int err, int num, String func, String token) {
   // The following is an example of generating a string
-  String str = (((err & CLIP_PROC_WARN) != 0) ? "warning:" : "error:") + intToString( err.toDouble(), 16, 4 ) + " line:$num";
+  String str = (((err & ClipGlobal.procWarn) != 0) ? "warning:" : "error:") +
+      ClipMath.intToString(err.toDouble(), 16, 4) + " line:$num";
 };
 
-printAnsComplex = ( String real, String imag ){
+ClipProc.printAnsComplex = (String real, String imag) {
   // The following is an example of generating a string
   String str = real + imag;
 };
-printAnsMultiPrec = ( String str ){
-};
-printAnsMatrix = ( ClipParam param, ClipToken array ){
+ClipProc.printAnsMultiPrec = (String str) {};
+ClipProc.printAnsMatrix = (ClipParam param, ClipToken array) {
   // The following is an example of generating a string
-  String str = curClip().getArrayTokenString( param, array, 0 );
+  String str = EasyClip.curClip().getArrayTokenString(param, array, 0);
 };
-printWarn = ( String warn, int num, String func ){
+ClipProc.printWarn = (String warn, int num, String func) {
   // The following is an example of generating a string
   String str = "warning: ";
-  if( func.isNotEmpty ){
+  if (func.isNotEmpty) {
     str += "$func: ";
   }
-  if( num > 0 ){
+  if (num > 0) {
     str += "line:$num ";
   }
   str += warn;
 };
-printError = ( String error, int num, String func ){
+ClipProc.printError = (String error, int num, String func) {
   // The following is an example of generating a string
   String str = "error: ";
-  if( func.isNotEmpty ){
+  if (func.isNotEmpty) {
     str += "$func: ";
   }
-  if( num > 0 ){
+  if (num > 0) {
     str += "line:$num ";
   }
   str += error;
 };
 
-doCommandClear = (){
+ClipProc.doCommandClear = () {
   // Function called when command ":clear" is executed
 };
-doCommandPrint = ( ClipProcPrint? topPrint, bool flag ){
+ClipProc.doCommandPrint = (ClipProcPrint? topPrint, bool flag) {
   // Functions called when the commands ":print" / ":println" are executed
   // When command ":print", false is passed to flag, and when command ":println", true is passed to flag.
   // The following is an example of generating a string
   String str = "";
   ClipProcPrint? cur = topPrint;
-  while( cur != null ){
-    if( cur.string() != null ){
-      ParamString tmp = ParamString( cur.string() );
-      tmp.escape().replaceNewLine( "\n" );
+  while (cur != null) {
+    if (cur.string() != null) {
+      ParamString tmp = ParamString(cur.string());
+      tmp.escape().replaceNewLine("\n");
       str += tmp.str();
     }
     cur = cur.next();
   }
-  if( flag ){
+  if (flag) {
     str += "\n";
   }
 };
-doCommandGWorld = ( int width, int height ){
+ClipProc.doCommandGWorld = (int width, int height) {
   // Function called when command ":gworld" is executed
 };
-doCommandGWorld24 = ( int width, int height ){
+ClipProc.doCommandGWorld24 = (int width, int height) {
   // Function called when command ":gworld24" is executed
 };
 ```
@@ -101,13 +101,13 @@ doCommandGWorld24 = ( int width, int height ){
 When operating the EasyClip object inside the overwrite function, get the EasyClip object as follows.
 
 ```dart
-EasyClip clip = curClip();
+EasyClip clip = EasyClip.curClip();
 ```
 
 When manipulating the Canvas object inside the overwrite function, get the Canvas object as follows.
 
 ```dart
-Canvas canvas = curCanvas();
+Canvas canvas = EasyClip.curCanvas();
 ```
 
 ### Object construction
@@ -202,26 +202,26 @@ clip.setMode( mode, param1, param2 );
 
 | `mode` | Meaning | `param1` | `param2` |
 | --- | --- | --- | --- |
-| CLIP_MODE_E_FLOAT | Double precision floating point type (exponential notation) | Display accuracy | - |
-| CLIP_MODE_F_FLOAT | Double precision floating point type (decimal point notation) | Display accuracy | - |
-| CLIP_MODE_G_FLOAT | Double precision floating point type | Display accuracy | - |
-| CLIP_MODE_E_COMPLEX | Complex type (exponential notation) | Display accuracy | - |
-| CLIP_MODE_F_COMPLEX | Complex type (decimal point notation) | Display accuracy | - |
-| CLIP_MODE_G_COMPLEX | Complex type | Display accuracy | - |
-| CLIP_MODE_I_FRACT | Fractional type | - | - |
-| CLIP_MODE_M_FRACT | Band Fractional Type | - | - |
-| CLIP_MODE_H_TIME | Time type (hour) | Frames per second | - |
-| CLIP_MODE_M_TIME | Time type (minutes) | Frames per second | - |
-| CLIP_MODE_S_TIME | Time type (seconds) | Frames per second | - |
-| CLIP_MODE_F_TIME | Time type (frame) | Frames per second | - |
-| CLIP_MODE_S_CHAR | Signed 8-bit integer type | Radix | - |
-| CLIP_MODE_U_CHAR | Unsigned 8-bit integer type | Radix | - |
-| CLIP_MODE_S_SHORT | Signed 16-bit integer type | Radix | - |
-| CLIP_MODE_U_SHORT | Unsigned 16-bit integer type | Radix | - |
-| CLIP_MODE_S_LONG | Signed 32-bit integer type | Radix | - |
-| CLIP_MODE_U_LONG | Unsigned 32-bit integer type | Radix | - |
-| CLIP_MODE_F_MULTIPREC | Multiple-precision floating point type | precision | Rounding mode |
-| CLIP_MODE_I_MULTIPREC | Multiple-precision integer type | precision | Rounding mode |
+| ClipGlobal.modeEFloat | Double precision floating point type (exponential notation) | Display accuracy | - |
+| ClipGlobal.modeFFloat | Double precision floating point type (decimal point notation) | Display accuracy | - |
+| ClipGlobal.modeGFloat | Double precision floating point type | Display accuracy | - |
+| ClipGlobal.modeEComplex | Complex type (exponential notation) | Display accuracy | - |
+| ClipGlobal.modeFComplex | Complex type (decimal point notation) | Display accuracy | - |
+| ClipGlobal.modeGComplex | Complex type | Display accuracy | - |
+| ClipGlobal.modeIFract | Fractional type | - | - |
+| ClipGlobal.modeMFract | Band Fractional Type | - | - |
+| ClipGlobal.modeHTime | Time type (hour) | Frames per second | - |
+| ClipGlobal.modeMTime | Time type (minutes) | Frames per second | - |
+| ClipGlobal.modeSTime | Time type (seconds) | Frames per second | - |
+| ClipGlobal.modeFTime | Time type (frame) | Frames per second | - |
+| ClipGlobal.modeSChar | Signed 8-bit integer type | Radix | - |
+| ClipGlobal.modeUChar | Unsigned 8-bit integer type | Radix | - |
+| ClipGlobal.modeSShort | Signed 16-bit integer type | Radix | - |
+| ClipGlobal.modeUShort | Unsigned 16-bit integer type | Radix | - |
+| ClipGlobal.modeSLong | Signed 32-bit integer type | Radix | - |
+| ClipGlobal.modeULong | Unsigned 32-bit integer type | Radix | - |
+| ClipGlobal.modeFMultiPrec | Multiple-precision floating point type | precision | Rounding mode |
+| ClipGlobal.modeIMultiPrec | Multiple-precision integer type | precision | Rounding mode |
 
 | Rounding mode | Meaning |
 | --- | --- |
@@ -237,7 +237,7 @@ clip.setMode( mode, param1, param2 );
 
 `param1` and `param1` can be omitted.
 
-Immediately after building the EasyClip object: CLIP_MODE_G_FLOAT
+Immediately after building the EasyClip object: ClipGlobal.modeGFloat
 
 **Floating point display accuracy** (":prec" command in CLIP)
 
@@ -271,11 +271,11 @@ clip.setAngType( type );
 
 | `type` | Meaning |
 | --- | --- |
-| MATH_ANG_TYPE_RAD | Radian |
-| MATH_ANG_TYPE_DEG | Degree |
-| MATH_ANG_TYPE_GRAD | Grazian |
+| ClipMath.angTypeRad | Radian |
+| ClipMath.angTypeDeg | Degree |
+| ClipMath.angTypeGrad | Grazian |
 
-Immediately after building the EasyClip object: MATH_ANG_TYPE_RAD
+Immediately after building the EasyClip object: ClipMath.angTypeRad
 
 **Calculator mode specification** (":calculator" command in CLIP)
 
@@ -365,11 +365,11 @@ List<List<int>>? array = clip.commandGGet24(); // null if could not be obtained
 ### Calculation
 
 ```dart
-int ret = clip.procLine( line/*String*/ ); // Returns CLIP_PROC_END on successful completion
+int ret = clip.procLine( line/*String*/ ); // Returns ClipGlobal.procEnd on successful completion
 ```
 
 ```dart
-int ret = clip.procScript( script/*List<String>*/ ); // Returns CLIP_PROC_END upon normal completion
+int ret = clip.procScript( script/*List<String>*/ ); // Returns ClipGlobal.procEnd upon normal completion
 ```
 
 ### Color palette
@@ -457,7 +457,7 @@ ClipGWorld gWorld = clip.gWorld();
 - Get the only MultiPrec object that exists in the CLIP engine.
 
 ```dart
-MultiPrec mp = procMultiPrec();
+MultiPrec mp = ClipProc.procMultiPrec();
 ```
 
 ----------
@@ -687,14 +687,14 @@ fround( a/*MPData*/, prec, mode )
 
 | `mode` | Meaning |
 | --- | --- |
-| MP_FROUND_UP | Round away from zero |
-| MP_FROUND_DOWN | Round to near zero |
-| MP_FROUND_CEILING | Round to approach positive infinity |
-| MP_FROUND_FLOOR | Round to approach negative infinity |
-| MP_FROUND_HALF_UP | round up on 5 and round down on 4 |
-| MP_FROUND_HALF_DOWN | round up on 6 and round down on 5 |
-| MP_FROUND_HALF_EVEN | If the number in the `prec` digit is odd, MP_FROUND_HALF_UP is processed, and if it is even, MP_FROUND_HALF_DOWN is processed. |
-| MP_FROUND_HALF_DOWN2 | banker's rounding |
-| MP_FROUND_HALF_EVEN2 | If the number in the `prec` digit is odd, MP_FROUND_HALF_UP is processed, and if it is even, MP_FROUND_HALF_DOWN2 is processed. |
+| MultiPrec.froundUp | Round away from zero |
+| MultiPrec.froundDown | Round to near zero |
+| MultiPrec.froundCeiling | Round to approach positive infinity |
+| MultiPrec.froundFloor | Round to approach negative infinity |
+| MultiPrec.froundHalfUp | round up on 5 and round down on 4 |
+| MultiPrec.froundHalfDown | round up on 6 and round down on 5 |
+| MultiPrec.froundHalfEven | If the number in the `prec` digit is odd, MultiPrec.froundHalfUp is processed, and if it is even, MultiPrec.froundHalfDown is processed. |
+| MultiPrec.froundHalfDown2 | banker's rounding |
+| MultiPrec.froundHalfEven2 | If the number in the `prec` digit is odd, MultiPrec.froundHalfUp is processed, and if it is even, MultiPrec.froundHalfDown2 is processed. |
 
-If `mode` is omitted, the operation will be MP_FROUND_HALF_EVEN.
+If `mode` is omitted, the operation will be MultiPrec.froundHalfEven.

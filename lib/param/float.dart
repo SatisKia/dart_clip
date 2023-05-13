@@ -22,12 +22,12 @@ class ParamFloat {
 	double val(){
 		return _val;
 	}
-}
 
-List newFloatArray( int len ){
-	List<ParamFloat> a = List.filled( len, ParamFloat() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ParamFloat();
+	static List newArray( int len ){
+		List<ParamFloat> a = List.filled( len, ParamFloat() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ParamFloat();
+		}
+		return a;
 	}
-	return a;
 }

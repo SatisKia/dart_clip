@@ -8,7 +8,6 @@ import 'func.dart';
 import 'global.dart';
 import 'line.dart';
 import 'math/math.dart';
-import 'math/math_env.dart';
 import 'math/multiprec.dart';
 import 'math/value.dart';
 import 'proc.dart';
@@ -105,12 +104,12 @@ class ClipParam {
 		}
 		_calculator = inherit ? parentParam!._calculator : false;
 		_base       = inherit ? parentParam!._base       : 0;
-		_mode       = inherit ? parentParam!._mode       : CLIP_DEFMODE;
-		_fps        = inherit ? parentParam!._fps        : CLIP_DEFFPS;
-		_prec       = inherit ? parentParam!._prec       : CLIP_DEFPREC;
-		_radix      = inherit ? parentParam!._radix      : CLIP_DEFRADIX;
-		_mpPrec     = inherit ? parentParam!._mpPrec     : CLIP_DEFMPPREC;
-		_mpRound    = inherit ? parentParam!._mpRound    : CLIP_DEFMPROUND;
+		_mode       = inherit ? parentParam!._mode       : ClipGlobal.defMode;
+		_fps        = inherit ? parentParam!._fps        : ClipGlobal.defFps;
+		_prec       = inherit ? parentParam!._prec       : ClipGlobal.defPrec;
+		_radix      = inherit ? parentParam!._radix      : ClipGlobal.defRadix;
+		_mpPrec     = inherit ? parentParam!._mpPrec     : ClipGlobal.defMPPrec;
+		_mpRound    = inherit ? parentParam!._mpRound    : ClipGlobal.defMPRound;
 
 		if( parentParam != null ){
 			_saveMode = parentParam._mode;
@@ -157,7 +156,7 @@ class ClipParam {
 		_nameSpace    = null;
 
 		_seFlag  = false;
-		_seToken = CLIP_SE_NULL;
+		_seToken = ClipGlobal.seNull;
 
 		_mpFlag = false;
 
@@ -176,10 +175,10 @@ class ClipParam {
 
 	void end(){
 		if( _saveMode != null ){
-			globalParam().setMode( _saveMode! );
+			ClipProc.globalParam().setMode( _saveMode! );
 		}
 		if( _saveFps != null ){
-			globalParam().setFps( _saveFps! );
+			ClipProc.globalParam().setFps( _saveFps! );
 		}
 	}
 
@@ -228,21 +227,21 @@ class ClipParam {
 	}
 
 	void updateMode(){
-		setComplexIsReal( (_mode & CLIP_MODE_COMPLEX) == 0 );
-		if( (_mode & CLIP_MODE_FRACT) != 0 ){
-			setValueType( MATH_VALUE_TYPE_FRACT );
-		} else if( (_mode & CLIP_MODE_TIME) != 0 ){
-			setValueType( MATH_VALUE_TYPE_TIME );
+		ClipMath.setComplexIsReal( (_mode & ClipGlobal.modeComplex) == 0 );
+		if( (_mode & ClipGlobal.modeFract) != 0 ){
+			ClipMath.setValueType( ClipMath.valueTypeFract );
+		} else if( (_mode & ClipGlobal.modeTime) != 0 ){
+			ClipMath.setValueType( ClipMath.valueTypeTime );
 		} else {
-			setValueType( MATH_VALUE_TYPE_COMPLEX );
+			ClipMath.setValueType( ClipMath.valueTypeComplex );
 		}
 	}
 	void setMode( int mode ){
-		if( _mode == CLIP_MODE_I_MULTIPREC ){
+		if( _mode == ClipGlobal.modeIMultiPrec ){
 			_radix = _saveRadix;
 		}
 		_mode = mode;
-		if( _mode == CLIP_MODE_I_MULTIPREC ){
+		if( _mode == ClipGlobal.modeIMultiPrec ){
 			_saveRadix = _radix;
 			_radix = 10;
 		}
@@ -253,15 +252,15 @@ class ClipParam {
 	}
 
 	bool isMultiPrec(){
-		return ((_mode & CLIP_MODE_MULTIPREC) != 0);
+		return ((_mode & ClipGlobal.modeMultiPrec) != 0);
 	}
 
 	void updateFps(){
-		setTimeFps( _fps );
+		ClipMath.setTimeFps( _fps );
 	}
 	void setFps( double fps ){
 		if( fps < 0.0 ){
-			_fps = CLIP_DEFFPS;
+			_fps = ClipGlobal.defFps;
 		} else {
 			_fps = fps;
 		}
@@ -272,8 +271,8 @@ class ClipParam {
 //	}
 
 	void setPrec( int prec ){
-		if( prec < CLIP_MINPREC ){
-			_prec = CLIP_DEFPREC;
+		if( prec < ClipGlobal.minPrec ){
+			_prec = ClipGlobal.defPrec;
 		} else {
 			_prec = prec;
 		}
@@ -283,10 +282,10 @@ class ClipParam {
 	}
 
 	void setRadix( int radix ){
-		if( radix < CLIP_MINRADIX ){
-			_radix = CLIP_DEFRADIX;
-		} else if( radix > CLIP_MAXRADIX ){
-			_radix = CLIP_MAXRADIX;
+		if( radix < ClipGlobal.minRadix ){
+			_radix = ClipGlobal.defRadix;
+		} else if( radix > ClipGlobal.maxRadix ){
+			_radix = ClipGlobal.maxRadix;
 		} else {
 			_radix = radix;
 		}
@@ -296,8 +295,8 @@ class ClipParam {
 	}
 
 	void mpSetPrec( int prec ){
-		if( prec < CLIP_MINMPPREC ){
-			_mpPrec = CLIP_DEFMPPREC;
+		if( prec < ClipGlobal.minMPPrec ){
+			_mpPrec = ClipGlobal.defMPPrec;
 		} else {
 			_mpPrec = prec;
 		}
@@ -308,23 +307,23 @@ class ClipParam {
 
 	bool mpSetRoundStr( String mode ){
 		if( mode == "up" ){
-			_mpRound = MultiPrec.FROUND_UP;
+			_mpRound = MultiPrec.froundUp;
 		} else if( mode == "down" ){
-			_mpRound = MultiPrec.FROUND_DOWN;
+			_mpRound = MultiPrec.froundDown;
 		} else if( mode == "ceiling" ){
-			_mpRound = MultiPrec.FROUND_CEILING;
+			_mpRound = MultiPrec.froundCeiling;
 		} else if( mode == "floor" ){
-			_mpRound = MultiPrec.FROUND_FLOOR;
+			_mpRound = MultiPrec.froundFloor;
 		} else if( mode == "h_up" ){
-			_mpRound = MultiPrec.FROUND_HALF_UP;
+			_mpRound = MultiPrec.froundHalfUp;
 		} else if( mode == "h_down" ){
-			_mpRound = MultiPrec.FROUND_HALF_DOWN;
+			_mpRound = MultiPrec.froundHalfDown;
 		} else if( mode == "h_even" ){
-			_mpRound = MultiPrec.FROUND_HALF_EVEN;
+			_mpRound = MultiPrec.froundHalfEven;
 		} else if( mode == "h_down2" ){
-			_mpRound = MultiPrec.FROUND_HALF_DOWN2;
+			_mpRound = MultiPrec.froundHalfDown2;
 		} else if( mode == "h_even2" ){
-			_mpRound = MultiPrec.FROUND_HALF_EVEN2;
+			_mpRound = MultiPrec.froundHalfEven2;
 		} else {
 			return false;
 		}
@@ -424,7 +423,7 @@ class ClipParam {
 		return (index == 0) ? _array.matrix(index).mat(0) : _var.val( index );
 	}
 	bool isZero( int index ){
-		return MATH_ISZERO( val( index ).real() ) && MATH_ISZERO( val( index ).imag() );
+		return ClipMath.isZero( val( index ).real() ) && ClipMath.isZero( val( index ).imag() );
 	}
 
 	// 置き換え
@@ -517,37 +516,37 @@ class ClipParam {
 		i = 0;
 		label.beginGetToken();
 		while( label.getToken() ){
-			code  = getCode();
-			token = getToken();
+			code  = ClipToken.curCode();
+			token = ClipToken.curToken();
 			// &かどうかをチェックする
-			if( (code == CLIP_CODE_PARAM_ANS) || ((code == CLIP_CODE_OPERATOR) && (token >= CLIP_OP_AND)) ){
+			if( (code == ClipGlobal.codeParamAns) || ((code == ClipGlobal.codeOperator) && (token >= ClipGlobal.opAnd)) ){
 				if( !(label.getToken()) ){
 					break;
 				}
-				code  = getCode();
-				token = getToken();
+				code  = ClipToken.curCode();
+				token = ClipToken.curToken();
 				_updateParam[i] = true;
 			} else {
 				_updateParam[i] = false;
 			}
 
-			if( code == CLIP_CODE_LABEL ){
+			if( code == ClipGlobal.codeLabel ){
 				strLabel = token;
 
 				// ラベルを設定する
 				lock = label.lock();
 				if( label.getToken() ){
-					code  = getCode();
-					token = getToken();
-					if( code == CLIP_CODE_PARAM_ARRAY ){
-						_array.label().setLabel( MATH_CHAR_CODE_0 + i, strLabel, true );
+					code  = ClipToken.curCode();
+					token = ClipToken.curToken();
+					if( code == ClipGlobal.codeParamArray ){
+						_array.label().setLabel( ClipMath.charCode0 + i, strLabel, true );
 					} else {
 						label.unlock( lock );
-						_var.label().setLabel( MATH_CHAR_CODE_0 + i, strLabel, true );
+						_var.label().setLabel( ClipMath.charCode0 + i, strLabel, true );
 					}
 				} else {
 					label.unlock( lock );
-					_var.label().setLabel( MATH_CHAR_CODE_0 + i, strLabel, true );
+					_var.label().setLabel( ClipMath.charCode0 + i, strLabel, true );
 				}
 
 				i++;

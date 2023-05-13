@@ -51,34 +51,6 @@ class ClipCharInfo {
 	}
 }
 
-List<List<ClipCharInfo>> _gworld_char_info = List.filled( 10, [] ); // 文字情報
-
-void newGWorldCharInfo( int charSet ){
-	_gworld_char_info[charSet] = List.filled( 256, ClipCharInfo() );
-	for( int i = 0; i < 256; i++ ){
-		_gworld_char_info[charSet][i] = ClipCharInfo();
-	}
-}
-
-// 文字情報を登録する
-void regGWorldCharInfo( int charSet, int chr, int width, int ascent, int descent, int sizeX, int sizeY, String data ){
-	_gworld_char_info[charSet][chr]._width   = width;
-	_gworld_char_info[charSet][chr]._ascent  = ascent;
-	_gworld_char_info[charSet][chr]._descent = descent;
-	_gworld_char_info[charSet][chr]._sizeX   = sizeX;
-	_gworld_char_info[charSet][chr]._sizeY   = sizeY;
-	_gworld_char_info[charSet][chr]._data    = data;
-}
-
-// システムの背景色
-int _gworld_bg_color = 0;
-void regGWorldBgColor( int rgbColor ){
-	_gworld_bg_color = rgbColor;
-}
-int gWorldBgColor(){
-	return _gworld_bg_color;
-}
-
 // テキスト描画情報
 class ClipTextInfo {
 	late int _width;
@@ -96,6 +68,34 @@ class ClipTextInfo {
 
 // イメージ・メモリ管理クラス
 class ClipGWorld {
+	static final List<List<ClipCharInfo>> _charInfo = List.filled( 10, [] ); // 文字情報
+
+	static void newCharInfo( int charSet ){
+		_charInfo[charSet] = List.filled( 256, ClipCharInfo() );
+		for( int i = 0; i < 256; i++ ){
+			_charInfo[charSet][i] = ClipCharInfo();
+		}
+	}
+
+	// 文字情報を登録する
+	static void regCharInfo( int charSet, int chr, int width, int ascent, int descent, int sizeX, int sizeY, String data ){
+		_charInfo[charSet][chr]._width   = width;
+		_charInfo[charSet][chr]._ascent  = ascent;
+		_charInfo[charSet][chr]._descent = descent;
+		_charInfo[charSet][chr]._sizeX   = sizeX;
+		_charInfo[charSet][chr]._sizeY   = sizeY;
+		_charInfo[charSet][chr]._data    = data;
+	}
+
+	// システムの背景色
+	static int _bgColor = 0;
+	static void regBgColor( int rgbColor ){
+		_bgColor = rgbColor;
+	}
+	static int bgColor(){
+		return _bgColor;
+	}
+
 	// イメージ情報
 	late List<int>? _image; // イメージ・メモリ
 	late int _offset; // イメージ・メモリの幅
@@ -320,14 +320,14 @@ class ClipGWorld {
 	}
 	int imgSizX( double x ){
 		x *= _ratioX2;
-		if( MATH_ISINF( x ) || MATH_ISNAN( x ) ){
+		if( ClipMath.isInf( x ) || ClipMath.isNan( x ) ){
 			return -1;
 		}
 		return x.toInt();
 	}
 	int imgSizY( double y ){
 		y *= _ratioY2;
-		if( MATH_ISINF( y ) || MATH_ISNAN( y ) ){
+		if( ClipMath.isInf( y ) || ClipMath.isNan( y ) ){
 			return -1;
 		}
 		return y.toInt();
@@ -566,8 +566,8 @@ class ClipGWorld {
 		int temp;
 		int s;
 
-		dx = MATH_ABS( (x2 - x1).toDouble() ).toInt();
-		dy = MATH_ABS( (y2 - y1).toDouble() ).toInt();
+		dx = ClipMath.abs( (x2 - x1).toDouble() ).toInt();
+		dy = ClipMath.abs( (y2 - y1).toDouble() ).toInt();
 		if( dx > dy ){
 			if( x1 > x2 ){
 				step = (y1 > y2) ? 1 : -1;
@@ -612,8 +612,8 @@ class ClipGWorld {
 		int temp;
 		int s;
 
-		dx = MATH_ABS( (x2 - x1).toDouble() ).toInt();
-		dy = MATH_ABS( (y2 - y1).toDouble() ).toInt();
+		dx = ClipMath.abs( (x2 - x1).toDouble() ).toInt();
+		dy = ClipMath.abs( (y2 - y1).toDouble() ).toInt();
 		if( dx > dy ){
 			if( x1 > x2 ){
 				step = (y1 > y2) ? 1 : -1;
@@ -720,14 +720,14 @@ class ClipGWorld {
 
 		int chr;
 		for( int i = 0; i < text.length; i++ ){
-			chr = charCodeAt( text, i );
-			if( _gworld_char_info[_charSet][chr]._data != null ){
-				info._width += _gworld_char_info[_charSet][chr]._width;
-				if( _gworld_char_info[_charSet][chr]._ascent > info._ascent ){
-					info._ascent = _gworld_char_info[_charSet][chr]._ascent;
+			chr = ClipMath.charCodeAt( text, i );
+			if( _charInfo[_charSet][chr]._data != null ){
+				info._width += _charInfo[_charSet][chr]._width;
+				if( _charInfo[_charSet][chr]._ascent > info._ascent ){
+					info._ascent = _charInfo[_charSet][chr]._ascent;
 				}
-				if( _gworld_char_info[_charSet][chr]._descent > info._descent ){
-					info._descent = _gworld_char_info[_charSet][chr]._descent;
+				if( _charInfo[_charSet][chr]._descent > info._descent ){
+					info._descent = _charInfo[_charSet][chr]._descent;
 				}
 			}
 		}
@@ -744,33 +744,33 @@ class ClipGWorld {
 
 		int chr;
 		for( int i = 0; i < text.length; i++ ){
-			chr = charCodeAt( text, right ? text.length - 1 - i : i );
-			if( _gworld_char_info[_charSet][chr]._data != null ){
+			chr = ClipMath.charCodeAt( text, right ? text.length - 1 - i : i );
+			if( _charInfo[_charSet][chr]._data != null ){
 				if( right ){
 					// 現在点を移動させる
-					_imgMoveX -= _gworld_char_info[_charSet][chr]._width;
+					_imgMoveX -= _charInfo[_charSet][chr]._width;
 				}
 
 				// 文字の描画
 				top = 0;
-				for( yy = _imgMoveY - _gworld_char_info[_charSet][chr]._sizeY; ; yy++ ){
-					for( xx = 0; xx < _gworld_char_info[_charSet][chr]._sizeX; xx++ ){
-						if( _gworld_char_info[_charSet][chr]._data!.length == top + xx ){
+				for( yy = _imgMoveY - _charInfo[_charSet][chr]._sizeY; ; yy++ ){
+					for( xx = 0; xx < _charInfo[_charSet][chr]._sizeX; xx++ ){
+						if( _charInfo[_charSet][chr]._data!.length == top + xx ){
 							break;
 						}
-						if( charAt( _gworld_char_info[_charSet][chr]._data!, top + xx ) == '1' ){
+						if( ClipMath.charAt( _charInfo[_charSet][chr]._data!, top + xx ) == '1' ){
 							putColor( _imgMoveX + xx, yy, color );
 						}
 					}
-					if( _gworld_char_info[_charSet][chr]._data!.length == top + xx ){
+					if( _charInfo[_charSet][chr]._data!.length == top + xx ){
 						break;
 					}
-					top += _gworld_char_info[_charSet][chr]._sizeX;
+					top += _charInfo[_charSet][chr]._sizeX;
 				}
 
 				if( !right ){
 					// 現在点を移動させる
-					_imgMoveX += _gworld_char_info[_charSet][chr]._width;
+					_imgMoveX += _charInfo[_charSet][chr]._width;
 				}
 			}
 		}
@@ -831,18 +831,18 @@ class ClipGWorld {
 	}
 
 	int umax(){
-		return (_rgbFlag ? MATH_UMAX_24 : MATH_UMAX_8).toInt();
+		return (_rgbFlag ? ClipMath.umax24 : ClipMath.umax8).toInt();
 	}
 
 	void setGWorldLine( bool flag ){
 		_gWorldLine = flag;
 	}
-}
 
-void Function( ClipGWorld, int ) gWorldClear = ( gWorld, color ){};
-void Function( ClipGWorld, int ) gWorldSetColor = ( gWorld, color ){};
-void Function( ClipGWorld, int, int, int ) gWorldPutColor = ( gWorld, x, y, color ){};
-void Function( ClipGWorld, int, int ) gWorldPut = ( gWorld, x, y ){};
-void Function( ClipGWorld, int, int, int, int ) gWorldFill = ( gWorld, x, y, w, h ){};
-void Function( ClipGWorld, int, int, int, int ) gWorldLine = ( gWorld, x1, y1, x2, y2 ){};
-void Function( ClipGWorld, String, int, int, int, bool ) gWorldTextColor = ( gWorld, text, x, y, color, right ){};
+	static void Function( ClipGWorld, int ) gWorldClear = ( gWorld, color ){};
+	static void Function( ClipGWorld, int ) gWorldSetColor = ( gWorld, color ){};
+	static void Function( ClipGWorld, int, int, int ) gWorldPutColor = ( gWorld, x, y, color ){};
+	static void Function( ClipGWorld, int, int ) gWorldPut = ( gWorld, x, y ){};
+	static void Function( ClipGWorld, int, int, int, int ) gWorldFill = ( gWorld, x, y, w, h ){};
+	static void Function( ClipGWorld, int, int, int, int ) gWorldLine = ( gWorld, x1, y1, x2, y2 ){};
+	static void Function( ClipGWorld, String, int, int, int, bool ) gWorldTextColor = ( gWorld, text, x, y, color, right ){};
+}

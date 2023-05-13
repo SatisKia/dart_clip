@@ -22,7 +22,7 @@ class ClipArrayNode {
 		_node    = null;
 		_nodeNum = 0;
 
-		_vector    = newValueArray( 1 );
+		_vector    = MathValue.newArray( 1 );
 		_vectorNum = 0;
 	}
 
@@ -37,7 +37,7 @@ class ClipArrayNode {
 		int i;
 
 		if( _nodeNum > 0 ){
-			dst._node    = _newArrayNodeArray( _nodeNum );
+			dst._node    = newArray( _nodeNum );
 			dst._nodeNum = _nodeNum;
 			for( i = 0; i < _nodeNum; i++ ){
 				_node![i].dup( dst._node![i] );
@@ -48,16 +48,16 @@ class ClipArrayNode {
 		}
 
 		if( _vectorNum > 0 ){
-			dst._vector = newValueArray( _vectorNum + 1 );
+			dst._vector = MathValue.newArray( _vectorNum + 1 );
 			for( i = _vectorNum; i >= dst._vectorNum; i-- ){
 				dst._vector[i] = MathValue();
 			}
 			dst._vectorNum = _vectorNum;
 			for( i = 0; i < _vectorNum; i++ ){
-				copyValue( dst._vector[i], _vector[i] );
+				MathValue.copy( dst._vector[i], _vector[i] );
 			}
 		} else {
-			dst._vector    = newValueArray( 1 );
+			dst._vector    = MathValue.newArray( 1 );
 			dst._vectorNum = 0;
 		}
 	}
@@ -67,34 +67,34 @@ class ClipArrayNode {
 		int i;
 
 		if( _nodeNum > 0 ){
-			dst.addCode( CLIP_CODE_ARRAY_TOP, null );
+			dst.addCode( ClipGlobal.codeArrayTop, null );
 			for( i = 0; i < _nodeNum; i++ ){
 				_node![i].makeToken( dst, true );
 			}
-			dst.addCode( CLIP_CODE_ARRAY_END, null );
+			dst.addCode( ClipGlobal.codeArrayEnd, null );
 		}
 
 		if( _vectorNum > 0 ){
-			dst.addCode( CLIP_CODE_ARRAY_TOP, null );
+			dst.addCode( ClipGlobal.codeArrayTop, null );
 			for( i = 0; i < _vectorNum; i++ ){
 				dst.addValue( _vector[i] );
 			}
-			dst.addCode( CLIP_CODE_ARRAY_END, null );
+			dst.addCode( ClipGlobal.codeArrayEnd, null );
 		}
 
 		if( flag && (_nodeNum == 0) && (_vectorNum == 0) ){
-			dst.addCode( CLIP_CODE_ARRAY_TOP, null );
-			dst.addCode( CLIP_CODE_ARRAY_END, null );
+			dst.addCode( ClipGlobal.codeArrayTop, null );
+			dst.addCode( ClipGlobal.codeArrayEnd, null );
 		}
 	}
 
 	// 値を代入する
 	void _newVector( int index ){
 		if( _vectorNum == 0 ){
-			_vector = newValueArray( index + 2 );
+			_vector = MathValue.newArray( index + 2 );
 		} else {
 			int i;
-			List<MathValue> tmp = newValueArray( index + 2 );
+			List<MathValue> tmp = MathValue.newArray( index + 2 );
 
 			// 既存の配列をコピーする
 			for( i = 0; i < _vectorNum; i++ ){
@@ -119,10 +119,10 @@ class ClipArrayNode {
 	}
 	void _newNode( int index ){
 		if( _nodeNum == 0 ){
-			_node = _newArrayNodeArray( index + 1 );
+			_node = newArray( index + 1 );
 		} else {
 			int i;
-			List<ClipArrayNode> tmp = _newArrayNodeArray( index + 1 );
+			List<ClipArrayNode> tmp = newArray( index + 1 );
 
 			// 既存の配列をコピーする
 			for( i = 0; i < _nodeNum; i++ ){
@@ -152,13 +152,13 @@ class ClipArrayNode {
 		if( index is List<int> ){
 			if( index[1] < 0 ){ // 負数でターミネートされた要素番号配列
 				set( index[0], value );
-			} else if( (index[0] >= 0) && (index[0] != CLIP_INVALID_ARRAY_INDEX) ){
+			} else if( (index[0] >= 0) && (index[0] != ClipGlobal.invalidArrayIndex) ){
 				if( index[0] >= _nodeNum ){
 					_newNode( index[0] );
 				}
 				_node![index[0]].set( _copyArray( index, 1 ), value );
 			}
-		} else if( (index >= 0) && (index != CLIP_INVALID_ARRAY_INDEX) ){
+		} else if( (index >= 0) && (index != ClipGlobal.invalidArrayIndex) ){
 			if( index >= _vectorNum ){
 				_newVector( index );
 			}
@@ -169,7 +169,7 @@ class ClipArrayNode {
 		if( index is List<int> ){
 			if( index[1] < 0 ){ // 負数でターミネートされた要素番号配列
 				resize( index[0], value );
-			} else if( (index[0] >= 0) && (index[0] != CLIP_INVALID_ARRAY_INDEX) ){
+			} else if( (index[0] >= 0) && (index[0] != ClipGlobal.invalidArrayIndex) ){
 				if( index[0] >= _nodeNum ){
 					_newNode( index[0] );
 				} else {
@@ -177,7 +177,7 @@ class ClipArrayNode {
 				}
 				_node![index[0]].set( _copyArray( index, 1 ), value );
 			}
-		} else if( (index >= 0) && (index != CLIP_INVALID_ARRAY_INDEX) ){
+		} else if( (index >= 0) && (index != ClipGlobal.invalidArrayIndex) ){
 			if( index >= _vectorNum ){
 				_newVector( index );
 			} else {
@@ -243,14 +243,14 @@ class ClipArrayNode {
 		}
 		return _vector[(index < _vectorNum) ? index : _vectorNum/*番人*/];
 	}
-}
 
-List<ClipArrayNode> _newArrayNodeArray( int len ){
-	List<ClipArrayNode> a = List.filled( len, ClipArrayNode() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ClipArrayNode();
+	static List<ClipArrayNode> newArray( int len ){
+		List<ClipArrayNode> a = List.filled( len, ClipArrayNode() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ClipArrayNode();
+		}
+		return a;
 	}
-	return a;
 }
 
 // 配列管理クラス
@@ -265,8 +265,8 @@ class ClipArray {
 	ClipArray(){
 		_label = ClipLabel( this );
 
-		_node = _newArrayNodeArray( 256 );
-		_mat  = newMatrixArray    ( 256 );
+		_node = ClipArrayNode.newArray( 256 );
+		_mat  = MathMatrix.newArray( 256 );
 
 		_mp = List.filled( 256, MPData() );
 		for( int i = 0; i < 256; i++ ){
@@ -313,11 +313,11 @@ class ClipArray {
 		}
 	}
 	void move( int index ){
-		if( _label.flag( index ) == CLIP_LABEL_MOVABLE ){
+		if( _label.flag( index ) == ClipGlobal.labelMovable ){
 			_moveData( index );
 			_label.setLabel( index, null, false );
 		}
-		_label.setFlag( index, CLIP_LABEL_USED );
+		_label.setFlag( index, ClipGlobal.labelUsed );
 	}
 
 	// 値を代入する
@@ -329,8 +329,8 @@ class ClipArray {
 			_node[index].set( subIndex[0], value );
 		} else if( dim == 2 ){
 			if(
-				(subIndex[0] < 0) || (subIndex[0] == CLIP_INVALID_ARRAY_INDEX) ||
-				(subIndex[1] < 0) || (subIndex[1] == CLIP_INVALID_ARRAY_INDEX)
+				(subIndex[0] < 0) || (subIndex[0] == ClipGlobal.invalidArrayIndex) ||
+				(subIndex[1] < 0) || (subIndex[1] == ClipGlobal.invalidArrayIndex)
 			){
 				return;
 			}
@@ -424,8 +424,8 @@ class ClipArray {
 				return _node[index].val( subIndex[0] );
 			} else if( dim == 2 ){
 				return _mat[index].val(
-					((subIndex[0] < 0) || (subIndex[0] == CLIP_INVALID_ARRAY_INDEX)) ? _mat[index].row() : subIndex[0],
-					((subIndex[1] < 0) || (subIndex[1] == CLIP_INVALID_ARRAY_INDEX)) ? _mat[index].col() : subIndex[1]
+					((subIndex[0] < 0) || (subIndex[0] == ClipGlobal.invalidArrayIndex)) ? _mat[index].row() : subIndex[0],
+					((subIndex[1] < 0) || (subIndex[1] == ClipGlobal.invalidArrayIndex)) ? _mat[index].col() : subIndex[1]
 					);
 			}
 		}
@@ -459,15 +459,15 @@ class ClipArray {
 		dst.delAll();
 
 		if( (_mat[srcIndex].len() > 1) || _mat[srcIndex].mat(0).notEqual( 0.0 ) ){
-			dst.addCode( CLIP_CODE_ARRAY_TOP, null );
+			dst.addCode( ClipGlobal.codeArrayTop, null );
 			for( row = 0; row < _mat[srcIndex].row(); row++ ){
-				dst.addCode( CLIP_CODE_ARRAY_TOP, null );
+				dst.addCode( ClipGlobal.codeArrayTop, null );
 				for( col = 0; col < _mat[srcIndex].col(); col++ ){
 					dst.addValue( _mat[srcIndex].val( row, col ) );
 				}
-				dst.addCode( CLIP_CODE_ARRAY_END, null );
+				dst.addCode( ClipGlobal.codeArrayEnd, null );
 			}
-			dst.addCode( CLIP_CODE_ARRAY_END, null );
+			dst.addCode( ClipGlobal.codeArrayEnd, null );
 
 			_node[srcIndex].makeToken( dst, false );
 		} else {

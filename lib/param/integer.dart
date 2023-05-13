@@ -22,12 +22,12 @@ class ParamInteger {
 	int val(){
 		return _val;
 	}
-}
 
-List newIntegerArray( int len ){
-	List<ParamInteger> a = List.filled( len, ParamInteger() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = ParamInteger();
+	static List newArray( int len ){
+		List<ParamInteger> a = List.filled( len, ParamInteger() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = ParamInteger();
+		}
+		return a;
 	}
-	return a;
 }

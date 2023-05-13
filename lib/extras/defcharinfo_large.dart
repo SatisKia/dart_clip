@@ -3,8 +3,8 @@ import '../math/math.dart';
 
 // 文字情報を登録する
 void regGWorldDefCharInfoLarge( i ){
-	newGWorldCharInfo( i );
-	regGWorldCharInfo( i, MATH_CHAR( '0' ), 11, 12, 4, 10, 11,
+	ClipGWorld.newCharInfo( i );
+	ClipGWorld.regCharInfo( i, ClipMath.char( '0' ), 11, 12, 4, 10, 11,
 		"0001110000" +
 		"0010001000" +
 		"0100000100" +
@@ -17,7 +17,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010001000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '1' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '1' ), 11, 12, 4, 10, 11,
 		"0000110000" +
 		"0011010000" +
 		"0000010000" +
@@ -30,7 +30,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000010000" +
 		"0011111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '2' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '2' ), 11, 12, 4, 10, 11,
 		"0001111000" +
 		"0010000100" +
 		"0100000010" +
@@ -43,7 +43,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000010" +
 		"0111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '3' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '3' ), 11, 12, 4, 10, 11,
 		"0001111000" +
 		"0010000100" +
 		"0000000100" +
@@ -56,7 +56,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"0011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '4' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '4' ), 11, 12, 4, 10, 11,
 		"0000011000" +
 		"0000101000" +
 		"0000101000" +
@@ -69,7 +69,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000001000" +
 		"0000111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '5' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '5' ), 11, 12, 4, 10, 11,
 		"0011111100" +
 		"0010000000" +
 		"0010000000" +
@@ -82,7 +82,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000100" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '6' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '6' ), 11, 12, 4, 10, 11,
 		"0000011110" +
 		"0001100000" +
 		"0010000000" +
@@ -95,7 +95,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000100" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '7' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '7' ), 11, 12, 4, 10, 11,
 		"0111111100" +
 		"0100000100" +
 		"0000000100" +
@@ -108,7 +108,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '8' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '8' ), 11, 12, 4, 10, 11,
 		"0001110000" +
 		"0010001000" +
 		"0100000100" +
@@ -121,7 +121,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010001000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '9' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '9' ), 11, 12, 4, 10, 11,
 		"0001110000" +
 		"0010001000" +
 		"0100000100" +
@@ -134,7 +134,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000110000" +
 		"0111000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'A' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'A' ), 11, 12, 4, 10, 10,
 		"0111110000" +
 		"0000110000" +
 		"0001001000" +
@@ -146,7 +146,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000010" +
 		"1111001111"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'B' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'B' ), 11, 12, 4, 10, 10,
 		"1111111000" +
 		"0100000100" +
 		"0100000100" +
@@ -158,7 +158,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000010" +
 		"1111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'C' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'C' ), 11, 12, 4, 10, 10,
 		"0001111010" +
 		"0110000110" +
 		"0100000010" +
@@ -170,7 +170,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000100" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'D' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'D' ), 11, 12, 4, 10, 10,
 		"1111110000" +
 		"0100001100" +
 		"0100000100" +
@@ -182,7 +182,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100001100" +
 		"1111110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'E' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'E' ), 11, 12, 4, 10, 10,
 		"1111111100" +
 		"0100000100" +
 		"0100000100" +
@@ -194,7 +194,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000010" +
 		"1111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'F' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'F' ), 11, 12, 4, 10, 10,
 		"1111111110" +
 		"0100000010" +
 		"0100000010" +
@@ -206,7 +206,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000000" +
 		"1111100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'G' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'G' ), 11, 12, 4, 10, 10,
 		"0001111010" +
 		"0110000110" +
 		"0100000010" +
@@ -218,7 +218,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000110" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'H' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'H' ), 11, 12, 4, 10, 10,
 		"1110001110" +
 		"0100000100" +
 		"0100000100" +
@@ -230,7 +230,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1110001110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'I' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'I' ), 11, 12, 4, 10, 10,
 		"0111111100" +
 		"0000100000" +
 		"0000100000" +
@@ -242,7 +242,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'J' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'J' ), 11, 12, 4, 10, 10,
 		"0001111110" +
 		"0000001000" +
 		"0000001000" +
@@ -254,7 +254,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100011000" +
 		"0011110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'K' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'K' ), 11, 12, 4, 10, 10,
 		"1111001110" +
 		"0100000100" +
 		"0100001000" +
@@ -266,7 +266,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1111000111"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'L' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'L' ), 11, 12, 4, 10, 10,
 		"1111100000" +
 		"0010000000" +
 		"0010000000" +
@@ -278,7 +278,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000010" +
 		"1111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'M' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'M' ), 11, 12, 4, 10, 10,
 		"1100000011" +
 		"0110000110" +
 		"0101000110" +
@@ -290,7 +290,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000010" +
 		"1110000111"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'N' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'N' ), 11, 12, 4, 10, 10,
 		"1100001110" +
 		"0110000100" +
 		"0101000100" +
@@ -302,7 +302,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100001100" +
 		"1110000100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'O' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'O' ), 11, 12, 4, 10, 10,
 		"0001111000" +
 		"0110000110" +
 		"0100000010" +
@@ -314,7 +314,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000110" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'P' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'P' ), 11, 12, 4, 10, 10,
 		"1111111000" +
 		"0010000100" +
 		"0010000010" +
@@ -326,7 +326,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000000" +
 		"1111110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'Q' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'Q' ), 11, 12, 4, 10, 10,
 		"0001111000" +
 		"0110000110" +
 		"0100000010" +
@@ -341,7 +341,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001111001" +
 		"0010000110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'R' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'R' ), 11, 12, 4, 10, 10,
 		"1111110000" +
 		"0100001000" +
 		"0100000100" +
@@ -353,7 +353,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1111000110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'S' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'S' ), 11, 12, 4, 10, 10,
 		"0011110100" +
 		"0100001100" +
 		"1000000100" +
@@ -365,7 +365,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"1100000100" +
 		"1011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'T' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'T' ), 11, 12, 4, 10, 10,
 		"1111111110" +
 		"1000100010" +
 		"1000100010" +
@@ -377,7 +377,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'U' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'U' ), 11, 12, 4, 10, 10,
 		"1111001111" +
 		"0100000010" +
 		"0100000010" +
@@ -389,7 +389,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000100" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'V' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'V' ), 11, 12, 4, 10, 10,
 		"1111001111" +
 		"0100000010" +
 		"0100000010" +
@@ -401,7 +401,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000110000" +
 		"0000110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'W' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'W' ), 11, 12, 4, 10, 10,
 		"1111000111" +
 		"0100000001" +
 		"0100010001" +
@@ -413,7 +413,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0011000110" +
 		"0001000100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'X' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'X' ), 11, 12, 4, 10, 10,
 		"1110001110" +
 		"0100000100" +
 		"0010001000" +
@@ -425,7 +425,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1110001110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'Y' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'Y' ), 11, 12, 4, 10, 10,
 		"1110001110" +
 		"0100000100" +
 		"0010001000" +
@@ -437,7 +437,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'Z' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'Z' ), 11, 12, 4, 10, 10,
 		"0111111110" +
 		"0100000010" +
 		"0100000100" +
@@ -449,7 +449,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000010" +
 		"0111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'a' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'a' ), 11, 12, 4, 10, 8,
 		"0001111000" +
 		"0110000100" +
 		"0000000100" +
@@ -459,7 +459,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100001100" +
 		"0011110110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'b' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'b' ), 11, 12, 4, 10, 11,
 		"1100000000" +
 		"0100000000" +
 		"0100000000" +
@@ -472,7 +472,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000100" +
 		"1101111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'c' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'c' ), 11, 12, 4, 10, 8,
 		"0001111010" +
 		"0010000110" +
 		"0100000000" +
@@ -482,7 +482,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000110" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'd' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'd' ), 11, 12, 4, 10, 11,
 		"0000011100" +
 		"0000000100" +
 		"0000000100" +
@@ -495,7 +495,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100001100" +
 		"0011110110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'e' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'e' ), 11, 12, 4, 10, 8,
 		"0011111000" +
 		"0100000100" +
 		"1000000010" +
@@ -505,7 +505,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000110" +
 		"0011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'f' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'f' ), 11, 12, 4, 10, 11,
 		"0000111000" +
 		"0001000110" +
 		"0001000000" +
@@ -518,7 +518,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000000" +
 		"0111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'g' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'g' ), 11, 12, 4, 10, 8,
 		"0011110110" +
 		"0100001100" +
 		"1000000100" +
@@ -531,7 +531,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000000100" +
 		"0011111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'h' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'h' ), 11, 12, 4, 10, 11,
 		"1100000000" +
 		"0100000000" +
 		"0100000000" +
@@ -544,7 +544,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1111011110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'i' ), 11, 12, 4, 10, 12,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'i' ), 11, 12, 4, 10, 12,
 		"0000100000" +
 		"0000100000" +
 		"0000000000" +
@@ -558,7 +558,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'j' ), 11, 12, 4, 10, 12,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'j' ), 11, 12, 4, 10, 12,
 		"0000010000" +
 		"0000010000" +
 		"0000000000" +
@@ -575,7 +575,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000010000" +
 		"0111100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'k' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'k' ), 11, 12, 4, 10, 11,
 		"1110000000" +
 		"0010000000" +
 		"0010000000" +
@@ -588,7 +588,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010001000" +
 		"1110011110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'l' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'l' ), 11, 12, 4, 10, 11,
 		"0011110000" +
 		"0000010000" +
 		"0000010000" +
@@ -601,7 +601,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000010000" +
 		"0111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'm' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'm' ), 11, 12, 4, 10, 8,
 		"1101101100" +
 		"0110010010" +
 		"0100010010" +
@@ -611,7 +611,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100010010" +
 		"1111011011"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'n' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'n' ), 11, 12, 4, 10, 8,
 		"1101111000" +
 		"0110000100" +
 		"0100000100" +
@@ -621,7 +621,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"1111001110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'o' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'o' ), 11, 12, 4, 10, 8,
 		"0001111000" +
 		"0010000100" +
 		"0100000010" +
@@ -631,7 +631,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000100" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'p' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'p' ), 11, 12, 4, 10, 8,
 		"1101111000" +
 		"0110000100" +
 		"0100000010" +
@@ -644,7 +644,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000000" +
 		"1111000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'q' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'q' ), 11, 12, 4, 10, 8,
 		"0011110110" +
 		"0100001100" +
 		"1000000100" +
@@ -657,7 +657,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000000100" +
 		"0000011110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'r' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'r' ), 11, 12, 4, 10, 8,
 		"0111011100" +
 		"0001100010" +
 		"0001000000" +
@@ -667,7 +667,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000000" +
 		"0111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 's' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 's' ), 11, 12, 4, 10, 8,
 		"0011110100" +
 		"0100001100" +
 		"0100000000" +
@@ -677,7 +677,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0110000100" +
 		"0101111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 't' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 't' ), 11, 12, 4, 10, 10,
 		"0001000000" +
 		"0001000000" +
 		"0111111100" +
@@ -689,7 +689,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000010" +
 		"0000111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'u' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'u' ), 11, 12, 4, 10, 8,
 		"0110011100" +
 		"0010000100" +
 		"0010000100" +
@@ -699,7 +699,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010001100" +
 		"0001110110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'v' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'v' ), 11, 12, 4, 10, 8,
 		"1110001110" +
 		"0100000100" +
 		"0100000100" +
@@ -709,7 +709,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001110000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'w' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'w' ), 11, 12, 4, 10, 8,
 		"1110000111" +
 		"0100000001" +
 		"0100010001" +
@@ -719,7 +719,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001101100" +
 		"0001000100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'x' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'x' ), 11, 12, 4, 10, 8,
 		"0111001110" +
 		"0010000100" +
 		"0001001000" +
@@ -729,7 +729,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000100" +
 		"0111001110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'y' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'y' ), 11, 12, 4, 10, 8,
 		"1110000111" +
 		"0100000010" +
 		"0010000100" +
@@ -742,7 +742,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000000" +
 		"0111100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( 'z' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( 'z' ), 11, 12, 4, 10, 8,
 		"0111111100" +
 		"0100001000" +
 		"0000010000" +
@@ -752,10 +752,10 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100000100" +
 		"0111111100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ' ' ), 11, 12, 4, 10, 12,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ' ' ), 11, 12, 4, 10, 12,
 		""
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '!' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '!' ), 11, 12, 4, 10, 11,
 		"0001110000" +
 		"0001110000" +
 		"0001110000" +
@@ -768,14 +768,14 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001110000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '"' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '"' ), 11, 12, 4, 10, 11,
 		"0111011100" +
 		"0111011100" +
 		"0010001000" +
 		"0010001000" +
 		"0010001000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '#' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '#' ), 11, 12, 4, 10, 11,
 		"0000101000" +
 		"0000101000" +
 		"0000101000" +
@@ -788,7 +788,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010100000" +
 		"0010100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '\$' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '\$' ), 11, 12, 4, 10, 11,
 		"0000100000" +
 		"0001110100" +
 		"0010001100" +
@@ -803,7 +803,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '%' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '%' ), 11, 12, 4, 10, 11,
 		"0011100000" +
 		"0100010000" +
 		"0100010000" +
@@ -816,7 +816,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100010" +
 		"0000011100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '&' ), 11, 12, 4, 10, 9,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '&' ), 11, 12, 4, 10, 9,
 		"0001110000" +
 		"0010001000" +
 		"0010000000" +
@@ -827,14 +827,14 @@ void regGWorldDefCharInfoLarge( i ){
 		"0100010000" +
 		"0011101100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '\'' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '\'' ), 11, 12, 4, 10, 11,
 		"0001110000" +
 		"0001110000" +
 		"0000100000" +
 		"0000100000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '(' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '(' ), 11, 12, 4, 10, 11,
 		"0000000100" +
 		"0000001000" +
 		"0000010000" +
@@ -849,7 +849,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000001000" +
 		"0000000100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ')' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ')' ), 11, 12, 4, 10, 11,
 		"0010000000" +
 		"0001000000" +
 		"0000100000" +
@@ -864,7 +864,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000000" +
 		"0010000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '*' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '*' ), 11, 12, 4, 10, 11,
 		"0000100000" +
 		"0000100000" +
 		"0110101100" +
@@ -873,7 +873,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001010000" +
 		"0010001000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '+' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '+' ), 11, 12, 4, 10, 10,
 		"0000100000" +
 		"0000100000" +
 		"0000100000" +
@@ -884,21 +884,21 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ',' ), 11, 12, 4, 10, 3,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ',' ), 11, 12, 4, 10, 3,
 		"0000111000" +
 		"0000110000" +
 		"0000110000" +
 		"0001100000" +
 		"0001000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '-' ), 11, 12, 4, 10, 5,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '-' ), 11, 12, 4, 10, 5,
 		"0111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '.' ), 11, 12, 4, 10, 2,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '.' ), 11, 12, 4, 10, 2,
 		"0001110000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '/' ), 11, 12, 4, 10, 12,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '/' ), 11, 12, 4, 10, 12,
 		"0000000110" +
 		"0000000100" +
 		"0000001100" +
@@ -913,7 +913,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010000000" +
 		"0110000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ':' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ':' ), 11, 12, 4, 10, 8,
 		"0001110000" +
 		"0001110000" +
 		"0000000000" +
@@ -923,7 +923,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001110000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ';' ), 11, 12, 4, 10, 8,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ';' ), 11, 12, 4, 10, 8,
 		"0001110000" +
 		"0001110000" +
 		"0000000000" +
@@ -934,7 +934,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0011000000" +
 		"0010000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '<' ), 11, 12, 4, 10, 9,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '<' ), 11, 12, 4, 10, 9,
 		"0000000110" +
 		"0000011000" +
 		"0001100000" +
@@ -944,13 +944,13 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000011000" +
 		"0000000110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '=' ), 11, 12, 4, 10, 7,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '=' ), 11, 12, 4, 10, 7,
 		"0111111110" +
 		"0000000000" +
 		"0000000000" +
 		"0111111110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '>' ), 11, 12, 4, 10, 9,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '>' ), 11, 12, 4, 10, 9,
 		"0110000000" +
 		"0001100000" +
 		"0000011000" +
@@ -960,7 +960,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001100000" +
 		"0110000000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '?' ), 11, 12, 4, 10, 10,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '?' ), 11, 12, 4, 10, 10,
 		"0011111000" +
 		"0100000100" +
 		"0100000100" +
@@ -972,7 +972,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001110000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '@' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '@' ), 11, 12, 4, 10, 11,
 		"0001111000" +
 		"0010000100" +
 		"0100000100" +
@@ -986,7 +986,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0010001000" +
 		"0001110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '[' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '[' ), 11, 12, 4, 10, 11,
 		"0001111000" +
 		"0001000000" +
 		"0001000000" +
@@ -1001,7 +1001,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0001000000" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '\\' ), 11, 12, 4, 10, 12,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '\\' ), 11, 12, 4, 10, 12,
 		"0110000000" +
 		"0010000000" +
 		"0011000000" +
@@ -1016,7 +1016,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000000100" +
 		"0000000110"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( ']' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( ']' ), 11, 12, 4, 10, 11,
 		"0001111000" +
 		"0000001000" +
 		"0000001000" +
@@ -1031,22 +1031,22 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000001000" +
 		"0001111000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '^' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '^' ), 11, 12, 4, 10, 11,
 		"0000100000" +
 		"0001110000" +
 		"0011011000" +
 		"0110001100" +
 		"0100000100"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '_' ), 11, 12, 4, 11, -3,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '_' ), 11, 12, 4, 11, -3,
 		"11111111111"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '`' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '`' ), 11, 12, 4, 10, 11,
 		"0011000000" +
 		"0001100000" +
 		"0000110000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '{' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '{' ), 11, 12, 4, 10, 11,
 		"0000011000" +
 		"0000100000" +
 		"0000100000" +
@@ -1061,7 +1061,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0000011000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '|' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '|' ), 11, 12, 4, 10, 11,
 		"0000100000" +
 		"0000100000" +
 		"0000100000" +
@@ -1076,7 +1076,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000100000" +
 		"0000100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '}' ), 11, 12, 4, 10, 11,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '}' ), 11, 12, 4, 10, 11,
 		"0001100000" +
 		"0000010000" +
 		"0000010000" +
@@ -1091,7 +1091,7 @@ void regGWorldDefCharInfoLarge( i ){
 		"0000010000" +
 		"0001100000"
 		);
-	regGWorldCharInfo( i, MATH_CHAR( '~' ), 11, 12, 4, 10, 6,
+	ClipGWorld.regCharInfo( i, ClipMath.char( '~' ), 11, 12, 4, 10, 6,
 		"0011000000" +
 		"0100100100" +
 		"0000011000"

@@ -5,13 +5,12 @@
 
 import '../param/float.dart';
 import 'math.dart';
-import 'math_env.dart';
-
-const double _EPS5 = 0.001; // _DBL_EPSILONの1/5乗程度
-const double _SQRT05 = 0.7071067811865475244008444; // √0.5
 
 // 複素数型
 class MathComplex {
+	static const double _eps5 = 0.001; // dblEpsilonの1/5乗程度
+	static const double _sqrt05 = 0.7071067811865475244008444; // √0.5
+
 	late double _re;
 	late double _im;
 
@@ -24,16 +23,16 @@ class MathComplex {
 	void angToAng( int oldType, int newType ){
 		if( oldType != newType ){
 			switch( oldType ){
-			case MATH_ANG_TYPE_RAD:
-				mulAndAss( (newType == MATH_ANG_TYPE_DEG) ? 180.0 : 200.0 );
-				divAndAss( MATH_PI );
+			case ClipMath.angTypeRad:
+				mulAndAss( (newType == ClipMath.angTypeDeg) ? 180.0 : 200.0 );
+				divAndAss( ClipMath.pi );
 				break;
-			case MATH_ANG_TYPE_DEG:
-				mulAndAss( (newType == MATH_ANG_TYPE_RAD) ? MATH_PI : 200.0 );
+			case ClipMath.angTypeDeg:
+				mulAndAss( (newType == ClipMath.angTypeRad) ? ClipMath.pi : 200.0 );
 				divAndAss( 180.0 );
 				break;
-			case MATH_ANG_TYPE_GRAD:
-				mulAndAss( (newType == MATH_ANG_TYPE_RAD) ? MATH_PI : 180.0 );
+			case ClipMath.angTypeGrad:
+				mulAndAss( (newType == ClipMath.angTypeRad) ? ClipMath.pi : 180.0 );
 				divAndAss( 200.0 );
 				break;
 			}
@@ -49,8 +48,8 @@ class MathComplex {
 	}
 	void polar( double rho, double theta ){
 		theta = _angToRad( theta );
-		_re = rho * MATH_COS( theta );
-		_im = rho * MATH_SIN( theta );
+		_re = rho * ClipMath.cos( theta );
+		_im = rho * ClipMath.sin( theta );
 	}
 
 	// 確認
@@ -72,7 +71,7 @@ class MathComplex {
 			_re = r._re;
 			_im = r._im;
 		} else {
-			_re = MATH_DOUBLE(r);
+			_re = ClipMath.toDouble(r);
 			_im = 0.0;
 		}
 		return this;
@@ -88,14 +87,14 @@ class MathComplex {
 		if( r is MathComplex ){
 			return MathComplex( _re + r._re, _im + r._im );
 		}
-		return MathComplex( _re + MATH_DOUBLE(r), _im );
+		return MathComplex( _re + ClipMath.toDouble(r), _im );
 	}
 	MathComplex addAndAss( dynamic r ){
 		if( r is MathComplex ){
 			_re += r._re;
 			_im += r._im;
 		} else {
-			_re += MATH_DOUBLE(r);
+			_re += ClipMath.toDouble(r);
 		}
 		return this;
 	}
@@ -105,14 +104,14 @@ class MathComplex {
 		if( r is MathComplex ){
 			return MathComplex( _re - r._re, _im - r._im );
 		}
-		return MathComplex( _re - MATH_DOUBLE(r), _im );
+		return MathComplex( _re - ClipMath.toDouble(r), _im );
 	}
 	MathComplex subAndAss( dynamic r ){
 		if( r is MathComplex ){
 			_re -= r._re;
 			_im -= r._im;
 		} else {
-			_re -= MATH_DOUBLE(r);
+			_re -= ClipMath.toDouble(r);
 		}
 		return this;
 	}
@@ -125,7 +124,7 @@ class MathComplex {
 			}
 			return MathComplex( _re * r._re - _im * r._im, _re * r._im + _im * r._re );
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		return MathComplex( _re * rr, _im * rr );
 	}
 	MathComplex mulAndAss( dynamic r ){
@@ -139,7 +138,7 @@ class MathComplex {
 				_re = t;
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			_re *= rr;
 			_im *= rr;
 		}
@@ -152,7 +151,7 @@ class MathComplex {
 			if( r._im == 0.0 ){
 				return MathComplex( _re / r._re, _im / r._re );
 			}
-			if( MATH_ABS( r._re ) < MATH_ABS( r._im ) ){
+			if( ClipMath.abs( r._re ) < ClipMath.abs( r._im ) ){
 				double w = r._re / r._im;
 				double d = r._re * w + r._im;
 				return MathComplex( (_re * w + _im) / d, (_im * w - _re) / d );
@@ -161,7 +160,7 @@ class MathComplex {
 			double d = r._re + r._im * w;
 			return MathComplex( (_re + _im * w) / d, (_im - _re * w) / d );
 		}
-		double rr = MATH_DOUBLE(r);
+		double rr = ClipMath.toDouble(r);
 		return MathComplex( _re / rr, _im / rr );
 	}
 	MathComplex divAndAss( dynamic r ){
@@ -169,7 +168,7 @@ class MathComplex {
 			if( r._im == 0.0 ){
 				_re /= r._re;
 				_im /= r._re;
-			} else if( MATH_ABS( r._re ) < MATH_ABS( r._im ) ){
+			} else if( ClipMath.abs( r._re ) < ClipMath.abs( r._im ) ){
 				double w = r._re / r._im;
 				double d = r._re * w + r._im;
 				double t = (_re * w + _im) / d;
@@ -183,7 +182,7 @@ class MathComplex {
 				_re = t;
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
+			double rr = ClipMath.toDouble(r);
 			_re /= rr;
 			_im /= rr;
 		}
@@ -194,35 +193,35 @@ class MathComplex {
 	MathComplex mod( dynamic r ){
 		if( r is MathComplex ){
 			if( r._im == 0.0 ){
-				return MathComplex( MATH_FMOD( _re, r._re ), MATH_FMOD( _im, r._re ) );
+				return MathComplex( ClipMath.fmod( _re, r._re ), ClipMath.fmod( _im, r._re ) );
 			}
-			MathComplex z = dupComplex( this );
+			MathComplex z = dup( this );
 			z.divAndAss( r );
-			z._re = MATH_INT( z._re );
-			z._im = MATH_INT( z._im );
+			z._re = ClipMath.toInt( z._re );
+			z._im = ClipMath.toInt( z._im );
 			z.mulAndAss( r );
 			return sub( z );
 		}
-		double rr = MATH_DOUBLE(r);
-		return MathComplex( MATH_FMOD( _re, rr ), MATH_FMOD( _im, rr ) );
+		double rr = ClipMath.toDouble(r);
+		return MathComplex( ClipMath.fmod( _re, rr ), ClipMath.fmod( _im, rr ) );
 	}
 	MathComplex modAndAss( dynamic r ){
 		if( r is MathComplex ){
 			if( r._im == 0.0 ){
-				_re = MATH_FMOD( _re, r._re );
-				_im = MATH_FMOD( _im, r._re );
+				_re = ClipMath.fmod( _re, r._re );
+				_im = ClipMath.fmod( _im, r._re );
 			} else {
-				MathComplex z = dupComplex( this );
+				MathComplex z = dup( this );
 				z.divAndAss( r );
-				z._re = MATH_INT( z._re );
-				z._im = MATH_INT( z._im );
+				z._re = ClipMath.toInt( z._re );
+				z._im = ClipMath.toInt( z._im );
 				z.mulAndAss( r );
 				subAndAss( z );
 			}
 		} else {
-			double rr = MATH_DOUBLE(r);
-			_re = MATH_FMOD( _re, rr );
-			_im = MATH_FMOD( _im, rr );
+			double rr = ClipMath.toDouble(r);
+			_re = ClipMath.fmod( _re, rr );
+			_im = ClipMath.fmod( _im, rr );
 		}
 		return this;
 	}
@@ -232,29 +231,29 @@ class MathComplex {
 		if( r is MathComplex ){
 			return (_re == r._re) && (_im == r._im);
 		}
-		return (_re == MATH_DOUBLE(r)) && (_im == 0.0);
+		return (_re == ClipMath.toDouble(r)) && (_im == 0.0);
 	}
 	bool notEqual( dynamic r ){
 		if( r is MathComplex ){
 			return (_re != r._re) || (_im != r._im);
 		}
-		return (_re != MATH_DOUBLE(r)) || (_im != 0.0);
+		return (_re != ClipMath.toDouble(r)) || (_im != 0.0);
 	}
 
 	// 絶対値
 	double fabs(){
 		if( _re == 0.0 ){
-			return MATH_ABS( _im );
+			return ClipMath.abs( _im );
 		}
 		if( _im == 0.0 ){
-			return MATH_ABS( _re );
+			return ClipMath.abs( _re );
 		}
-		if( MATH_ABS( _re ) < MATH_ABS( _im ) ){
+		if( ClipMath.abs( _re ) < ClipMath.abs( _im ) ){
 			double t = _re / _im;
-			return MATH_ABS( _im ) * MATH_SQRT( 1.0 + t * t );
+			return ClipMath.abs( _im ) * ClipMath.sqrt( 1.0 + t * t );
 		}
 		double t = _im / _re;
-		return MATH_ABS( _re ) * MATH_SQRT( 1.0 + t * t );
+		return ClipMath.abs( _re ) * ClipMath.sqrt( 1.0 + t * t );
 	}
 
 	// 位相角度
@@ -280,8 +279,8 @@ class MathComplex {
 		double re = _angToRad( _re );
 		double im = _angToRad( _im );
 		return MathComplex(
-			MATH_SIN( re ) * fcosh( im ),
-			MATH_COS( re ) * fsinh( im )
+			ClipMath.sin( re ) * fcosh( im ),
+			ClipMath.cos( re ) * fsinh( im )
 			);
 	}
 
@@ -293,8 +292,8 @@ class MathComplex {
 		double re = _angToRad( _re );
 		double im = _angToRad( _im );
 		return MathComplex(
-			 MATH_COS( re ) * fcosh( im ),
-			-MATH_SIN( re ) * fsinh( im )
+			 ClipMath.cos( re ) * fcosh( im ),
+			-ClipMath.sin( re ) * fsinh( im )
 			);
 	}
 
@@ -305,12 +304,12 @@ class MathComplex {
 		}
 		double re2 = _angToRad( _re ) * 2.0;
 		double im2 = _angToRad( _im ) * 2.0;
-		double d = MATH_COS( re2 ) + fcosh( im2 );
+		double d = ClipMath.cos( re2 ) + fcosh( im2 );
 		if( d == 0.0 ){
-			setComplexError();
+			ClipMath.setComplexError();
 		}
 		return MathComplex(
-			MATH_SIN( re2 ) / d,
+			ClipMath.sin( re2 ) / d,
 			fsinh( im2 ) / d
 			);
 	}
@@ -319,8 +318,8 @@ class MathComplex {
 	MathComplex asin(){
 		if( _im == 0.0 ){
 			if( (_re < -1.0) || (_re > 1.0) ){
-				if( complexIsReal() ){
-					setComplexError();
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
 					return floatToComplex( fasin( _re ) );
 				}
 			} else {
@@ -339,8 +338,8 @@ class MathComplex {
 	MathComplex acos(){
 		if( _im == 0.0 ){
 			if( (_re < -1.0) || (_re > 1.0) ){
-				if( complexIsReal() ){
-					setComplexError();
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
 					return floatToComplex( facos( _re ) );
 				}
 			} else {
@@ -366,7 +365,7 @@ class MathComplex {
 		}
 		MathComplex d = MathComplex( -_re, 1.0 - _im );
 		if( d.equal( 0.0 ) ){
-			setComplexError();
+			ClipMath.setComplexError();
 		}
 		// i * log( (i + this) / d ) * 0.5
 		MathComplex i = MathComplex( 0.0, 1.0 );
@@ -382,8 +381,8 @@ class MathComplex {
 			return floatToComplex( fsinh( _re ) );
 		}
 		return MathComplex(
-			fsinh( _re ) * MATH_COS( _im ),
-			fcosh( _re ) * MATH_SIN( _im )
+			fsinh( _re ) * ClipMath.cos( _im ),
+			fcosh( _re ) * ClipMath.sin( _im )
 			);
 	}
 
@@ -393,8 +392,8 @@ class MathComplex {
 			return floatToComplex( fcosh( _re ) );
 		}
 		return MathComplex(
-			fcosh( _re ) * MATH_COS( _im ),
-			fsinh( _re ) * MATH_SIN( _im )
+			fcosh( _re ) * ClipMath.cos( _im ),
+			fsinh( _re ) * ClipMath.sin( _im )
 			);
 	}
 
@@ -405,13 +404,13 @@ class MathComplex {
 		}
 		double re2 = _re * 2.0;
 		double im2 = _im * 2.0;
-		double d = fcosh( re2 ) + MATH_COS( im2 );
+		double d = fcosh( re2 ) + ClipMath.cos( im2 );
 		if( d == 0.0 ){
-			setComplexError();
+			ClipMath.setComplexError();
 		}
 		return MathComplex(
 			fsinh( re2 ) / d,
-			MATH_SIN( im2 ) / d
+			ClipMath.sin( im2 ) / d
 			);
 	}
 
@@ -428,8 +427,8 @@ class MathComplex {
 	MathComplex acosh(){
 		if( _im == 0.0 ){
 			if( _re < 1.0 ){
-				if( complexIsReal() ){
-					setComplexError();
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
 					return floatToComplex( facosh( _re ) );
 				}
 			} else {
@@ -444,8 +443,8 @@ class MathComplex {
 	MathComplex atanh(){
 		if( _im == 0.0 ){
 			if( (_re <= -1.0) || (_re >= 1.0) ){
-				if( complexIsReal() ){
-					setComplexError();
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
 					return floatToComplex( fatanh( _re ) );
 				}
 			} else {
@@ -454,7 +453,7 @@ class MathComplex {
 		}
 		MathComplex d = MathComplex( 1.0 - _re, -_im );
 		if( d.equal( 0.0 ) ){
-			setComplexError();
+			ClipMath.setComplexError();
 		}
 		// log( (this + 1.0) / d ) * 0.5
 		return add( 1.0 ).div( d ).log().mul( 0.5 );
@@ -463,39 +462,39 @@ class MathComplex {
 	// 切り上げ
 	MathComplex ceil(){
 		return MathComplex(
-			MATH_CEIL( _re ),
-			MATH_CEIL( _im )
+			ClipMath.ceil( _re ),
+			ClipMath.ceil( _im )
 			);
 	}
 
 	// 切り捨て
 	MathComplex floor(){
 		return MathComplex(
-			MATH_FLOOR( _re ),
-			MATH_FLOOR( _im )
+			ClipMath.floor( _re ),
+			ClipMath.floor( _im )
 			);
 	}
 
 	// 指数
 	MathComplex exp(){
 		if( _im == 0.0 ){
-			return floatToComplex( MATH_EXP( _re ) );
+			return floatToComplex( ClipMath.exp( _re ) );
 		}
-		double e = MATH_EXP( _re );
+		double e = ClipMath.exp( _re );
 		return MathComplex(
-			e * MATH_COS( _im ),
-			e * MATH_SIN( _im )
+			e * ClipMath.cos( _im ),
+			e * ClipMath.sin( _im )
 			);
 	}
 	MathComplex exp10(){
 		if( _im == 0.0 ){
-			return floatToComplex( MATH_EXP( _re / MATH_NORMALIZE ) );
+			return floatToComplex( ClipMath.exp( _re / ClipMath.normalize ) );
 		}
-		double im = _im / MATH_NORMALIZE;
-		double e = MATH_EXP( _re / MATH_NORMALIZE );
+		double im = _im / ClipMath.normalize;
+		double e = ClipMath.exp( _re / ClipMath.normalize );
 		return MathComplex(
-			e * MATH_COS( im ),
-			e * MATH_SIN( im )
+			e * ClipMath.cos( im ),
+			e * ClipMath.sin( im )
 			);
 	}
 
@@ -503,33 +502,33 @@ class MathComplex {
 	MathComplex log(){
 		if( _im == 0.0 ){
 			if( _re <= 0.0 ){
-				if( complexIsReal() ){
-					setComplexError();
-					return floatToComplex( MATH_LOG( _re ) );
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
+					return floatToComplex( ClipMath.log( _re ) );
 				}
 			} else {
-				return floatToComplex( MATH_LOG( _re ) );
+				return floatToComplex( ClipMath.log( _re ) );
 			}
 		}
 		return MathComplex(
-			MATH_LOG( fabs() ),
-			MATH_ATAN2( _im, _re )
+			ClipMath.log( fabs() ),
+			ClipMath.atan2( _im, _re )
 			);
 	}
 	MathComplex log10(){
 		if( _im == 0.0 ){
 			if( _re <= 0.0 ){
-				if( complexIsReal() ){
-					setComplexError();
-					return floatToComplex( MATH_LOG( _re ) * MATH_NORMALIZE );
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
+					return floatToComplex( ClipMath.log( _re ) * ClipMath.normalize );
 				}
 			} else {
-				return floatToComplex( MATH_LOG( _re ) * MATH_NORMALIZE );
+				return floatToComplex( ClipMath.log( _re ) * ClipMath.normalize );
 			}
 		}
 		return MathComplex(
-			MATH_LOG( fabs() ) * MATH_NORMALIZE,
-			MATH_ATAN2( _im, _re ) * MATH_NORMALIZE
+			ClipMath.log( fabs() ) * ClipMath.normalize,
+			ClipMath.atan2( _im, _re ) * ClipMath.normalize
 			);
 	}
 
@@ -538,23 +537,23 @@ class MathComplex {
 		if( y is MathComplex ){
 			if( y._im == 0.0 ){
 				if( _im == 0.0 ){
-					return floatToComplex( MATH_POW( _re, y._re ) );
+					return floatToComplex( ClipMath.pow( _re, y._re ) );
 				}
 				// exp( log( this ) * y._re )
 				return log().mul( y._re ).exp();
 			}
 			if( _im == 0.0 ){
 				// exp( y * _LOG( _re ) )
-				return y.mul( MATH_LOG( _re ) ).exp();
+				return y.mul( ClipMath.log( _re ) ).exp();
 			}
 			// exp( log( this ) * y )
 			return log().mul( y ).exp();
 		}
 		if( _im == 0.0 ){
-			return floatToComplex( MATH_POW( _re, MATH_DOUBLE(y) ) );
+			return floatToComplex( ClipMath.pow( _re, ClipMath.toDouble(y) ) );
 		}
 		// exp( log( this ) * y )
-		return log().mul( MATH_DOUBLE(y) ).exp();
+		return log().mul( ClipMath.toDouble(y) ).exp();
 	}
 
 	// 自乗
@@ -569,129 +568,129 @@ class MathComplex {
 	MathComplex sqrt(){
 		if( _im == 0.0 ){
 			if( _re < 0.0 ){
-				if( complexIsReal() ){
-					setComplexError();
-					return floatToComplex( MATH_SQRT( _re ) );
+				if( ClipMath.complexIsReal() ){
+					ClipMath.setComplexError();
+					return floatToComplex( ClipMath.sqrt( _re ) );
 				}
 			} else {
-				return floatToComplex( MATH_SQRT( _re ) );
+				return floatToComplex( ClipMath.sqrt( _re ) );
 			}
 		}
 		if( _re >= 0.0 ){
-			double r = MATH_SQRT( fabs() + _re );
+			double r = ClipMath.sqrt( fabs() + _re );
 			return MathComplex(
-				_SQRT05 * r,
-				_SQRT05 * _im / r
+				_sqrt05 * r,
+				_sqrt05 * _im / r
 				);
 		}
 		if( _im >= 0.0 ){
-			double r = MATH_SQRT( fabs() - _re );
+			double r = ClipMath.sqrt( fabs() - _re );
 			return MathComplex(
-				_SQRT05 * _im / r,
-				_SQRT05 * r
+				_sqrt05 * _im / r,
+				_sqrt05 * r
 				);
 		}
-		double r = MATH_SQRT( fabs() - _re );
+		double r = ClipMath.sqrt( fabs() - _re );
 		return MathComplex(
-			-_SQRT05 * _im / r,
-			-_SQRT05 * r
+			-_sqrt05 * _im / r,
+			-_sqrt05 * r
 			);
 	}
-}
 
-void getComplex( MathComplex c, ParamFloat re, ParamFloat im ){
-	re.set( c._re );
-	im.set( c._im );
-}
-MathComplex setComplex( MathComplex c, double re, double im ){
-	c._re = re;
-	c._im = im;
-	return c;
-}
+	static void getComplex( MathComplex c, ParamFloat re, ParamFloat im ){
+		re.set( c._re );
+		im.set( c._im );
+	}
+	static MathComplex setComplex( MathComplex c, double re, double im ){
+		c._re = re;
+		c._im = im;
+		return c;
+	}
 
-MathComplex dupComplex( MathComplex x ){
-	return MathComplex( x._re, x._im );
-}
+	static MathComplex dup( MathComplex x ){
+		return MathComplex( x._re, x._im );
+	}
 
-MathComplex floatToComplex( double x ){
-	return MathComplex( x, 0.0 );
-}
+	static MathComplex floatToComplex( double x ){
+		return MathComplex( x, 0.0 );
+	}
 
-List<MathComplex> newComplexArray( int len ){
-	List<MathComplex> a = List.filled( len, MathComplex() );
-	for( int i = 0; i < len; i++ ){
-		a[i] = MathComplex();
+	static List<MathComplex> newArray( int len ){
+		List<MathComplex> a = List.filled( len, MathComplex() );
+		for( int i = 0; i < len; i++ ){
+			a[i] = MathComplex();
+		}
+		return a;
 	}
-	return a;
-}
 
-// ラジアンを現在の角度の単位に変換する
-double _radToAng( double rad ){
-	return complexIsRad() ? rad : rad * complexAngCoef() / MATH_PI;
-}
+	// ラジアンを現在の角度の単位に変換する
+	static double _radToAng( double rad ){
+		return ClipMath.complexIsRad() ? rad : rad * ClipMath.complexAngCoef() / ClipMath.pi;
+	}
 
-// 現在の角度の単位をラジアンに変換する
-double _angToRad( double ang ){
-	return complexIsRad() ? ang : ang * MATH_PI / complexAngCoef();
-}
+	// 現在の角度の単位をラジアンに変換する
+	static double _angToRad( double ang ){
+		return ClipMath.complexIsRad() ? ang : ang * ClipMath.pi / ClipMath.complexAngCoef();
+	}
 
-// 各種関数
-double fsin( double x ){
-	return MATH_SIN( _angToRad( x ) );
-}
-double fcos( double x ){
-	return MATH_COS( _angToRad( x ) );
-}
-double ftan( double x ){
-	return MATH_TAN( _angToRad( x ) );
-}
-double fasin( double x ){
-	return _radToAng( MATH_ASIN( x ) );
-}
-double facos( double x ){
-	return _radToAng( MATH_ACOS( x ) );
-}
-double fatan( double x ){
-	return _radToAng( MATH_ATAN( x ) );
-}
-double fatan2( double y, double x ){
-	return _radToAng( MATH_ATAN2( y, x ) );
-}
-double fsinh( double x ){
-	if( MATH_ABS( x ) > _EPS5 ){
-		double t = MATH_EXP( x );
-		return (t - 1.0 / t) / 2.0;
+	// 各種関数
+	static double fsin( double x ){
+		return ClipMath.sin( _angToRad( x ) );
 	}
-	return x * (1.0 + x * x / 6.0);
-}
-double fcosh( double x ){
-	double t = MATH_EXP( x );
-	return (t + 1.0 / t) / 2.0;
-}
-double ftanh( double x ){
-	if( x > _EPS5 ){
-		return 2.0 / (1.0 + MATH_EXP( -2.0 * x )) - 1.0;
+	static double fcos( double x ){
+		return ClipMath.cos( _angToRad( x ) );
 	}
-	if( x < -_EPS5 ){
-		return 1.0 - 2.0 / (MATH_EXP( 2.0 * x ) + 1.0);
+	static double ftan( double x ){
+		return ClipMath.tan( _angToRad( x ) );
 	}
-	return x * (1.0 - x * x / 3.0);
-}
-double fasinh( double x ){
-	if( x > _EPS5 ){
-		return MATH_LOG( MATH_SQRT( x * x + 1.0 ) + x );
+	static double fasin( double x ){
+		return _radToAng( ClipMath.asin( x ) );
 	}
-	if( x < -_EPS5 ){
-		return -MATH_LOG( MATH_SQRT( x * x + 1.0 ) - x );
+	static double facos( double x ){
+		return _radToAng( ClipMath.acos( x ) );
 	}
-	return x * (1.0 - x * x / 6.0);
-}
-double facosh( double x ){
-	return MATH_LOG( x + MATH_SQRT( x * x - 1.0 ) );
-}
-double fatanh( double x ){
-	if( MATH_ABS( x ) > _EPS5 ){
-		return MATH_LOG( (1.0 + x) / (1.0 - x) ) * 0.5;
+	static double fatan( double x ){
+		return _radToAng( ClipMath.atan( x ) );
 	}
-	return x * (1.0 + x * x / 3.0);
+	static double fatan2( double y, double x ){
+		return _radToAng( ClipMath.atan2( y, x ) );
+	}
+	static double fsinh( double x ){
+		if( ClipMath.abs( x ) > _eps5 ){
+			double t = ClipMath.exp( x );
+			return (t - 1.0 / t) / 2.0;
+		}
+		return x * (1.0 + x * x / 6.0);
+	}
+	static double fcosh( double x ){
+		double t = ClipMath.exp( x );
+		return (t + 1.0 / t) / 2.0;
+	}
+	static double ftanh( double x ){
+		if( x > _eps5 ){
+			return 2.0 / (1.0 + ClipMath.exp( -2.0 * x )) - 1.0;
+		}
+		if( x < -_eps5 ){
+			return 1.0 - 2.0 / (ClipMath.exp( 2.0 * x ) + 1.0);
+		}
+		return x * (1.0 - x * x / 3.0);
+	}
+	static double fasinh( double x ){
+		if( x > _eps5 ){
+			return ClipMath.log( ClipMath.sqrt( x * x + 1.0 ) + x );
+		}
+		if( x < -_eps5 ){
+			return -ClipMath.log( ClipMath.sqrt( x * x + 1.0 ) - x );
+		}
+		return x * (1.0 - x * x / 6.0);
+	}
+	static double facosh( double x ){
+		return ClipMath.log( x + ClipMath.sqrt( x * x - 1.0 ) );
+	}
+	static double fatanh( double x ){
+		if( ClipMath.abs( x ) > _eps5 ){
+			return ClipMath.log( (1.0 + x) / (1.0 - x) ) * 0.5;
+		}
+		return x * (1.0 + x * x / 3.0);
+	}
 }

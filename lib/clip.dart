@@ -12,7 +12,6 @@ export 'extras/proc_error.dart';
 export 'math/complex.dart';
 export 'math/fract.dart';
 export 'math/math.dart';
-export 'math/math_env.dart';
 export 'math/matrix.dart';
 export 'math/multiprec.dart';
 export 'math/time.dart';

@@ -1,5 +1,5 @@
 // Windowsシステムカラー・パレット
-const List<int> COLOR_WIN = [
+const List<int> colorWin = [
 
 	0x000000, 0x000080, 0x008000, 0x008080, 0x800000, 0x800080, 0x808000, 0x808080,
 	0xC0DCC0, 0xF0CAA6,

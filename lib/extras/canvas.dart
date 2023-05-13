@@ -32,13 +32,13 @@ class CanvasEnv {
 	}
 }
 
-CanvasEnv _canvasEnv = CanvasEnv();
-void setCanvasEnv( CanvasEnv env ){
-	_canvasEnv = env;
-}
-
 // キャンバス
 class Canvas {
+	static CanvasEnv _canvasEnv = CanvasEnv();
+	static void setCanvasEnv( CanvasEnv env ){
+		_canvasEnv = env;
+	}
+
 	late int _width;
 	late int _height;
 	ui.Canvas? _c;
