@@ -236,10 +236,10 @@ class ClipGraph {
 
 	// 指定関数が計算式に含まれているかチェックする
 	bool _checkExpr( String expr, String func ){
-		int pos = expr.toLowerCase().indexOf( func.toLowerCase() );
+		int pos = expr.indexOf( func );
 		if( pos >= 0 ){
 			if( expr.length > pos + func.length ){
-				String chr = ClipMath.charAt( expr.toLowerCase(), pos + func.length );
+				String chr = ClipMath.charAt( expr, pos + func.length );
 				String chrs = "0123456789_abcdefghijklmnopqrstuvwxyz";
 				if( !chrs.contains( chr ) ){
 					return true;

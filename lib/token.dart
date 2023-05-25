@@ -1338,7 +1338,7 @@ class ClipToken {
 				}
 			} else if( ClipMath.charAt( tmp, 0 ) == '!' ){
 				cur._code  = ClipGlobal.codeExtFunc;
-				cur._token = tmp.substring( 1, len ).toLowerCase();
+				cur._token = tmp.substring( 1, len );
 			} else if( ClipMath.charAt( tmp, 0 ) == '"' ){
 				cur._code  = ClipGlobal.codeString;
 				cur._token = "";
@@ -1364,7 +1364,7 @@ class ClipToken {
 						cur._token += ClipMath.charAt( tmp, i );
 					}
 				}
-			} else if( checkFunc( tmp.toLowerCase(), code ) ){
+			} else if( checkFunc( tmp, code ) ){
 				cur._code  = ClipGlobal.codeFunction;
 				cur._token = code.val();
 			} else if( checkStat( tmp, code ) ){
