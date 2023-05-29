@@ -1,3 +1,7 @@
+## 1.0.4
+
+Fixed bug.
+
 ## 1.0.3
 
 Changed not to do toLowerCase.

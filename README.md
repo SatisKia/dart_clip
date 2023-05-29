@@ -11,7 +11,7 @@ For the CLIP language, see "http://www5d.biglobe.ne.jp/~satis/clip/language_e.ht
 pubspec.yaml
 ```yml
 dependencies:
-  dart_clip: ^1.0.3
+  dart_clip: ^1.0.4
 ```
 
 ----------
