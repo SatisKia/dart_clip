@@ -18,11 +18,13 @@ import 'proc.dart';
 class ClipTokenData {
 	late int _code; // 識別コード
 	late dynamic _token; // トークン値
+	late String? _str;
 	late ClipTokenData? _before; // 前のトークン・データ
 	late ClipTokenData? _next; // 次のトークン・データ
 	ClipTokenData(){
 		_code   = 0;
 		_token  = null;
+		_str    = null;
 		_before = null;
 		_next   = null;
 	}
@@ -1367,9 +1369,10 @@ class ClipToken {
 			} else if( checkFunc( tmp, code ) ){
 				cur._code  = ClipGlobal.codeFunction;
 				cur._token = code.val();
-			} else if( checkStat( tmp, code ) ){
+			} else if( cur._before == null && checkStat( tmp, code ) ){
 				cur._code  = ClipGlobal.codeStatement;
 				cur._token = code.val();
+				cur._str   = tmp;
 			} else {
 				cur._token = MathValue();
 				if( checkDefine( tmp, cur._token ) ){
@@ -1949,6 +1952,10 @@ class ClipToken {
 		}
 
 		if( _top != null ){
+			if( _top!._code == ClipGlobal.codeStatement && _top!._token == ClipGlobal.statMultiEnd && _top!._next != null ){
+				_top!._code  = ClipGlobal.codeLabel;
+				_top!._token = _top!._str;
+			}
 			if( _top!._code == ClipGlobal.codeSe ){
 				if( topCount != 0 ){
 					return ClipGlobal.procErrSeOperand;

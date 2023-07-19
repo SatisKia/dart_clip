@@ -6405,8 +6405,13 @@ class ClipProc {
 		return ClipGlobal.noErr;
 	}
 	static int _loopBreak( ClipProc _this ){
-		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == _endTypeSwitch) ){
-			return _loopBreakSwi( _this );
+		for( int i = _this._endCnt; i > 0; i-- ){
+			if( _this._endType[i - 1] == _endTypeIf ){
+			} else if( _this._endType[i - 1] == _endTypeSwitch ){
+				return _loopBreakSwi( _this );
+			} else {
+				break;
+			}
 		}
 
 		if( _this._statMode == _statModeProcessing ){
@@ -7007,8 +7012,13 @@ class ClipProc {
 		return ClipGlobal.procSubEnd;
 	}
 	static int _statBreak( ClipProc _this, ClipParam param, int code, dynamic token ){
-		if( (_this._endCnt > 0) && (_this._endType[_this._endCnt - 1] == _endTypeSwitch) ){
-			return _statBreakSwi( _this, param, code, token );
+		for( int i = _this._endCnt; i > 0; i-- ){
+			if( _this._endType[i - 1] == _endTypeIf ){
+			} else if( _this._endType[i - 1] == _endTypeSwitch ){
+				return _statBreakSwi( _this, param, code, token );
+			} else {
+				break;
+			}
 		}
 
 		switch( _this._statMode ){
@@ -8308,6 +8318,13 @@ class ClipProc {
 
 		return ClipGlobal.procSubEnd;
 	}
+	static List<int> _expand( List<int> src, int len ){
+		List<int> tmp = List.filled( len + 1, 0 );
+		for( int i = 0; i < len; i++ ){
+			tmp[i] = src[i];
+		}
+		return tmp;
+	}
 	static int _commandArrayCopy( ClipProc _this, ClipParam param, int code, dynamic token ){
 		int i;
 		ClipTokenData? lock;
@@ -8336,6 +8353,7 @@ class ClipProc {
 
 		i = 0;
 		if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+			srcIndex = _expand( srcIndex, i );
 			srcIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 			i++;
 		} else {
@@ -8355,6 +8373,7 @@ class ClipProc {
 			}
 			_this._curLine.token()!.unlock( lock );
 			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				srcIndex = _expand( srcIndex, i );
 				srcIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 				i++;
 			} else {
@@ -8365,6 +8384,7 @@ class ClipProc {
 		i = 0;
 		while( true ){
 			if( _this._const( param, code, token, value ) == ClipGlobal.noErr ){
+				dstIndex = _expand( dstIndex, i );
 				dstIndex[i] = ClipMath.toInt( value.mat().mat(0).toFloat() ).toInt();
 				i++;
 			} else {
@@ -8388,6 +8408,7 @@ class ClipProc {
 					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
+			srcIndex = _expand( srcIndex, srcIndexSize );
 			srcIndex[srcIndexSize] = -1;
 
 			for( i = 0; i < dstIndexSize; i++ ){
@@ -8396,6 +8417,7 @@ class ClipProc {
 					return _this._retError( ClipGlobal.procErrCommandParam, code, token );
 				}
 			}
+			dstIndex = _expand( dstIndex, dstIndexSize );
 			dstIndex[dstIndexSize] = -1;
 
 			srcIndex[srcIndexSize - 1] += len;

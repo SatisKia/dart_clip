@@ -35,7 +35,7 @@ class ParamString {
 		int end = word.length;
 		if( end > 0 ){
 			int top = 0;
-			while( top < str().length ){
+			while( top < str().length && end <= str().length ){
 				if( str().substring( top, end ) == word ){
 					String forward = (top > 0) ? str().substring( 0, top ) : "";
 					String after   = (end < str().length) ? str().substring( end ) : "";

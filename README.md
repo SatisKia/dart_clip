@@ -11,7 +11,7 @@ For the CLIP language, see "http://www5d.biglobe.ne.jp/~satis/clip/language_e.ht
 pubspec.yaml
 ```yml
 dependencies:
-  dart_clip: ^1.0.4
+  dart_clip: ^1.0.5
 ```
 
 ----------
@@ -22,6 +22,12 @@ It provides the ability to easily run the CLIP engine from Dart.
 
 ```dart
 import 'package:dart_clip/clip.dart';
+```
+
+### Object construction
+
+```dart
+EasyClip clip = EasyClip();
 ```
 
 ### Overwriting functions
@@ -110,12 +116,6 @@ When manipulating the Canvas object inside the overwrite function, get the Canva
 Canvas canvas = EasyClip.curCanvas();
 ```
 
-### Object construction
-
-```dart
-EasyClip clip = EasyClip();
-```
-
 ### Set a value for a variable
 
 ```dart
@@ -190,7 +190,7 @@ String string = clip.getAnsMultiPrecString();
 
 Since the return value of the getAnsValue function is a MathValue object, you can use functions other than the toFloat, real, imag, fractMinus, num, and denom functions.
 
-### various settings
+### Various settings
 
 A group of functions that execute CLIP setting commands directly from Dart.
 
